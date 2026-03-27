@@ -1,0 +1,98 @@
+import { Head, useForm, Link } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
+import type { BreadcrumbItem } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import InputError from '@/components/input-error';
+import { ArrowLeft } from 'lucide-react';
+
+interface Patient {
+    id: string;
+    name: string;
+    phone: string | null;
+    type: 'pilates' | 'physiotherapy';
+    cpf: string | null;
+    address: string | null;
+}
+
+export default function PatientEdit({ patient }: { patient: Patient }) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Pacientes', href: '/patients' },
+        { title: patient.name, href: `/patients/${patient.id}` },
+        { title: 'Editar', href: `/patients/${patient.id}/edit` },
+    ];
+
+    const { data, setData, put, processing, errors } = useForm({
+        name: patient.name,
+        phone: patient.phone || '',
+        type: patient.type,
+        cpf: patient.cpf || '',
+        address: patient.address || '',
+    });
+
+    function handleSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        put(`/patients/${patient.id}`);
+    }
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title={`Editar - ${patient.name}`} />
+            <div className="flex h-full flex-1 flex-col gap-6 p-6 md:p-10 max-w-3xl mx-auto w-full">
+                <div className="flex items-center gap-4 mb-2">
+                    <Link href={`/patients/${patient.id}`} className="p-2 rounded-xl hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground">
+                        <ArrowLeft className="size-5" />
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">Editar Paciente</h1>
+                        <p className="text-muted-foreground text-sm mt-0.5">{patient.name}</p>
+                    </div>
+                </div>
+
+                <form onSubmit={handleSubmit} className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
+                    <div className="grid gap-2">
+                        <Label htmlFor="name">Nome completo *</Label>
+                        <Input id="name" value={data.name} onChange={e => setData('name', e.target.value)} className="bg-neutral-50 border-neutral-200" required />
+                        <InputError message={errors.name} />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid gap-2">
+                            <Label htmlFor="phone">Telefone</Label>
+                            <Input id="phone" value={data.phone} onChange={e => setData('phone', e.target.value)} className="bg-neutral-50 border-neutral-200" />
+                            <InputError message={errors.phone} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="cpf">CPF</Label>
+                            <Input id="cpf" value={data.cpf} onChange={e => setData('cpf', e.target.value)} className="bg-neutral-50 border-neutral-200" />
+                            <InputError message={errors.cpf} />
+                        </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="type">Tipo *</Label>
+                        <select id="type" value={data.type} onChange={e => setData('type', e.target.value as 'pilates' | 'physiotherapy')} className="flex h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                            <option value="physiotherapy">Fisioterapia</option>
+                            <option value="pilates">Pilates</option>
+                        </select>
+                        <InputError message={errors.type} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="address">Endereço</Label>
+                        <Input id="address" value={data.address} onChange={e => setData('address', e.target.value)} className="bg-neutral-50 border-neutral-200" />
+                        <InputError message={errors.address} />
+                    </div>
+
+                    <div className="flex items-center justify-end gap-4 pt-4 border-t border-border/30">
+                        <Link href={`/patients/${patient.id}`} className="px-5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">Cancelar</Link>
+                        <Button type="submit" disabled={processing} className="px-6 py-2.5 bg-primary text-white rounded-xl shadow-sm hover:bg-primary/90">
+                            {processing ? 'Salvando...' : 'Salvar Alterações'}
+                        </Button>
+                    </div>
+                </form>
+            </div>
+        </AppLayout>
+    );
+}
