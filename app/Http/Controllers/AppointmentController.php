@@ -9,15 +9,35 @@ use Inertia\Inertia;
 
 class AppointmentController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $appointments = Appointment::with('patient')
+        $query = Appointment::with('patient')
             ->orderBy('appointment_date', 'desc')
-            ->orderBy('start_time')
-            ->get();
+            ->orderBy('start_time');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->where('appointment_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->where('appointment_date', '<=', $request->date_to);
+        }
+
+        if ($request->filled('search')) {
+            $query->whereHas('patient', function ($q) use ($request) {
+                $q->where('name', 'ilike', '%' . $request->search . '%');
+            });
+        }
+
+        $appointments = $query->paginate(15)->withQueryString();
 
         return Inertia::render('appointments/index', [
-            'appointments' => $appointments
+            'appointments' => $appointments,
+            'filters' => $request->only(['status', 'date_from', 'date_to', 'search']),
         ]);
     }
 
@@ -41,6 +61,22 @@ class AppointmentController extends Controller
             'status' => 'required|in:scheduled,completed,cancelled',
             'notes' => 'nullable|string|max:1000',
         ]);
+
+        // Check for schedule conflict
+        $conflict = Appointment::where('appointment_date', $validated['appointment_date'])
+            ->where('status', '!=', 'cancelled')
+            ->where(function ($query) use ($validated) {
+                $start = $validated['start_time'];
+                $end = date('H:i', strtotime($start) + ($validated['duration_minutes'] * 60));
+                $query->where(function ($q) use ($start, $end) {
+                    $q->where('start_time', '<', $end)
+                      ->whereRaw("start_time::time + (duration_minutes || ' minutes')::interval > ?::time", [$start]);
+                });
+            })->exists();
+
+        if ($conflict) {
+            return back()->withErrors(['start_time' => 'Já existe um agendamento neste horário.'])->withInput();
+        }
 
         Appointment::create($validated);
 
@@ -77,6 +113,23 @@ class AppointmentController extends Controller
             'status' => 'required|in:scheduled,completed,cancelled',
             'notes' => 'nullable|string|max:1000',
         ]);
+
+        // Check for schedule conflict (exclude current appointment)
+        $conflict = Appointment::where('appointment_date', $validated['appointment_date'])
+            ->where('id', '!=', $appointment->id)
+            ->where('status', '!=', 'cancelled')
+            ->where(function ($query) use ($validated) {
+                $start = $validated['start_time'];
+                $end = date('H:i', strtotime($start) + ($validated['duration_minutes'] * 60));
+                $query->where(function ($q) use ($start, $end) {
+                    $q->where('start_time', '<', $end)
+                      ->whereRaw("start_time::time + (duration_minutes || ' minutes')::interval > ?::time", [$start]);
+                });
+            })->exists();
+
+        if ($conflict) {
+            return back()->withErrors(['start_time' => 'Já existe um agendamento neste horário.'])->withInput();
+        }
 
         $appointment->update($validated);
 

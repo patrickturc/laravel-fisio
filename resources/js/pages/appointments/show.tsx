@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { ArrowLeft, Edit, Trash2, Clock, User, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useConfirmModal } from '@/components/confirm-modal';
 
 interface Appointment {
     id: string;
@@ -21,10 +22,15 @@ export default function AppointmentShow({ appointment }: { appointment: Appointm
         { title: `${new Date(appointment.appointment_date).toLocaleDateString('pt-BR')}`, href: `/appointments/${appointment.id}` },
     ];
 
-    function handleDelete() {
-        if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-            router.delete(`/appointments/${appointment.id}`);
-        }
+    const { confirm, modal } = useConfirmModal();
+
+    async function handleDelete() {
+        const confirmed = await confirm({
+            title: 'Excluir Agendamento',
+            message: 'Tem certeza que deseja excluir este agendamento?',
+            confirmLabel: 'Excluir',
+        });
+        if (confirmed) router.delete(`/appointments/${appointment.id}`);
     }
 
     const statusLabel: Record<string, string> = { scheduled: 'Agendado', completed: 'Realizado', cancelled: 'Cancelado' };
@@ -66,6 +72,7 @@ export default function AppointmentShow({ appointment }: { appointment: Appointm
                     </motion.div>
                 )}
             </div>
+            {modal}
         </AppLayout>
     );
 }

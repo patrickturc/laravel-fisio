@@ -1,8 +1,9 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useConfirmModal } from '@/components/confirm-modal';
 
 interface Evolution {
     id: string;
@@ -32,10 +33,15 @@ export default function EvolutionShow({ evolution }: { evolution: Evolution }) {
         { title: new Date(evolution.data_atendimento).toLocaleDateString('pt-BR'), href: `/evolutions/${evolution.id}` },
     ];
 
-    function handleDelete() {
-        if (confirm('Tem certeza que deseja excluir esta evolução?')) {
-            router.delete(`/evolutions/${evolution.id}`);
-        }
+    const { confirm, modal } = useConfirmModal();
+
+    async function handleDelete() {
+        const confirmed = await confirm({
+            title: 'Excluir Evolução',
+            message: 'Tem certeza que deseja excluir esta evolução?',
+            confirmLabel: 'Excluir',
+        });
+        if (confirmed) router.delete(`/evolutions/${evolution.id}`);
     }
 
     const tipoLabel: Record<string, string> = { avaliacao: 'Avaliação', reavaliacao: 'Reavaliação', sessao: 'Sessão' };
@@ -64,6 +70,9 @@ export default function EvolutionShow({ evolution }: { evolution: Evolution }) {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        <a href={`/evolutions/${evolution.id}/pdf`} target="_blank" className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Exportar PDF">
+                            <Download className="size-4" />
+                        </a>
                         <Link href={`/evolutions/${evolution.id}/edit`} className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"><Edit className="size-4" /></Link>
                         <button onClick={handleDelete} className="p-2.5 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 className="size-4" /></button>
                     </div>
@@ -96,6 +105,7 @@ export default function EvolutionShow({ evolution }: { evolution: Evolution }) {
                     <Field label="Orientações Domiciliares" value={evolution.orientacoes_domiciliares} />
                 </Section>
             </div>
+            {modal}
         </AppLayout>
     );
 }

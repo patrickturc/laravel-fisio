@@ -132,6 +132,28 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                             </Link>
                         )}
                     </div>
+
+                    <div className="mt-16 sm:mt-24 w-full w-[90vw] sm:max-w-5xl mx-auto relative rounded-3xl overflow-hidden shadow-2xl shadow-primary/20 border border-white/20 bg-neutral-900/50 group">
+                        {/* Play button overlay (decorative) */}
+                        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                            <div className="size-20 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <Activity className="size-8 text-white ml-1" />
+                            </div>
+                        </div>
+                        <div className="aspect-[16/9] w-full bg-neutral-900">
+                            <video 
+                                autoPlay 
+                                loop 
+                                muted 
+                                playsInline 
+                                className="w-full h-full object-cover opacity-80"
+                                poster="https://images.unsplash.com/photo-1518611012118-696072aa579a?q=80&w=2670&auto=format&fit=crop"
+                            >
+                                <source src="/videos/hero.mp4" type="video/mp4" />
+                                Seu navegador não suporta vídeos HTML5.
+                            </video>
+                        </div>
+                    </div>
                 </section>
 
                 {/* Features Section */}

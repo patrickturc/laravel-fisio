@@ -8,12 +8,26 @@ use Inertia\Inertia;
 
 class PatientController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $patients = Patient::orderBy('name')->get();
+        $query = Patient::orderBy('name');
+
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'ilike', '%' . $request->search . '%')
+                  ->orWhere('cpf', 'ilike', '%' . $request->search . '%');
+            });
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        $patients = $query->paginate(20)->withQueryString();
 
         return Inertia::render('patients/index', [
-            'patients' => $patients
+            'patients' => $patients,
+            'filters' => $request->only(['search', 'type']),
         ]);
     }
 
