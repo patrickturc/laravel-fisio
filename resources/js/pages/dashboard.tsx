@@ -25,6 +25,15 @@ interface WeekDay {
     isSelected: boolean;
 }
 
+interface UpcomingBirthday {
+    id: string;
+    name: string;
+    birthdate: string;
+    isToday: boolean;
+    daysToBirthday: number;
+    age_turning: number;
+}
+
 interface Props {
     totalPatients: number;
     dayAppointments: DayAppointment[];
@@ -33,6 +42,7 @@ interface Props {
     selectedDate: string;
     weekDays: WeekDay[];
     weekLabel: string;
+    upcomingBirthdays: UpcomingBirthday[];
 }
 
 function navigateToDate(date: string) {
@@ -45,7 +55,7 @@ function shiftWeek(currentDate: string, direction: number) {
     navigateToDate(d.toISOString().split('T')[0]);
 }
 
-export default function Dashboard({ totalPatients, dayAppointments, dayCount, pendingEvolutions, selectedDate, weekDays, weekLabel }: Props) {
+export default function Dashboard({ totalPatients, dayAppointments, dayCount, pendingEvolutions, selectedDate, weekDays, weekLabel, upcomingBirthdays }: Props) {
     const statusLabel: Record<string, string> = { scheduled: 'Agendado', completed: 'Realizado', cancelled: 'Cancelado' };
     const statusColor: Record<string, string> = { scheduled: 'bg-blue-100 text-blue-700', completed: 'bg-emerald-100 text-emerald-700', cancelled: 'bg-red-100 text-red-700' };
 
@@ -186,6 +196,40 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
                             </div>
                         )}
                     </div>
+                </motion.div>
+
+                {/* Upcoming Birthdays */}
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                    className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-bold flex items-center gap-2">
+                            <span className="text-xl">🎂</span> Próximos Aniversários
+                        </h2>
+                    </div>
+                    
+                    {upcomingBirthdays.length === 0 ? (
+                        <div className="text-center py-6">
+                            <p className="text-muted-foreground text-sm">Nenhum aniversário nos próximos 7 dias.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {upcomingBirthdays.map(patient => (
+                                <Link key={patient.id} href={`/patients/${patient.id}`}
+                                    className={`flex items-center gap-4 p-4 rounded-xl border transition-all hover:shadow-md ${patient.isToday ? 'bg-primary/5 border-primary/30 ring-1 ring-primary/20' : 'bg-transparent border-border/40 hover:bg-muted/30'}`}>
+                                    <div className={`flex items-center justify-center size-12 rounded-full font-bold ${patient.isToday ? 'bg-primary text-white shadow-sm shadow-primary/30' : 'bg-muted text-muted-foreground'}`}>
+                                        {patient.age_turning}
+                                    </div>
+                                    <div className="flex-1 overflow-hidden">
+                                        <p className="font-semibold text-sm truncate">{patient.name}</p>
+                                        <p className={`text-xs mt-0.5 ${patient.isToday ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                                            {patient.isToday ? 'Hoje! 🎉' : `Daqui a ${patient.daysToBirthday} dia(s)`}
+                                        </p>
+                                    </div>
+                                    <ChevronRight className="size-4 text-muted-foreground/40" />
+                                </Link>
+                            ))}
+                        </div>
+                    )}
                 </motion.div>
 
                 {/* Quick Actions */}

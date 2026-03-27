@@ -10,6 +10,7 @@ import { ArrowLeft } from 'lucide-react';
 interface Patient {
     id: string;
     name: string;
+    birthdate: string | null;
     phone: string | null;
     type: 'pilates' | 'physiotherapy';
     cpf: string | null;
@@ -25,6 +26,7 @@ export default function PatientEdit({ patient }: { patient: Patient }) {
 
     const { data, setData, put, processing, errors } = useForm({
         name: patient.name,
+        birthdate: patient.birthdate || '',
         phone: patient.phone || '',
         type: patient.type,
         cpf: patient.cpf || '',
@@ -59,24 +61,31 @@ export default function PatientEdit({ patient }: { patient: Patient }) {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="grid gap-2">
+                            <Label htmlFor="birthdate">Data de Nascimento</Label>
+                            <Input id="birthdate" type="date" value={data.birthdate} onChange={e => setData('birthdate', e.target.value)} className="bg-neutral-50 border-neutral-200" />
+                            <InputError message={errors.birthdate} />
+                        </div>
+                        <div className="grid gap-2">
                             <Label htmlFor="phone">Telefone</Label>
                             <Input id="phone" value={data.phone} onChange={e => setData('phone', e.target.value)} className="bg-neutral-50 border-neutral-200" />
                             <InputError message={errors.phone} />
                         </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="grid gap-2">
                             <Label htmlFor="cpf">CPF</Label>
                             <Input id="cpf" value={data.cpf} onChange={e => setData('cpf', e.target.value)} className="bg-neutral-50 border-neutral-200" />
                             <InputError message={errors.cpf} />
                         </div>
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="type">Tipo *</Label>
-                        <select id="type" value={data.type} onChange={e => setData('type', e.target.value as 'pilates' | 'physiotherapy')} className="flex h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                            <option value="physiotherapy">Fisioterapia</option>
-                            <option value="pilates">Pilates</option>
-                        </select>
-                        <InputError message={errors.type} />
+                        <div className="grid gap-2">
+                            <Label htmlFor="type">Tipo *</Label>
+                            <select id="type" value={data.type} onChange={e => setData('type', e.target.value as 'pilates' | 'physiotherapy')} className="flex h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option value="physiotherapy">Fisioterapia</option>
+                                <option value="pilates">Pilates</option>
+                            </select>
+                            <InputError message={errors.type} />
+                        </div>
                     </div>
 
                     <div className="grid gap-2">

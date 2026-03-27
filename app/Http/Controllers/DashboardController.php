@@ -39,11 +39,36 @@ class DashboardController extends Controller
 
         $pendingEvolutions = Evolution::where('evolucao_status', 'pendente')->count();
 
+        $today = now();
+        $nextWeek = now()->addDays(7);
+        
+        $upcomingBirthdays = Patient::whereNotNull('birthdate')->get()->filter(function ($patient) use ($today, $nextWeek) {
+            $birthdayThisYear = $patient->birthdate->copy()->year($today->year);
+            if ($birthdayThisYear->isBefore($today->startOfDay())) {
+                $birthdayThisYear->addYear();
+            }
+            return $birthdayThisYear->between($today->startOfDay(), $nextWeek->endOfDay());
+        })->map(function ($patient) use ($today) {
+            $birthdayThisYear = $patient->birthdate->copy()->year($today->year);
+            if ($birthdayThisYear->isBefore($today->startOfDay())) {
+                $birthdayThisYear->addYear();
+            }
+            return [
+                'id' => $patient->id,
+                'name' => $patient->name,
+                'birthdate' => $patient->birthdate->format('Y-m-d'),
+                'isToday' => $birthdayThisYear->isToday(),
+                'daysToBirthday' => $today->startOfDay()->diffInDays($birthdayThisYear, false),
+                'age_turning' => $birthdayThisYear->year - $patient->birthdate->year
+            ];
+        })->sortBy('daysToBirthday')->values();
+
         return Inertia::render('dashboard', [
             'totalPatients' => $totalPatients,
             'dayAppointments' => $dayAppointments,
             'dayCount' => $dayAppointments->count(),
             'pendingEvolutions' => $pendingEvolutions,
+            'upcomingBirthdays' => $upcomingBirthdays,
             'selectedDate' => $selectedDate,
             'weekDays' => $weekDays,
             'weekLabel' => $startOfWeek->locale('pt_BR')->isoFormat('D [de] MMM') . ' — ' . $startOfWeek->copy()->addDays(6)->locale('pt_BR')->isoFormat('D [de] MMM, YYYY'),

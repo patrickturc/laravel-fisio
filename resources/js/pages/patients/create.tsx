@@ -15,6 +15,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function PatientCreate() {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
+        birthdate: '',
         phone: '',
         type: 'physiotherapy' as 'pilates' | 'physiotherapy',
         cpf: '',
@@ -50,29 +51,36 @@ export default function PatientCreate() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="grid gap-2">
+                            <Label htmlFor="birthdate">Data de Nascimento</Label>
+                            <Input id="birthdate" type="date" value={data.birthdate} onChange={e => setData('birthdate', e.target.value)} className="bg-neutral-50 border-neutral-200" />
+                            <InputError message={errors.birthdate} />
+                        </div>
+                        <div className="grid gap-2">
                             <Label htmlFor="phone">Telefone</Label>
                             <Input id="phone" value={data.phone} onChange={e => setData('phone', e.target.value)} placeholder="(11) 99999-9999" className="bg-neutral-50 border-neutral-200" />
                             <InputError message={errors.phone} />
                         </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="grid gap-2">
                             <Label htmlFor="cpf">CPF</Label>
                             <Input id="cpf" value={data.cpf} onChange={e => setData('cpf', e.target.value)} placeholder="000.000.000-00" className="bg-neutral-50 border-neutral-200" />
                             <InputError message={errors.cpf} />
                         </div>
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="type">Tipo de atendimento *</Label>
-                        <select
-                            id="type"
-                            value={data.type}
-                            onChange={e => setData('type', e.target.value as 'pilates' | 'physiotherapy')}
-                            className="flex h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                        >
-                            <option value="physiotherapy">Fisioterapia</option>
-                            <option value="pilates">Pilates</option>
-                        </select>
-                        <InputError message={errors.type} />
+                        <div className="grid gap-2">
+                            <Label htmlFor="type">Tipo de atendimento *</Label>
+                            <select
+                                id="type"
+                                value={data.type}
+                                onChange={e => setData('type', e.target.value as 'pilates' | 'physiotherapy')}
+                                className="flex h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                            >
+                                <option value="physiotherapy">Fisioterapia</option>
+                                <option value="pilates">Pilates</option>
+                            </select>
+                            <InputError message={errors.type} />
+                        </div>
                     </div>
 
                     <div className="grid gap-2">

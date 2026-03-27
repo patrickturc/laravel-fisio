@@ -9,14 +9,24 @@ class Patient extends Model
 {
     use HasUuids;
 
+    public $timestamps = false;
+
     protected $fillable = [
         'name',
         'phone',
+        'birthdate',
         'type',
         'cpf',
         'address',
         'user_id'
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'birthdate' => 'date',
+        ];
+    }
 
     public function user()
     {

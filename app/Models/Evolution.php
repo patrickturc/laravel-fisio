@@ -11,6 +11,8 @@ class Evolution extends Model
 
     protected $table = 'evolutions';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'paciente_id',
         'agendamento_id',

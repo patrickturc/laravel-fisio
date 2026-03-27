@@ -9,6 +9,8 @@ class Appointment extends Model
 {
     use HasUuids;
 
+    public $timestamps = false;
+
     protected $fillable = [
         'patient_id',
         'user_id',
