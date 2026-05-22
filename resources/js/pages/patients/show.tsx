@@ -1,19 +1,35 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-import { ArrowLeft, Phone, MapPin, Edit, Trash2, Calendar, FileText, Cake, Clock, Activity } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, Edit, Trash2, Calendar, FileText, Cake, Clock, Activity, Mail, User, Shield, Heart, Briefcase, Plus, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { useConfirmModal } from '@/components/confirm-modal';
+import { useState } from 'react';
 
 interface Patient {
     id: string;
     name: string;
+    nickname: string | null;
     phone: string | null;
+    email: string | null;
     type: 'pilates' | 'physiotherapy';
     cpf: string | null;
+    rg: string | null;
+    gender: string | null;
+    profession: string | null;
     address: string | null;
     birthdate: string | null;
+    emergency_contact_name: string | null;
+    emergency_contact_phone: string | null;
+    health_notes: string | null;
+    cep: string | null;
+    street: string | null;
+    number: string | null;
+    complement: string | null;
+    neighborhood: string | null;
+    city: string | null;
+    state: string | null;
     appointments: Array<{
         id: string;
         appointment_date: string;
@@ -29,6 +45,14 @@ interface Patient {
         queixa_principal: string | null;
         condutas_realizadas: string | null;
     }>;
+    memberships?: Array<{
+        id: string;
+        plan_name: string;
+        start_date: string;
+        end_date: string;
+        price: string;
+        status: string;
+    }>;
 }
 
 interface TimelineItem {
@@ -38,12 +62,15 @@ interface TimelineItem {
     data: any;
 }
 
+type Tab = 'info' | 'memberships' | 'timeline';
+
 export default function PatientShow({ patient }: { patient: Patient }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Pacientes', href: '/patients' },
-        { title: patient.name, href: `/patients/${patient.id}` },
+        { title: patient.nickname || patient.name, href: `/patients/${patient.id}` },
     ];
 
+    const [activeTab, setActiveTab] = useState<Tab>('info');
     const { confirm, modal } = useConfirmModal();
 
     async function handleDelete() {
@@ -55,7 +82,6 @@ export default function PatientShow({ patient }: { patient: Patient }) {
         if (confirmed) router.delete(`/patients/${patient.id}`);
     }
 
-    // Build timeline from appointments + evolutions
     const timeline: TimelineItem[] = [
         ...patient.appointments.map(a => ({
             id: `app-${a.id}`,
@@ -74,30 +100,59 @@ export default function PatientShow({ patient }: { patient: Patient }) {
     const statusLabel: Record<string, string> = { scheduled: 'Agendado', completed: 'Realizado', cancelled: 'Cancelado' };
     const statusColor: Record<string, string> = { scheduled: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' };
     const tipoLabel: Record<string, string> = { avaliacao: 'Avaliação', reavaliacao: 'Reavaliação', sessao: 'Sessão' };
+    const genderLabel: Record<string, string> = { male: 'Masculino', female: 'Feminino', other: 'Outro' };
 
     const age = patient.birthdate
         ? Math.floor((new Date().getTime() - new Date(patient.birthdate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
         : null;
 
+    const activeMembership = patient.memberships?.find(m => m.status === 'active');
+
+    const fullAddress = [patient.street, patient.number, patient.complement, patient.neighborhood, patient.city, patient.state].filter(Boolean).join(', ');
+
+    const tabs: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
+        { key: 'info', label: 'Informações Pessoais', icon: <User className="size-4" /> },
+        { key: 'memberships', label: 'Matrículas', icon: <Tag className="size-4" />, count: patient.memberships?.length },
+        { key: 'timeline', label: 'Prontuário', icon: <Clock className="size-4" />, count: timeline.length },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={patient.name} />
             <div className="flex h-full flex-1 flex-col gap-6 p-6 md:p-10 max-w-5xl mx-auto w-full">
+
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <Link href="/patients" className="p-2 rounded-xl hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground">
                             <ArrowLeft className="size-5" />
                         </Link>
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight">{patient.name}</h1>
-                            <div className="flex items-center gap-2 mt-1">
-                                <span className={`inline-block px-3 py-0.5 rounded-full text-xs font-semibold ${patient.type === 'pilates' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
-                                    {patient.type === 'pilates' ? 'Pilates' : 'Fisioterapia'}
-                                </span>
-                                {age !== null && (
-                                    <span className="text-sm text-muted-foreground">{age} anos</span>
-                                )}
+                        <div className="flex items-center gap-4">
+                            <div className="size-16 rounded-2xl bg-gradient-to-br from-primary/20 to-emerald-500/20 flex items-center justify-center text-primary text-2xl font-bold shadow-inner">
+                                {(patient.nickname || patient.name).charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold tracking-tight">{patient.name}</h1>
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                    {patient.nickname && (
+                                        <span className="text-sm text-muted-foreground">"{patient.nickname}"</span>
+                                    )}
+                                    <span className={`inline-block px-3 py-0.5 rounded-full text-xs font-semibold ${patient.type === 'pilates' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
+                                        {patient.type === 'pilates' ? 'Pilates' : 'Fisioterapia'}
+                                    </span>
+                                    {activeMembership ? (
+                                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                            ✓ Plano Ativo
+                                        </span>
+                                    ) : (
+                                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                                            Sem Plano
+                                        </span>
+                                    )}
+                                    {age !== null && (
+                                        <span className="text-sm text-muted-foreground">{age} anos</span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -111,117 +166,232 @@ export default function PatientShow({ patient }: { patient: Patient }) {
                     </div>
                 </div>
 
-                {/* Info Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {patient.phone && (
-                        <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 flex items-center gap-3">
-                            <div className="p-2.5 bg-primary/10 rounded-xl text-primary"><Phone className="size-4" /></div>
-                            <div><p className="text-xs text-muted-foreground">Telefone</p><p className="font-semibold text-sm">{patient.phone}</p></div>
-                        </div>
-                    )}
-                    {patient.cpf && (
-                        <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 flex items-center gap-3">
-                            <div className="p-2.5 bg-primary/10 rounded-xl text-primary"><FileText className="size-4" /></div>
-                            <div><p className="text-xs text-muted-foreground">CPF</p><p className="font-semibold text-sm">{patient.cpf}</p></div>
-                        </div>
-                    )}
-                    {patient.address && (
-                        <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 flex items-center gap-3">
-                            <div className="p-2.5 bg-primary/10 rounded-xl text-primary"><MapPin className="size-4" /></div>
-                            <div><p className="text-xs text-muted-foreground">Endereço</p><p className="font-semibold text-sm">{patient.address}</p></div>
-                        </div>
-                    )}
-                    {patient.birthdate && (
-                        <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 flex items-center gap-3">
-                            <div className="p-2.5 bg-pink-500/10 rounded-xl text-pink-600"><Cake className="size-4" /></div>
-                            <div><p className="text-xs text-muted-foreground">Nascimento</p><p className="font-semibold text-sm">{new Date(patient.birthdate).toLocaleDateString('pt-BR')}</p></div>
-                        </div>
-                    )}
-                </div>
-
                 {/* Quick actions */}
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-wrap">
                     <Link href={`/appointments/create?patient_id=${patient.id}`} className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-semibold hover:bg-primary/20 transition-colors">
                         <Calendar className="size-4" /> Novo Agendamento
                     </Link>
                     <Link href={`/evolutions/create?paciente_id=${patient.id}`} className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 text-indigo-600 rounded-xl text-sm font-semibold hover:bg-indigo-500/20 transition-colors">
                         <Activity className="size-4" /> Nova Evolução
                     </Link>
+                    <Link href={`/memberships/create?patient_id=${patient.id}`} className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-600 rounded-xl text-sm font-semibold hover:bg-emerald-500/20 transition-colors">
+                        <Plus className="size-4" /> Nova Matrícula
+                    </Link>
                 </div>
 
-                {/* Timeline */}
-                <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm">
-                    <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
-                        <Clock className="size-5 text-primary" /> Prontuário Completo
-                        <span className="text-sm font-normal text-muted-foreground ml-2">({timeline.length} registros)</span>
-                    </h2>
+                {/* Tabs */}
+                <div className="flex gap-1 bg-muted/30 p-1 rounded-xl border border-border/30">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab.key}
+                            onClick={() => setActiveTab(tab.key)}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex-1 justify-center ${activeTab === tab.key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-card/50'}`}
+                        >
+                            {tab.icon}
+                            <span className="hidden sm:inline">{tab.label}</span>
+                            {tab.count !== undefined && tab.count > 0 && (
+                                <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary/10 text-primary font-bold">{tab.count}</span>
+                            )}
+                        </button>
+                    ))}
+                </div>
 
-                    {timeline.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-8 text-center">Nenhum registro encontrado.</p>
-                    ) : (
-                        <div className="relative">
-                            {/* Timeline line */}
-                            <div className="absolute left-[18px] top-2 bottom-2 w-0.5 bg-border/50" />
+                {/* ── Tab: Informações Pessoais ── */}
+                {activeTab === 'info' && (
+                    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+                        {/* Info Cards Row */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {patient.phone && (
+                                <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 flex items-center gap-3">
+                                    <div className="p-2.5 bg-primary/10 rounded-xl text-primary"><Phone className="size-4" /></div>
+                                    <div><p className="text-xs text-muted-foreground">Telefone</p><p className="font-semibold text-sm">{patient.phone}</p></div>
+                                </div>
+                            )}
+                            {patient.email && (
+                                <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 flex items-center gap-3">
+                                    <div className="p-2.5 bg-primary/10 rounded-xl text-primary"><Mail className="size-4" /></div>
+                                    <div><p className="text-xs text-muted-foreground">E-mail</p><p className="font-semibold text-sm truncate">{patient.email}</p></div>
+                                </div>
+                            )}
+                            {patient.cpf && (
+                                <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 flex items-center gap-3">
+                                    <div className="p-2.5 bg-primary/10 rounded-xl text-primary"><FileText className="size-4" /></div>
+                                    <div><p className="text-xs text-muted-foreground">CPF</p><p className="font-semibold text-sm">{patient.cpf}</p></div>
+                                </div>
+                            )}
+                            {patient.birthdate && (
+                                <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 flex items-center gap-3">
+                                    <div className="p-2.5 bg-pink-500/10 rounded-xl text-pink-600"><Cake className="size-4" /></div>
+                                    <div><p className="text-xs text-muted-foreground">Nascimento</p><p className="font-semibold text-sm">{new Date(patient.birthdate).toLocaleDateString('pt-BR')}</p></div>
+                                </div>
+                            )}
+                        </div>
 
-                            <div className="space-y-1">
-                                {timeline.map((item, i) => (
-                                    <motion.div
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: i * 0.03 }}
-                                        key={item.id}
-                                        className="relative flex gap-4 pl-10 py-3 hover:bg-muted/20 rounded-xl transition-colors group"
-                                    >
-                                        {/* Dot */}
-                                        <div className={`absolute left-2.5 top-5 size-3 rounded-full border-2 border-background ${
-                                            item.type === 'appointment' ? 'bg-emerald-500' : 'bg-indigo-500'
-                                        }`} />
-
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap mb-1">
-                                                <span className="text-xs font-medium text-muted-foreground">
-                                                    {new Date(item.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
-                                                </span>
-                                                {item.type === 'appointment' ? (
-                                                    <>
-                                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                                                            Agendamento
-                                                        </span>
-                                                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${statusColor[item.data.status]}`}>
-                                                            {statusLabel[item.data.status]}
-                                                        </span>
-                                                        {item.data.start_time && (
-                                                            <span className="text-xs text-muted-foreground">{item.data.start_time.slice(0,5)} • {item.data.duration_minutes}min</span>
-                                                        )}
-                                                    </>
-                                                ) : (
-                                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
-                                                        {tipoLabel[item.data.tipo_atendimento] || item.data.tipo_atendimento}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {item.type === 'appointment' && item.data.notes && (
-                                                <p className="text-sm text-muted-foreground line-clamp-1">{item.data.notes}</p>
-                                            )}
-                                            {item.type === 'evolution' && (
-                                                <p className="text-sm text-muted-foreground line-clamp-1">
-                                                    {item.data.queixa_principal || item.data.condutas_realizadas || 'Sem detalhes'}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <Link
-                                            href={item.type === 'appointment' ? `/appointments/${item.data.id}` : `/evolutions/${item.data.id}`}
-                                            className="text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity self-center"
-                                        >
-                                            Ver →
-                                        </Link>
-                                    </motion.div>
-                                ))}
+                        {/* Dados Detalhados */}
+                        <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm">
+                            <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
+                                <User className="size-4 text-primary" /> Dados Pessoais
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 text-sm">
+                                {patient.gender && <div><span className="text-muted-foreground">Sexo</span><p className="font-medium">{genderLabel[patient.gender] || patient.gender}</p></div>}
+                                {patient.rg && <div><span className="text-muted-foreground">RG</span><p className="font-medium">{patient.rg}</p></div>}
+                                {patient.profession && <div><span className="text-muted-foreground">Profissão</span><p className="font-medium">{patient.profession}</p></div>}
                             </div>
                         </div>
-                    )}
-                </div>
+
+                        {/* Endereço */}
+                        {(fullAddress || patient.cep) && (
+                            <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm">
+                                <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
+                                    <MapPin className="size-4 text-primary" /> Endereço
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 text-sm">
+                                    {patient.cep && <div><span className="text-muted-foreground">CEP</span><p className="font-medium">{patient.cep}</p></div>}
+                                    {patient.street && <div><span className="text-muted-foreground">Logradouro</span><p className="font-medium">{patient.street}{patient.number ? `, ${patient.number}` : ''}</p></div>}
+                                    {patient.complement && <div><span className="text-muted-foreground">Complemento</span><p className="font-medium">{patient.complement}</p></div>}
+                                    {patient.neighborhood && <div><span className="text-muted-foreground">Bairro</span><p className="font-medium">{patient.neighborhood}</p></div>}
+                                    {patient.city && <div><span className="text-muted-foreground">Cidade</span><p className="font-medium">{patient.city}</p></div>}
+                                    {patient.state && <div><span className="text-muted-foreground">UF</span><p className="font-medium">{patient.state}</p></div>}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Emergência & Saúde */}
+                        {(patient.emergency_contact_name || patient.health_notes) && (
+                            <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm">
+                                <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
+                                    <Heart className="size-4 text-red-500" /> Contato de Emergência & Saúde
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                                    {patient.emergency_contact_name && <div><span className="text-muted-foreground">Contato de Emergência</span><p className="font-medium">{patient.emergency_contact_name} {patient.emergency_contact_phone && `• ${patient.emergency_contact_phone}`}</p></div>}
+                                </div>
+                                {patient.health_notes && (
+                                    <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl text-sm">
+                                        <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">⚠️ Observações Clínicas</p>
+                                        <p className="text-amber-900 dark:text-amber-300 whitespace-pre-line">{patient.health_notes}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+
+                {/* ── Tab: Matrículas ── */}
+                {activeTab === 'memberships' && (
+                    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-bold flex items-center gap-2">
+                                <Tag className="size-5 text-primary" /> Matrículas e Planos
+                            </h2>
+                            <Link href={`/memberships/create?patient_id=${patient.id}`} className="flex items-center gap-2 h-9 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors text-sm shadow-sm">
+                                <Plus className="size-4" /> Nova Matrícula
+                            </Link>
+                        </div>
+
+                        {patient.memberships && patient.memberships.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {patient.memberships.map(membership => (
+                                    <Link key={membership.id} href={`/memberships/${membership.id}`} className="bg-gradient-to-br from-card to-card/50 border border-border/50 rounded-2xl p-5 relative overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+                                        <div className={`absolute top-0 left-0 w-1.5 h-full ${membership.status === 'active' ? 'bg-emerald-500' : membership.status === 'expired' ? 'bg-amber-500' : 'bg-red-500'}`}></div>
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">{membership.plan_name}</h3>
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
+                                                membership.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
+                                                membership.status === 'expired' ? 'bg-amber-100 text-amber-700' :
+                                                'bg-red-100 text-red-700'
+                                            }`}>
+                                                {membership.status === 'active' ? 'Ativo' : membership.status === 'expired' ? 'Vencido' : 'Cancelado'}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground mb-1">
+                                            {new Date(membership.start_date).toLocaleDateString('pt-BR')} a {new Date(membership.end_date).toLocaleDateString('pt-BR')}
+                                        </p>
+                                        <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                                            R$ {parseFloat(membership.price).toFixed(2).replace('.', ',')}
+                                        </p>
+                                    </Link>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-12 text-center shadow-sm">
+                                <Tag className="size-12 text-muted-foreground/30 mx-auto mb-3" />
+                                <p className="text-muted-foreground text-sm">Nenhuma matrícula cadastrada.</p>
+                                <Link href={`/memberships/create?patient_id=${patient.id}`} className="text-primary text-sm font-semibold hover:text-primary/80 mt-2 inline-block">
+                                    Criar primeira matrícula →
+                                </Link>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+
+                {/* ── Tab: Prontuário (Timeline) ── */}
+                {activeTab === 'timeline' && (
+                    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                        <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm">
+                            <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
+                                <Clock className="size-5 text-primary" /> Prontuário Completo
+                                <span className="text-sm font-normal text-muted-foreground ml-2">({timeline.length} registros)</span>
+                            </h2>
+
+                            {timeline.length === 0 ? (
+                                <p className="text-sm text-muted-foreground py-8 text-center">Nenhum registro encontrado.</p>
+                            ) : (
+                                <div className="relative">
+                                    <div className="absolute left-[18px] top-2 bottom-2 w-0.5 bg-border/50" />
+                                    <div className="space-y-1">
+                                        {timeline.map((item, i) => (
+                                            <motion.div
+                                                initial={{ opacity: 0, x: -10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: i * 0.03 }}
+                                                key={item.id}
+                                                className="relative flex gap-4 pl-10 py-3 hover:bg-muted/20 rounded-xl transition-colors group"
+                                            >
+                                                <div className={`absolute left-2.5 top-5 size-3 rounded-full border-2 border-background ${
+                                                    item.type === 'appointment' ? 'bg-emerald-500' : 'bg-indigo-500'
+                                                }`} />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                        <span className="text-xs font-medium text-muted-foreground">
+                                                            {new Date(item.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                                                        </span>
+                                                        {item.type === 'appointment' ? (
+                                                            <>
+                                                                <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Agendamento</span>
+                                                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${statusColor[item.data.status]}`}>{statusLabel[item.data.status]}</span>
+                                                                {item.data.start_time && (
+                                                                    <span className="text-xs text-muted-foreground">{item.data.start_time.slice(0,5)} • {item.data.duration_minutes}min</span>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+                                                                {tipoLabel[item.data.tipo_atendimento] || item.data.tipo_atendimento}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {item.type === 'appointment' && item.data.notes && (
+                                                        <p className="text-sm text-muted-foreground line-clamp-1">{item.data.notes}</p>
+                                                    )}
+                                                    {item.type === 'evolution' && (
+                                                        <p className="text-sm text-muted-foreground line-clamp-1">
+                                                            {item.data.queixa_principal || item.data.condutas_realizadas || 'Sem detalhes'}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <Link
+                                                    href={item.type === 'appointment' ? `/appointments/${item.data.id}` : `/evolutions/${item.data.id}`}
+                                                    className="text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity self-center"
+                                                >
+                                                    Ver →
+                                                </Link>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
             </div>
             {modal}
         </AppLayout>

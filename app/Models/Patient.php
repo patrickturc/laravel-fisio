@@ -9,15 +9,28 @@ class Patient extends Model
 {
     use HasUuids;
 
-    public $timestamps = false;
-
     protected $fillable = [
         'name',
+        'nickname',
         'phone',
+        'email',
         'birthdate',
+        'gender',
         'type',
         'cpf',
+        'rg',
+        'profession',
         'address',
+        'emergency_contact_name',
+        'emergency_contact_phone',
+        'health_notes',
+        'cep',
+        'street',
+        'number',
+        'complement',
+        'neighborhood',
+        'city',
+        'state',
         'user_id'
     ];
 
@@ -41,5 +54,15 @@ class Patient extends Model
     public function evolutions()
     {
         return $this->hasMany(Evolution::class, 'paciente_id');
+    }
+
+    public function memberships()
+    {
+        return $this->hasMany(Membership::class);
+    }
+
+    public function activeMembership()
+    {
+        return $this->hasOne(Membership::class)->where('status', 'active')->latest('end_date');
     }
 }

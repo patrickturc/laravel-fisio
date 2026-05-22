@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, Users, CalendarRange, Activity, BarChart3, ClipboardList } from 'lucide-react';
+import { BookOpen, FolderGit2, LayoutGrid, Users, CalendarRange, Activity, BarChart3, ClipboardList, DollarSign, CreditCard } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -42,9 +42,19 @@ const mainNavItems: NavItem[] = [
         icon: BarChart3,
     },
     {
-        title: 'Planos',
+        title: 'Planos Clínicos',
         href: '/treatment-plans',
         icon: ClipboardList,
+    },
+    {
+        title: 'Matrículas',
+        href: '/memberships',
+        icon: CreditCard,
+    },
+    {
+        title: 'Financeiro',
+        href: '/financial',
+        icon: DollarSign,
     },
 ];
 

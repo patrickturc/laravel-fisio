@@ -84,6 +84,46 @@ class AppointmentController extends Controller
             ->with('success', 'Agendamento criado com sucesso!');
     }
 
+    public function events(Request $request)
+    {
+        $query = Appointment::with('patient');
+
+        if ($request->filled('start')) {
+            $query->where('appointment_date', '>=', substr($request->start, 0, 10));
+        }
+
+        if ($request->filled('end')) {
+            $query->where('appointment_date', '<', substr($request->end, 0, 10));
+        }
+
+        $appointments = $query->get();
+
+        $events = $appointments->map(function ($app) {
+            $start_datetime = $app->appointment_date->format('Y-m-d') . 'T' . $app->start_time;
+            $end_datetime = date('Y-m-d\TH:i:s', strtotime($start_datetime) + ($app->duration_minutes * 60));
+            
+            $bgColor = '#3b82f6'; // default blue
+            if ($app->status === 'completed') $bgColor = '#10b981'; // emerald
+            if ($app->status === 'cancelled') $bgColor = '#ef4444'; // red
+
+            return [
+                'id' => $app->id,
+                'title' => $app->patient ? $app->patient->name : 'Consulta',
+                'start' => $start_datetime,
+                'end' => $end_datetime,
+                'backgroundColor' => $bgColor,
+                'borderColor' => 'transparent',
+                'extendedProps' => [
+                    'status' => $app->status,
+                    'patient_id' => $app->patient_id,
+                ]
+            ];
+        });
+
+        return response()->json($events);
+    }
+
+
     public function show(Appointment $appointment)
     {
         $appointment->load('patient');

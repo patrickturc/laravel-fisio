@@ -100,6 +100,7 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
                                     <th className="px-6 py-4 hidden md:table-cell">CPF</th>
                                     <th className="px-6 py-4 hidden sm:table-cell">Telefone</th>
                                     <th className="px-6 py-4 text-center">Categoria</th>
+                                    <th className="px-6 py-4 text-center hidden lg:table-cell">Plano</th>
                                     <th className="px-6 py-4 text-right">Ações</th>
                                 </tr>
                             </thead>
@@ -115,11 +116,16 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
                                         >
                                             <td className="px-6 py-4 font-medium text-foreground flex items-center gap-3">
                                                 <div className="size-10 rounded-xl bg-gradient-to-br from-primary/10 to-emerald-500/10 flex items-center justify-center text-primary font-bold shadow-inner">
-                                                    {patient.name ? patient.name.charAt(0).toUpperCase() : '?'}
+                                                    {(patient.nickname || patient.name || '?').charAt(0).toUpperCase()}
                                                 </div>
-                                                <Link href={`/patients/${patient.id}`} className="hover:text-primary transition-colors">
-                                                    {patient.name}
-                                                </Link>
+                                                <div>
+                                                    <Link href={`/patients/${patient.id}`} className="hover:text-primary transition-colors">
+                                                        {patient.name}
+                                                    </Link>
+                                                    {patient.nickname && (
+                                                        <p className="text-xs text-muted-foreground">"{patient.nickname}"</p>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4 hidden md:table-cell text-muted-foreground">{patient.cpf || '-'}</td>
                                             <td className="px-6 py-4 hidden sm:table-cell text-muted-foreground">{patient.phone || '-'}</td>
@@ -130,6 +136,17 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
                                                 }`}>
                                                     {patient.type === 'pilates' ? 'Pilates' : 'Fisioterapia'}
                                                 </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-center hidden lg:table-cell">
+                                                {patient.active_membership ? (
+                                                    <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+                                                        ✓ {patient.active_membership.plan_name}
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+                                                        Sem Plano
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
@@ -145,7 +162,7 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-16 text-center text-muted-foreground">
+                                        <td colSpan={6} className="px-6 py-16 text-center text-muted-foreground">
                                             <div className="flex flex-col items-center justify-center">
                                                 <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
                                                     <Search className="size-6 text-muted-foreground/50" />

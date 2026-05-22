@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-import { Users, Calendar, FileText, Clock, Plus, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Users, Calendar, FileText, Clock, Plus, ChevronRight, ChevronLeft, TrendingUp, TrendingDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -43,6 +43,12 @@ interface Props {
     weekDays: WeekDay[];
     weekLabel: string;
     upcomingBirthdays: UpcomingBirthday[];
+    financialSummary: {
+        income: number;
+        expense: number;
+        pending_income: number;
+        pending_expense: number;
+    };
 }
 
 function navigateToDate(date: string) {
@@ -55,9 +61,13 @@ function shiftWeek(currentDate: string, direction: number) {
     navigateToDate(d.toISOString().split('T')[0]);
 }
 
-export default function Dashboard({ totalPatients, dayAppointments, dayCount, pendingEvolutions, selectedDate, weekDays, weekLabel, upcomingBirthdays }: Props) {
+export default function Dashboard({ totalPatients, dayAppointments, dayCount, pendingEvolutions, selectedDate, weekDays, weekLabel, upcomingBirthdays, financialSummary }: Props) {
     const statusLabel: Record<string, string> = { scheduled: 'Agendado', completed: 'Realizado', cancelled: 'Cancelado' };
     const statusColor: Record<string, string> = { scheduled: 'bg-blue-100 text-blue-700', completed: 'bg-emerald-100 text-emerald-700', cancelled: 'bg-red-100 text-red-700' };
+
+    const formatCurrency = (val: number) => {
+        return Number(val).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    };
 
     const selectedDayFormatted = new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -102,6 +112,41 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
                         </div>
                         <p className="text-3xl font-bold">{pendingEvolutions}</p>
                         <p className="text-sm text-muted-foreground mt-0.5">Evoluções pendentes</p>
+                    </motion.div>
+                </div>
+
+                {/* Financial Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
+                        className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent pointer-events-none" />
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-muted-foreground flex items-center gap-2">
+                                <span className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded-lg"><TrendingUp className="size-4" /></span>
+                                Receitas do Mês
+                            </h3>
+                            <Link href="/financial?type=income" className="text-xs font-semibold text-emerald-600 hover:text-emerald-500">Fluxo de Caixa →</Link>
+                        </div>
+                        <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">{formatCurrency(financialSummary.income)}</p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-[80%] line-clamp-1">
+                            +{formatCurrency(financialSummary.pending_income)} previstos para receber
+                        </p>
+                    </motion.div>
+
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }}
+                        className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-transparent pointer-events-none" />
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-muted-foreground flex items-center gap-2">
+                                <span className="p-1.5 bg-red-500/10 text-red-600 rounded-lg"><TrendingDown className="size-4" /></span>
+                                Despesas do Mês
+                            </h3>
+                            <Link href="/financial?type=expense" className="text-xs font-semibold text-red-600 hover:text-red-500">Fluxo de Caixa →</Link>
+                        </div>
+                        <p className="text-3xl font-bold text-red-600 dark:text-red-400 mt-2">{formatCurrency(financialSummary.expense)}</p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-[80%] line-clamp-1">
+                            +{formatCurrency(financialSummary.pending_expense)} previstos para pagar
+                        </p>
                     </motion.div>
                 </div>
 

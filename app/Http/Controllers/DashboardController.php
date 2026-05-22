@@ -63,6 +63,16 @@ class DashboardController extends Controller
             ];
         })->sortBy('daysToBirthday')->values();
 
+        $currentMonth = now()->month;
+        $currentYear = now()->year;
+
+        $financialSummary = [
+            'income' => \App\Models\FinancialTransaction::where('type', 'income')->where('status', 'paid')->whereMonth('date', $currentMonth)->whereYear('date', $currentYear)->sum('amount'),
+            'expense' => \App\Models\FinancialTransaction::where('type', 'expense')->where('status', 'paid')->whereMonth('date', $currentMonth)->whereYear('date', $currentYear)->sum('amount'),
+            'pending_income' => \App\Models\FinancialTransaction::where('type', 'income')->where('status', 'pending')->whereMonth('date', $currentMonth)->whereYear('date', $currentYear)->sum('amount'),
+            'pending_expense' => \App\Models\FinancialTransaction::where('type', 'expense')->where('status', 'pending')->whereMonth('date', $currentMonth)->whereYear('date', $currentYear)->sum('amount'),
+        ];
+
         return Inertia::render('dashboard', [
             'totalPatients' => $totalPatients,
             'dayAppointments' => $dayAppointments,
@@ -72,6 +82,7 @@ class DashboardController extends Controller
             'selectedDate' => $selectedDate,
             'weekDays' => $weekDays,
             'weekLabel' => $startOfWeek->locale('pt_BR')->isoFormat('D [de] MMM') . ' — ' . $startOfWeek->copy()->addDays(6)->locale('pt_BR')->isoFormat('D [de] MMM, YYYY'),
+            'financialSummary' => $financialSummary,
         ]);
     }
 }
