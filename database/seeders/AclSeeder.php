@@ -108,8 +108,8 @@ class AclSeeder extends Seeder
             'treatment_plans.manage.edit',
         ]);
 
-        // Assign 'Administrador' role to the first user (if exists)
-        $user = User::find(1);
+        // Assign 'Administrador' role to the admin user
+        $user = User::where('email', 'paturchette@gmail.com')->first();
         if ($user) {
             $user->assignRole($roleAdmin);
         }

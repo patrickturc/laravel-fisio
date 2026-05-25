@@ -13,11 +13,16 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Cria usuário Admin padrão
+        $admin = User::firstOrCreate(
+            ['email' => 'paturchette@gmail.com'],
+            [
+                'name' => 'Patrick Turchetti',
+                'password' => bcrypt('password'), // Senha padrão inicial
+            ]
+        );
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // Chama o seeder de permissões e perfis
+        $this->call(AclSeeder::class);
     }
 }
