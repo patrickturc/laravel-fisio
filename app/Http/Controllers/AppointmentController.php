@@ -78,6 +78,7 @@ class AppointmentController extends Controller
             return back()->withErrors(['start_time' => 'Já existe um agendamento neste horário.'])->withInput();
         }
 
+        $validated['user_id'] = auth()->id();
         Appointment::create($validated);
 
         return redirect()->route('appointments.index')

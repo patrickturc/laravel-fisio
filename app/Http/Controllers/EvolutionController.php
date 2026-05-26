@@ -70,6 +70,7 @@ class EvolutionController extends Controller
             'orientacoes_domiciliares' => 'nullable|string',
         ]);
 
+        $validated['profissional_id'] = auth()->id();
         Evolution::create($validated);
 
         return redirect()->route('evolutions.index')

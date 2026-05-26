@@ -64,6 +64,7 @@ class PatientController extends Controller
             'state' => 'nullable|string|max:2',
         ]);
 
+        $validated['user_id'] = auth()->id();
         Patient::create($validated);
 
         return redirect()->route('patients.index')
