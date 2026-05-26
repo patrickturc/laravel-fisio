@@ -4,21 +4,46 @@ import { type BreadcrumbItem } from '@/types';
 import { Save, ArrowLeft, Tag, Calendar as CalendarIcon, DollarSign } from 'lucide-react';
 import { FormEvent } from 'react';
 
-export default function MembershipEdit({ membership, patients }: { membership: any; patients: any[] }) {
+export default function MembershipEdit({ membership, patients, commercialPlans }: { membership: any; patients: any[]; commercialPlans: any[] }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Matrículas', href: '/memberships' },
-        { title: membership.plan_name, href: `/memberships/${membership.id}` },
+        { title: membership.plan_name || 'Editar Matrícula', href: `/memberships/${membership.id}` },
         { title: 'Editar', href: `/memberships/${membership.id}/edit` },
     ];
 
     const { data, setData, put, processing, errors } = useForm({
         patient_id: membership.patient_id || '',
-        plan_name: membership.plan_name || '',
+        commercial_plan_id: membership.commercial_plan_id || '',
+        plan_name: membership.plan_name || '', // Kept for backwards compatibility
         start_date: membership.start_date ? membership.start_date.split('T')[0] : '',
         end_date: membership.end_date ? membership.end_date.split('T')[0] : '',
         price: membership.price || '',
         status: membership.status || 'active',
     });
+
+    const handlePlanChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const planId = e.target.value;
+        const selectedPlan = commercialPlans.find(p => p.id === planId);
+        
+        if (selectedPlan) {
+            let newEndDate = data.end_date;
+            if (selectedPlan.duration_months && data.start_date) {
+                const start = new Date(data.start_date);
+                start.setMonth(start.getMonth() + selectedPlan.duration_months);
+                newEndDate = start.toISOString().split('T')[0];
+            }
+            
+            setData(data => ({
+                ...data,
+                commercial_plan_id: planId,
+                price: selectedPlan.price,
+                end_date: newEndDate,
+                plan_name: selectedPlan.name // Store name just in case
+            }));
+        } else {
+            setData('commercial_plan_id', '');
+        }
+    };
 
     function submit(e: FormEvent) {
         e.preventDefault();
@@ -27,7 +52,7 @@ export default function MembershipEdit({ membership, patients }: { membership: a
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Editar ${membership.plan_name} - Phisio`} />
+            <Head title={`Editar Matrícula - Phisio`} />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6 md:p-10 max-w-4xl mx-auto w-full">
                 
@@ -62,18 +87,22 @@ export default function MembershipEdit({ membership, patients }: { membership: a
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">Nome do Plano</label>
+                                <label className="text-sm font-medium text-foreground">Pacote Comercial</label>
                                 <div className="relative">
                                     <Tag className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                                    <input
-                                        type="text"
-                                        placeholder="Ex: Mensal 2x Sem."
-                                        value={data.plan_name}
-                                        onChange={e => setData('plan_name', e.target.value)}
+                                    <select
+                                        value={data.commercial_plan_id || ''}
+                                        onChange={handlePlanChange}
                                         className="w-full h-11 pl-10 pr-3 border border-border rounded-xl bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
                                         required
-                                    />
+                                    >
+                                        <option value="">Selecione um pacote...</option>
+                                        {commercialPlans.map(p => (
+                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
+                                {errors.commercial_plan_id && <p className="text-sm text-red-500 mt-1">{errors.commercial_plan_id}</p>}
                                 {errors.plan_name && <p className="text-sm text-red-500 mt-1">{errors.plan_name}</p>}
                             </div>
 

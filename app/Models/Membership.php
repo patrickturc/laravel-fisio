@@ -11,12 +11,18 @@ class Membership extends Model
 
     protected $fillable = [
         'patient_id',
+        'commercial_plan_id',
         'plan_name',
         'start_date',
         'end_date',
         'price',
         'status',
     ];
+
+    public function commercialPlan()
+    {
+        return $this->belongsTo(CommercialPlan::class);
+    }
 
     protected function casts(): array
     {

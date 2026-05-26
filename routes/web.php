@@ -20,6 +20,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('reports/pdf', [App\Http\Controllers\ReportController::class, 'pdf'])->name('reports.pdf');
     Route::get('evolutions/{evolution}/pdf', [App\Http\Controllers\EvolutionController::class, 'pdf'])->name('evolutions.pdf');
     Route::resource('treatment-plans', App\Http\Controllers\TreatmentPlanController::class);
+    Route::resource('commercial-plans', App\Http\Controllers\CommercialPlanController::class);
 });
 
 require __DIR__.'/settings.php';

@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { Pagination } from '@/components/pagination';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Planos de Tratamento', href: '/treatment-plans' },
+    { title: 'Protocolos Clínicos', href: '/treatment-plans' },
 ];
 
 interface PaginatedPlans {
@@ -46,11 +46,11 @@ export default function TreatmentPlansIndex({ plans, filters = {} }: { plans: Pa
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Planos de Tratamento - Phisio" />
+            <Head title="Protocolos Clínicos - Phisio" />
             <div className="flex h-full flex-1 flex-col gap-6 p-6 md:p-10 max-w-7xl mx-auto w-full">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-emerald-600">Planos de Tratamento</h1>
+                        <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-emerald-600">Protocolos Clínicos</h1>
                         <p className="text-muted-foreground mt-1">Acompanhe o progresso dos tratamentos dos seus pacientes.</p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -73,7 +73,7 @@ export default function TreatmentPlansIndex({ plans, filters = {} }: { plans: Pa
                             <button onClick={clearFilters} className="h-10 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl transition-colors border border-border">Limpar</button>
                         )}
                         <Link href="/treatment-plans/create" className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm">
-                            <Plus className="size-4" /><span className="hidden sm:inline">Novo Plano</span>
+                            <Plus className="size-4" /><span className="hidden sm:inline">Novo Protocolo</span>
                         </Link>
                     </div>
                 </div>
@@ -113,8 +113,8 @@ export default function TreatmentPlansIndex({ plans, filters = {} }: { plans: Pa
                     }) : (
                         <div className="col-span-full py-24 flex flex-col items-center justify-center text-center bg-card/30 rounded-3xl border border-dashed border-border">
                             <ClipboardList className="size-12 text-muted-foreground/40 mb-4" />
-                            <h3 className="text-xl font-bold mb-2">Nenhum plano encontrado</h3>
-                            <p className="text-muted-foreground">Crie um plano de tratamento para acompanhar o progresso.</p>
+                            <h3 className="text-xl font-bold mb-2">Nenhum protocolo encontrado</h3>
+                            <p className="text-muted-foreground">Crie um protocolo clínico para acompanhar o progresso.</p>
                         </div>
                     )}
                 </div>

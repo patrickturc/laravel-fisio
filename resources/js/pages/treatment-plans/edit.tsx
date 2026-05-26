@@ -19,7 +19,7 @@ interface TreatmentPlan {
 
 export default function TreatmentPlanEdit({ plan, patients }: { plan: TreatmentPlan; patients: { id: string; name: string }[] }) {
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Planos de Tratamento', href: '/treatment-plans' },
+        { title: 'Protocolos Clínicos', href: '/treatment-plans' },
         { title: plan.title, href: `/treatment-plans/${plan.id}` },
         { title: 'Editar', href: `/treatment-plans/${plan.id}/edit` },
     ];
@@ -47,7 +47,7 @@ export default function TreatmentPlanEdit({ plan, patients }: { plan: TreatmentP
             <div className="flex h-full flex-1 flex-col gap-6 p-6 md:p-10 max-w-3xl mx-auto w-full">
                 <div className="flex items-center gap-4">
                     <Link href={`/treatment-plans/${plan.id}`} className="p-2 rounded-xl hover:bg-muted/50 transition-colors text-muted-foreground"><ArrowLeft className="size-5" /></Link>
-                    <h1 className="text-2xl font-bold tracking-tight">Editar Plano</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">Editar Protocolo</h1>
                 </div>
 
                 <motion.form initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleSubmit}

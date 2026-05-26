@@ -108,7 +108,7 @@ export default function MembershipsIndex({ memberships, filters = {} }: { member
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-1.5 text-foreground/80 font-medium">
                                                     <Tag className="size-3.5 text-muted-foreground" />
-                                                    {membership.plan_name}
+                                                    {membership.commercial_plan?.name || membership.plan_name}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">

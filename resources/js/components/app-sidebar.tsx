@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, Users, CalendarRange, Activity, BarChart3, ClipboardList, DollarSign, CreditCard, Settings, ShieldCheck } from 'lucide-react';
+import { BookOpen, FolderGit2, LayoutGrid, Users, CalendarRange, Activity, BarChart3, ClipboardList, DollarSign, CreditCard, Settings, ShieldCheck, Tag } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -29,12 +29,13 @@ export function AppSidebar() {
         { title: 'Agenda', href: '/appointments', icon: CalendarRange, show: can('appointments.manage.view') },
         { title: 'Evoluções', href: '/evolutions', icon: Activity, show: can('evolutions.manage.view') },
         { title: 'Relatórios', href: '/reports', icon: BarChart3, show: can('reports.manage.view') },
-        { title: 'Planos Clínicos', href: '/treatment-plans', icon: ClipboardList, show: can('treatment_plans.manage.view') },
+        { title: 'Protocolos Clínicos', href: '/treatment-plans', icon: ClipboardList, show: can('treatment_plans.manage.view') },
         { title: 'Matrículas', href: '/memberships', icon: CreditCard, show: can('memberships.manage.view') },
         { title: 'Financeiro', href: '/financial', icon: DollarSign, show: can('financial.transactions.view') },
     ].filter(item => item.show);
 
     const settingsNavItems = [
+        { title: 'Planos e Pacotes', href: '/commercial-plans', icon: Tag, show: can('memberships.manage.view') },
         { title: 'Usuários', href: '/settings/users', icon: Users, show: can('settings.users.view') },
         { title: 'Perfis de Acesso', href: '/settings/roles', icon: ShieldCheck, show: can('settings.roles.view') },
     ].filter(item => item.show);

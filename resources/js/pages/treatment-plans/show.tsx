@@ -27,7 +27,7 @@ interface TreatmentPlan {
 
 export default function TreatmentPlanShow({ plan }: { plan: TreatmentPlan }) {
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Planos de Tratamento', href: '/treatment-plans' },
+        { title: 'Protocolos Clínicos', href: '/treatment-plans' },
         { title: plan.title, href: `/treatment-plans/${plan.id}` },
     ];
 
@@ -35,8 +35,8 @@ export default function TreatmentPlanShow({ plan }: { plan: TreatmentPlan }) {
 
     async function handleDelete() {
         const confirmed = await confirm({
-            title: 'Excluir Plano',
-            message: 'Tem certeza que deseja excluir este plano de tratamento?',
+            title: 'Excluir Protocolo',
+            message: 'Tem certeza que deseja excluir este protocolo clínico?',
             confirmLabel: 'Excluir',
         });
         if (confirmed) router.delete(`/treatment-plans/${plan.id}`);

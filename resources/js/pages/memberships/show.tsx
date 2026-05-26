@@ -6,9 +6,11 @@ import { useConfirmModal, ConfirmModal } from '@/components/confirm-modal';
 import { motion } from 'framer-motion';
 
 export default function MembershipShow({ membership }: { membership: any }) {
+    const planName = membership.commercial_plan?.name || membership.plan_name;
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Matrículas', href: '/memberships' },
-        { title: membership.plan_name, href: `/memberships/${membership.id}` },
+        { title: planName || 'Detalhes da Matrícula', href: `/memberships/${membership.id}` },
     ];
 
     const confirm = useConfirmModal();
@@ -37,7 +39,7 @@ export default function MembershipShow({ membership }: { membership: any }) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`${membership.plan_name} - Phisio`} />
+            <Head title={`${planName} - Phisio`} />
             <ConfirmModal {...confirm} />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6 md:p-10 max-w-4xl mx-auto w-full">
@@ -48,7 +50,7 @@ export default function MembershipShow({ membership }: { membership: any }) {
                             <ArrowLeft className="size-5 text-muted-foreground" />
                         </Link>
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-foreground">{membership.plan_name}</h1>
+                            <h1 className="text-3xl font-bold tracking-tight text-foreground">{planName}</h1>
                             <p className="text-muted-foreground mt-1">Detalhes da matrícula</p>
                         </div>
                     </div>
@@ -161,7 +163,7 @@ export default function MembershipShow({ membership }: { membership: any }) {
                             <label className="text-sm text-muted-foreground">Plano</label>
                             <div className="flex items-center gap-2">
                                 <Tag className="size-4 text-muted-foreground" />
-                                <span className="font-medium text-foreground">{membership.plan_name}</span>
+                                <span className="font-medium text-foreground">{planName}</span>
                             </div>
                         </div>
 

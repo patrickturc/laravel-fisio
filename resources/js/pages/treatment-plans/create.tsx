@@ -5,7 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Planos de Tratamento', href: '/treatment-plans' },
+    { title: 'Protocolos Clínicos', href: '/treatment-plans' },
     { title: 'Novo', href: '/treatment-plans/create' },
 ];
 
@@ -27,11 +27,11 @@ export default function TreatmentPlanCreate({ patients }: { patients: { id: stri
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Novo Plano de Tratamento" />
+            <Head title="Novo Protocolo Clínico" />
             <div className="flex h-full flex-1 flex-col gap-6 p-6 md:p-10 max-w-3xl mx-auto w-full">
                 <div className="flex items-center gap-4">
                     <Link href="/treatment-plans" className="p-2 rounded-xl hover:bg-muted/50 transition-colors text-muted-foreground"><ArrowLeft className="size-5" /></Link>
-                    <h1 className="text-2xl font-bold tracking-tight">Novo Plano de Tratamento</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">Novo Protocolo Clínico</h1>
                 </div>
 
                 <motion.form initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleSubmit}
@@ -88,7 +88,7 @@ export default function TreatmentPlanCreate({ patients }: { patients: { id: stri
                     <div className="flex justify-end pt-4">
                         <button type="submit" disabled={processing}
                             className="px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50">
-                            Criar Plano
+                            Criar Protocolo
                         </button>
                     </div>
                 </motion.form>
