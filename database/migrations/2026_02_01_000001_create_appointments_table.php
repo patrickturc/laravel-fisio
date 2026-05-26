@@ -15,6 +15,7 @@ return new class extends Migration
         Schema::create('appointments', function (Blueprint $table) {
             $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
             $table->timestampTz('created_at')->default(DB::raw("timezone('utc'::text, now())"));
+            $table->timestamp("updated_at")->nullable();
             $table->uuid('patient_id')->index('idx_appointments_patient');
             $table->foreignId('user_id');
             $table->date('appointment_date');
