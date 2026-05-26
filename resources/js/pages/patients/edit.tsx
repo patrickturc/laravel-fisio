@@ -68,6 +68,53 @@ export default function PatientEdit({ patient }: { patient: Patient }) {
         put(`/patients/${patient.id}`);
     }
 
+    const maskCPF = (value: string) => {
+        return value
+            .replace(/\D/g, '')
+            .replace(/(\d{3})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+            .replace(/(-\d{2})\d+?$/, '$1');
+    };
+
+    const maskPhone = (value: string) => {
+        return value
+            .replace(/\D/g, '')
+            .replace(/(\d{2})(\d)/, '($1) $2')
+            .replace(/(\d{5})(\d)/, '$1-$2')
+            .replace(/(-\d{4})\d+?$/, '$1');
+    };
+
+    const maskCEP = (value: string) => {
+        return value
+            .replace(/\D/g, '')
+            .replace(/(\d{5})(\d)/, '$1-$2')
+            .replace(/(-\d{3})\d+?$/, '$1');
+    };
+
+    const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const maskedCep = maskCEP(e.target.value);
+        setData('cep', maskedCep);
+
+        if (maskedCep.length === 9) {
+            try {
+                const response = await fetch(`https://viacep.com.br/ws/${maskedCep.replace('-', '')}/json/`);
+                const json = await response.json();
+                if (!json.erro) {
+                    setData(data => ({
+                        ...data,
+                        street: json.logradouro || data.street,
+                        neighborhood: json.bairro || data.neighborhood,
+                        city: json.localidade || data.city,
+                        state: json.uf || data.state,
+                    }));
+                }
+            } catch (error) {
+                console.error("Erro ao buscar CEP:", error);
+            }
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Editar - ${patient.name}`} />
@@ -123,7 +170,7 @@ export default function PatientEdit({ patient }: { patient: Patient }) {
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="cpf">CPF</Label>
-                                <Input id="cpf" value={data.cpf} onChange={e => setData('cpf', e.target.value)} placeholder="000.000.000-00" className="bg-background" />
+                                <Input id="cpf" value={data.cpf} onChange={e => setData('cpf', maskCPF(e.target.value))} placeholder="000.000.000-00" maxLength={14} className="bg-background" />
                                 <InputError message={errors.cpf} />
                             </div>
                             <div className="grid gap-2">
@@ -160,7 +207,7 @@ export default function PatientEdit({ patient }: { patient: Patient }) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div className="grid gap-2">
                                 <Label htmlFor="phone">Telefone</Label>
-                                <Input id="phone" value={data.phone} onChange={e => setData('phone', e.target.value)} placeholder="(11) 99999-9999" className="bg-background" />
+                                <Input id="phone" value={data.phone} onChange={e => setData('phone', maskPhone(e.target.value))} placeholder="(11) 99999-9999" maxLength={15} className="bg-background" />
                                 <InputError message={errors.phone} />
                             </div>
                             <div className="grid gap-2">
@@ -181,7 +228,7 @@ export default function PatientEdit({ patient }: { patient: Patient }) {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                             <div className="grid gap-2">
                                 <Label htmlFor="cep">CEP</Label>
-                                <Input id="cep" value={data.cep} onChange={e => setData('cep', e.target.value)} placeholder="00000-000" className="bg-background" />
+                                <Input id="cep" value={data.cep} onChange={handleCepChange} placeholder="00000-000" maxLength={9} className="bg-background" />
                                 <InputError message={errors.cep} />
                             </div>
                             <div className="grid gap-2 md:col-span-2">
@@ -238,7 +285,7 @@ export default function PatientEdit({ patient }: { patient: Patient }) {
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="emergency_contact_phone">Telefone de emergência</Label>
-                                <Input id="emergency_contact_phone" value={data.emergency_contact_phone} onChange={e => setData('emergency_contact_phone', e.target.value)} placeholder="(11) 99999-9999" className="bg-background" />
+                                <Input id="emergency_contact_phone" value={data.emergency_contact_phone} onChange={e => setData('emergency_contact_phone', maskPhone(e.target.value))} placeholder="(11) 99999-9999" maxLength={15} className="bg-background" />
                                 <InputError message={errors.emergency_contact_phone} />
                             </div>
                         </div>

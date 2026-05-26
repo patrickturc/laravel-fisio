@@ -53,6 +53,13 @@ export default function MembershipShow({ membership }: { membership: any }) {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => router.post(`/memberships/${membership.id}/renew`)}
+                            className="flex items-center gap-2 h-10 px-4 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
+                        >
+                            <CalendarIcon className="size-4" />
+                            Renovar
+                        </button>
                         <Link
                             href={`/memberships/${membership.id}/edit`}
                             className="flex items-center gap-2 h-10 px-4 bg-card border border-border text-foreground font-medium rounded-xl hover:bg-muted transition-colors shadow-sm"

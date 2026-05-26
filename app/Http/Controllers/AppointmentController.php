@@ -60,29 +60,69 @@ class AppointmentController extends Controller
             'duration_minutes' => 'required|integer|min:10|max:180',
             'status' => 'required|in:scheduled,completed,cancelled',
             'notes' => 'nullable|string|max:1000',
+            'is_recurring' => 'nullable|boolean',
+            'recurrence_end_date' => 'nullable|required_if:is_recurring,true|date|after_or_equal:appointment_date',
         ]);
 
-        // Check for schedule conflict
-        $conflict = Appointment::where('appointment_date', $validated['appointment_date'])
-            ->where('status', '!=', 'cancelled')
-            ->where(function ($query) use ($validated) {
-                $start = $validated['start_time'];
-                $end = date('H:i', strtotime($start) + ($validated['duration_minutes'] * 60));
-                $query->where(function ($q) use ($start, $end) {
-                    $q->where('start_time', '<', $end)
-                      ->whereRaw("start_time::time + (duration_minutes || ' minutes')::interval > ?::time", [$start]);
-                });
-            })->exists();
+        $userId = auth()->id();
+        $isRecurring = $request->boolean('is_recurring');
+        $endDate = $isRecurring ? \Carbon\Carbon::parse($validated['recurrence_end_date']) : \Carbon\Carbon::parse($validated['appointment_date']);
+        $currentDate = \Carbon\Carbon::parse($validated['appointment_date']);
+        
+        $createdCount = 0;
+        $conflictCount = 0;
 
-        if ($conflict) {
-            return back()->withErrors(['start_time' => 'Já existe um agendamento neste horário.'])->withInput();
+        while ($currentDate->lessThanOrEqualTo($endDate)) {
+            $dateString = $currentDate->format('Y-m-d');
+
+            // Check for schedule conflict
+            $conflict = Appointment::where('appointment_date', $dateString)
+                ->where('status', '!=', 'cancelled')
+                ->where(function ($query) use ($validated) {
+                    $start = $validated['start_time'];
+                    $end = date('H:i', strtotime($start) + ($validated['duration_minutes'] * 60));
+                    $query->where(function ($q) use ($start, $end) {
+                        $q->where('start_time', '<', $end)
+                          ->whereRaw("start_time::time + (duration_minutes || ' minutes')::interval > ?::time", [$start]);
+                    });
+                })->exists();
+
+            if ($conflict) {
+                // If it's the very first requested date, we fail immediately to let the user know
+                if ($createdCount === 0 && !$isRecurring) {
+                    return back()->withErrors(['start_time' => 'Já existe um agendamento neste horário.'])->withInput();
+                }
+                $conflictCount++;
+            } else {
+                Appointment::create([
+                    'patient_id' => $validated['patient_id'],
+                    'appointment_date' => $dateString,
+                    'start_time' => $validated['start_time'],
+                    'duration_minutes' => $validated['duration_minutes'],
+                    'status' => $validated['status'],
+                    'notes' => $validated['notes'],
+                    'user_id' => $userId,
+                ]);
+                $createdCount++;
+            }
+
+            // Move to next week
+            $currentDate->addWeek();
+            
+            if (!$isRecurring) {
+                break;
+            }
         }
 
-        $validated['user_id'] = auth()->id();
-        Appointment::create($validated);
+        $message = "Agendamento criado com sucesso!";
+        if ($isRecurring) {
+            $message = "Foram criados $createdCount agendamentos.";
+            if ($conflictCount > 0) {
+                $message .= " Atenção: $conflictCount agendamento(s) não puderam ser criados devido a conflito de horário.";
+            }
+        }
 
-        return redirect()->route('appointments.index')
-            ->with('success', 'Agendamento criado com sucesso!');
+        return redirect()->route('appointments.index')->with('success', $message);
     }
 
     public function events(Request $request)

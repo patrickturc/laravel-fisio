@@ -105,4 +105,43 @@ class MembershipController extends Controller
         $membership->delete();
         return redirect()->route('memberships.index')->with('success', 'Matrícula excluída.');
     }
+
+    public function renew(Membership $membership)
+    {
+        // Update old membership to expired
+        if ($membership->status === 'active') {
+            $membership->update(['status' => 'expired']);
+        }
+
+        $oldStart = \Carbon\Carbon::parse($membership->start_date);
+        $oldEnd = \Carbon\Carbon::parse($membership->end_date);
+        $durationDays = $oldStart->diffInDays($oldEnd);
+
+        // Usually start next day after expiration
+        $newStart = $oldEnd->copy()->addDay();
+        $newEnd = $newStart->copy()->addDays($durationDays);
+
+        $newMembership = Membership::create([
+            'patient_id' => $membership->patient_id,
+            'plan_name' => $membership->plan_name,
+            'start_date' => $newStart->format('Y-m-d'),
+            'end_date' => $newEnd->format('Y-m-d'),
+            'price' => $membership->price,
+            'status' => 'active',
+        ]);
+
+        if ($newMembership->price > 0) {
+            \App\Models\FinancialTransaction::create([
+                'type' => 'income',
+                'amount' => $newMembership->price,
+                'date' => $newMembership->start_date,
+                'description' => "Renovação de Matrícula: {$newMembership->plan_name}",
+                'category' => 'Mensalidade',
+                'status' => 'pending',
+                'patient_id' => $newMembership->patient_id,
+            ]);
+        }
+
+        return redirect()->route('memberships.show', $newMembership)->with('success', 'Matrícula renovada com sucesso!');
+    }
 }

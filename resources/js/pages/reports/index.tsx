@@ -1,8 +1,11 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Users, Calendar, FileText, TrendingUp, Award, Activity } from 'lucide-react';
+import { Users, Calendar, FileText, TrendingUp, Award, Download, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Relatórios', href: '/reports' },
@@ -39,6 +42,10 @@ interface Props {
     appointmentsPerMonth: MonthData[];
     evolutionsPerMonth: MonthData[];
     topPatients: TopPatient[];
+    filters: {
+        start_date: string | null;
+        end_date: string | null;
+    };
 }
 
 const monthLabels: Record<string, string> = {
@@ -76,7 +83,10 @@ function BarChart({ data, label }: { data: MonthData[]; label: string }) {
     );
 }
 
-export default function ReportsIndex({ stats, appointmentsPerMonth, evolutionsPerMonth, topPatients }: Props) {
+export default function ReportsIndex({ stats, appointmentsPerMonth, evolutionsPerMonth, topPatients, filters }: Props) {
+    const [startDate, setStartDate] = useState(filters.start_date || '');
+    const [endDate, setEndDate] = useState(filters.end_date || '');
+
     const kpis = [
         { label: 'Total Pacientes', value: stats.totalPatients, icon: Users, color: 'from-primary to-blue-500', bg: 'bg-primary/10', textColor: 'text-primary' },
         { label: 'Total Agendamentos', value: stats.totalAppointments, icon: Calendar, color: 'from-emerald-500 to-teal-500', bg: 'bg-emerald-500/10', textColor: 'text-emerald-600' },
@@ -84,14 +94,45 @@ export default function ReportsIndex({ stats, appointmentsPerMonth, evolutionsPe
         { label: 'Taxa de Conclusão', value: `${stats.completionRate}%`, icon: TrendingUp, color: 'from-amber-500 to-orange-500', bg: 'bg-amber-500/10', textColor: 'text-amber-600' },
     ];
 
+    const applyFilters = () => {
+        router.get('/reports', { start_date: startDate, end_date: endDate }, { preserveState: true });
+    };
+
+    const clearFilters = () => {
+        setStartDate('');
+        setEndDate('');
+        router.get('/reports', {}, { preserveState: true });
+    };
+
+    const exportPdfUrl = `/reports/pdf?start_date=${startDate}&end_date=${endDate}`;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Relatórios - Phisio" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6 md:p-10 max-w-7xl mx-auto w-full">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-emerald-600">Relatórios</h1>
-                    <p className="text-muted-foreground mt-1">Visão geral do desempenho do seu estúdio.</p>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-emerald-600">Relatórios</h1>
+                        <p className="text-muted-foreground mt-1">Visão geral do desempenho do seu estúdio.</p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 bg-card/60 backdrop-blur-xl border border-border/50 p-2 rounded-2xl shadow-sm">
+                        <div className="flex items-center gap-2">
+                            <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 text-sm bg-background border-none w-[130px]" />
+                            <span className="text-muted-foreground text-sm">até</span>
+                            <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 text-sm bg-background border-none w-[130px]" />
+                        </div>
+                        <div className="flex items-center gap-2 border-l border-border/50 pl-3">
+                            <Button variant="secondary" size="sm" onClick={applyFilters} className="h-9 gap-1.5"><Filter className="size-3.5" /> Filtrar</Button>
+                            {(startDate || endDate) && (
+                                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-muted-foreground">Limpar</Button>
+                            )}
+                            <a href={exportPdfUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-medium hover:opacity-90 transition-opacity ml-1">
+                                <Download className="size-4" /> PDF
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
                 {/* KPI Cards */}

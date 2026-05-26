@@ -13,9 +13,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('api/appointments/events', [App\Http\Controllers\AppointmentController::class, 'events'])->name('appointments.events');
     Route::resource('appointments', App\Http\Controllers\AppointmentController::class);
     Route::resource('evolutions', App\Http\Controllers\EvolutionController::class);
+    Route::post('memberships/{membership}/renew', [App\Http\Controllers\MembershipController::class, 'renew'])->name('memberships.renew');
     Route::resource('memberships', App\Http\Controllers\MembershipController::class);
     Route::resource('financial', App\Http\Controllers\FinancialTransactionController::class)->parameters(['financial' => 'financial']);
     Route::get('reports', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
+    Route::get('reports/pdf', [App\Http\Controllers\ReportController::class, 'pdf'])->name('reports.pdf');
     Route::get('evolutions/{evolution}/pdf', [App\Http\Controllers\EvolutionController::class, 'pdf'])->name('evolutions.pdf');
     Route::resource('treatment-plans', App\Http\Controllers\TreatmentPlanController::class);
 });

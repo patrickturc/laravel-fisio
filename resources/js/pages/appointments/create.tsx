@@ -25,6 +25,8 @@ export default function AppointmentCreate({ patients, selectedPatientId }: Props
         duration_minutes: '50',
         status: 'scheduled',
         notes: '',
+        is_recurring: false,
+        recurrence_end_date: '',
     });
 
     function handleSubmit(e: React.FormEvent) {
@@ -70,6 +72,37 @@ export default function AppointmentCreate({ patients, selectedPatientId }: Props
                             <Input id="duration_minutes" type="number" value={data.duration_minutes} onChange={e => setData('duration_minutes', e.target.value)} className="bg-neutral-50 border-neutral-200" min="10" max="180" required />
                             <InputError message={errors.duration_minutes} />
                         </div>
+                    </div>
+
+                    {/* Recurrence Section */}
+                    <div className="bg-primary/5 border border-primary/20 rounded-xl p-5 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="checkbox"
+                                id="is_recurring"
+                                checked={data.is_recurring}
+                                onChange={e => setData('is_recurring', e.target.checked)}
+                                className="size-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="is_recurring" className="font-semibold cursor-pointer">Repetir semanalmente?</Label>
+                        </div>
+                        
+                        {data.is_recurring && (
+                            <div className="grid gap-2 pl-7">
+                                <Label htmlFor="recurrence_end_date" className="text-sm">Repetir até qual data? *</Label>
+                                <Input 
+                                    id="recurrence_end_date" 
+                                    type="date" 
+                                    value={data.recurrence_end_date} 
+                                    onChange={e => setData('recurrence_end_date', e.target.value)} 
+                                    className="bg-neutral-50 border-neutral-200 w-full md:w-1/2" 
+                                    min={data.appointment_date || new Date().toISOString().split('T')[0]}
+                                    required={data.is_recurring}
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">O sistema criará agendamentos no mesmo dia da semana e horário até esta data.</p>
+                                <InputError message={errors.recurrence_end_date} />
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid gap-2">
