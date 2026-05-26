@@ -10,6 +10,7 @@ import { ArrowLeft } from 'lucide-react';
 interface Evolution {
     id: string;
     paciente_id: string;
+    clinical_protocol_id: string | null;
     data_atendimento: string;
     tipo_atendimento: string;
     queixa_principal: string | null;
@@ -31,9 +32,10 @@ interface Evolution {
 interface Props {
     evolution: Evolution;
     patients: Array<{ id: string; name: string; type: string }>;
+    protocols: Array<{ id: string; name: string }>;
 }
 
-export default function EvolutionEdit({ evolution, patients }: Props) {
+export default function EvolutionEdit({ evolution, patients, protocols = [] }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Evoluções', href: '/evolutions' },
         { title: new Date(evolution.data_atendimento).toLocaleDateString('pt-BR'), href: `/evolutions/${evolution.id}` },
@@ -42,6 +44,7 @@ export default function EvolutionEdit({ evolution, patients }: Props) {
 
     const { data, setData, put, processing, errors } = useForm({
         paciente_id: evolution.paciente_id,
+        clinical_protocol_id: evolution.clinical_protocol_id || '',
         data_atendimento: evolution.data_atendimento?.slice(0, 10) || '',
         tipo_atendimento: evolution.tipo_atendimento,
         queixa_principal: evolution.queixa_principal || '',
@@ -65,6 +68,8 @@ export default function EvolutionEdit({ evolution, patients }: Props) {
     }
 
     const textareaClass = "flex w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[80px] resize-y";
+
+    const selectedProtocol = protocols.find(p => p.id === data.clinical_protocol_id);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -105,6 +110,29 @@ export default function EvolutionEdit({ evolution, patients }: Props) {
                                 </select>
                             </div>
                         </div>
+
+                        {/* Protocol Selection */}
+                        {protocols.length > 0 && (
+                            <div className="grid gap-2 pt-2 border-t border-border/30">
+                                <Label htmlFor="clinical_protocol_id">Protocolo Clínico</Label>
+                                <select id="clinical_protocol_id" value={data.clinical_protocol_id} onChange={e => setData('clinical_protocol_id', e.target.value)} className="flex h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option value="">Nenhum (evolução avulsa)</option>
+                                    {protocols.map(p => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {selectedProtocol && (
+                                    <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/20 text-sm">
+                                        <div className="flex-1">
+                                            <span className="font-semibold text-foreground">{selectedProtocol.name}</span>
+                                        </div>
+                                    </div>
+                                )}
+                                <InputError message={errors.clinical_protocol_id} />
+                            </div>
+                        )}
                     </div>
 
                     {/* S - Subjetivo */}

@@ -16,7 +16,7 @@ class Evolution extends Model
     protected $fillable = [
         'paciente_id',
         'agendamento_id',
-        'treatment_plan_id',
+        'clinical_protocol_id',
         'profissional_id',
         'data_atendimento',
         'tipo_atendimento',
@@ -72,8 +72,8 @@ class Evolution extends Model
         return $this->hasMany(EvolutionPhoto::class, 'evolucao_id');
     }
 
-    public function treatmentPlan()
+    public function clinicalProtocol()
     {
-        return $this->belongsTo(TreatmentPlan::class);
+        return $this->belongsTo(ClinicalProtocol::class);
     }
 }

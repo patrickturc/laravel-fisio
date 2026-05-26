@@ -29,7 +29,7 @@ export function AppSidebar() {
         { title: 'Agenda', href: '/appointments', icon: CalendarRange, show: can('appointments.manage.view') },
         { title: 'Evoluções', href: '/evolutions', icon: Activity, show: can('evolutions.manage.view') },
         { title: 'Relatórios', href: '/reports', icon: BarChart3, show: can('reports.manage.view') },
-        { title: 'Protocolos Clínicos', href: '/treatment-plans', icon: ClipboardList, show: can('treatment_plans.manage.view') },
+        { title: 'Protocolos Clínicos', href: '/clinical-protocols', icon: ClipboardList, show: can('treatment_plans.manage.view') },
         { title: 'Matrículas', href: '/memberships', icon: CreditCard, show: can('memberships.manage.view') },
         { title: 'Financeiro', href: '/financial', icon: DollarSign, show: can('financial.transactions.view') },
     ].filter(item => item.show);
