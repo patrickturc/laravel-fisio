@@ -61,7 +61,7 @@ class TreatmentPlanController extends Controller
 
     public function show(TreatmentPlan $treatmentPlan)
     {
-        $treatmentPlan->load('patient');
+        $treatmentPlan->load(['patient', 'evolutions' => fn($q) => $q->orderBy('data_atendimento', 'desc')]);
 
         return Inertia::render('treatment-plans/show', [
             'plan' => $treatmentPlan,

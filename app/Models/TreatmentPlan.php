@@ -36,4 +36,9 @@ class TreatmentPlan extends Model
     {
         return $this->belongsTo(Patient::class);
     }
+
+    public function evolutions()
+    {
+        return $this->hasMany(Evolution::class);
+    }
 }

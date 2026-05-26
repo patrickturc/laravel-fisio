@@ -71,6 +71,29 @@ export default function AppointmentShow({ appointment }: { appointment: Appointm
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{appointment.notes}</p>
                     </motion.div>
                 )}
+
+                {/* Register Evolution Action */}
+                {appointment.status === 'scheduled' && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+                        <Link
+                            href={`/evolutions/create?paciente_id=${appointment.patient_id}&agendamento_id=${appointment.id}`}
+                            className="flex items-center justify-center gap-3 w-full p-5 bg-gradient-to-r from-primary to-emerald-500 text-white font-semibold rounded-2xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
+                        >
+                            <FileText className="size-5" />
+                            Registrar Evolução e Concluir Sessão
+                        </Link>
+                        <p className="text-xs text-muted-foreground text-center mt-2">
+                            Ao registrar a evolução, o agendamento será marcado como "Realizado" automaticamente.
+                        </p>
+                    </motion.div>
+                )}
+
+                {appointment.status === 'completed' && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+                        className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 text-center">
+                        <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">✅ Sessão realizada</p>
+                    </motion.div>
+                )}
             </div>
             {modal}
         </AppLayout>

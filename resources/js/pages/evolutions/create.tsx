@@ -1,4 +1,4 @@
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, useForm, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/input-error';
 import { ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Evoluções', href: '/evolutions' },
@@ -15,11 +16,16 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface Props {
     patients: Array<{ id: string; name: string; type: string }>;
     selectedPatientId?: string | null;
+    selectedAppointmentId?: string | null;
+    selectedTreatmentPlanId?: string | null;
+    activePlans?: Array<{ id: string; title: string; total_sessions: number; completed_sessions: number }>;
 }
 
-export default function EvolutionCreate({ patients, selectedPatientId }: Props) {
+export default function EvolutionCreate({ patients, selectedPatientId, selectedAppointmentId, selectedTreatmentPlanId, activePlans = [] }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         paciente_id: selectedPatientId || '',
+        agendamento_id: selectedAppointmentId || '',
+        treatment_plan_id: selectedTreatmentPlanId || '',
         data_atendimento: new Date().toISOString().split('T')[0],
         tipo_atendimento: 'sessao',
         queixa_principal: '',
@@ -43,10 +49,23 @@ export default function EvolutionCreate({ patients, selectedPatientId }: Props) 
         orientacoes_domiciliares: '',
     });
 
+    const [plans, setPlans] = useState<Array<{ id: string; title: string; total_sessions: number; completed_sessions: number }>>(activePlans);
+
+    function handlePatientChange(patientId: string) {
+        setData('paciente_id', patientId);
+        setData('treatment_plan_id', '');
+        if (patientId) {
+            // Reload page with new patient to get their plans
+            router.get('/evolutions/create', { paciente_id: patientId }, { preserveState: false });
+        }
+    }
+
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         post('/evolutions');
     }
+
+    const selectedPlan = plans.find(p => p.id === data.treatment_plan_id);
 
     const textareaClass = "flex w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[80px] resize-y";
 
@@ -69,7 +88,7 @@ export default function EvolutionCreate({ patients, selectedPatientId }: Props) 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                             <div className="grid gap-2">
                                 <Label htmlFor="paciente_id">Paciente *</Label>
-                                <select id="paciente_id" value={data.paciente_id} onChange={e => setData('paciente_id', e.target.value)} className="flex h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" required>
+                                <select id="paciente_id" value={data.paciente_id} onChange={e => handlePatientChange(e.target.value)} className="flex h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" required>
                                     <option value="">Selecionar</option>
                                     {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                 </select>
@@ -89,6 +108,35 @@ export default function EvolutionCreate({ patients, selectedPatientId }: Props) 
                                 </select>
                             </div>
                         </div>
+
+                        {/* Treatment Plan Selection */}
+                        {plans.length > 0 && (
+                            <div className="grid gap-2 pt-2 border-t border-border/30">
+                                <Label htmlFor="treatment_plan_id">Plano de Tratamento</Label>
+                                <select id="treatment_plan_id" value={data.treatment_plan_id} onChange={e => setData('treatment_plan_id', e.target.value)} className="flex h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option value="">Nenhum (evolução avulsa)</option>
+                                    {plans.map(p => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.title} — {p.completed_sessions}/{p.total_sessions} sessões
+                                        </option>
+                                    ))}
+                                </select>
+                                {selectedPlan && (
+                                    <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/20 text-sm">
+                                        <div className="flex-1">
+                                            <span className="font-semibold text-foreground">{selectedPlan.title}</span>
+                                            <span className="text-muted-foreground ml-2">
+                                                {selectedPlan.completed_sessions} de {selectedPlan.total_sessions} sessões realizadas
+                                            </span>
+                                        </div>
+                                        <span className="text-primary font-bold">
+                                            {Math.round((selectedPlan.completed_sessions / selectedPlan.total_sessions) * 100)}%
+                                        </span>
+                                    </div>
+                                )}
+                                <InputError message={errors.treatment_plan_id} />
+                            </div>
+                        )}
                     </div>
 
                     {/* S - Subjetivo */}

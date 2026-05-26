@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Evolution;
 use App\Models\Patient;
+use App\Models\TreatmentPlan;
+use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -37,9 +39,20 @@ class EvolutionController extends Controller
     {
         $patients = Patient::orderBy('name')->get(['id', 'name', 'type']);
 
+        // Load active treatment plans for the selected patient (if any)
+        $activePlans = [];
+        if ($request->query('paciente_id')) {
+            $activePlans = TreatmentPlan::where('patient_id', $request->query('paciente_id'))
+                ->where('status', 'active')
+                ->get(['id', 'title', 'total_sessions', 'completed_sessions']);
+        }
+
         return Inertia::render('evolutions/create', [
             'patients' => $patients,
             'selectedPatientId' => $request->query('paciente_id'),
+            'selectedAppointmentId' => $request->query('agendamento_id'),
+            'selectedTreatmentPlanId' => $request->query('treatment_plan_id'),
+            'activePlans' => $activePlans,
         ]);
     }
 
@@ -47,6 +60,8 @@ class EvolutionController extends Controller
     {
         $validated = $request->validate([
             'paciente_id' => 'required|uuid|exists:patients,id',
+            'agendamento_id' => 'nullable|uuid|exists:appointments,id',
+            'treatment_plan_id' => 'nullable|uuid|exists:treatment_plans,id',
             'data_atendimento' => 'required|date',
             'tipo_atendimento' => 'required|in:avaliacao,reavaliacao,sessao',
             'queixa_principal' => 'nullable|string',
@@ -71,7 +86,25 @@ class EvolutionController extends Controller
         ]);
 
         $validated['profissional_id'] = auth()->id();
-        Evolution::create($validated);
+        $evolution = Evolution::create($validated);
+
+        // Auto-increment treatment plan progress
+        if ($evolution->treatment_plan_id) {
+            $plan = TreatmentPlan::find($evolution->treatment_plan_id);
+            if ($plan) {
+                $plan->increment('completed_sessions');
+                if ($plan->completed_sessions >= $plan->total_sessions) {
+                    $plan->update(['status' => 'completed']);
+                }
+            }
+        }
+
+        // Mark linked appointment as completed
+        if ($evolution->agendamento_id) {
+            Appointment::where('id', $evolution->agendamento_id)
+                ->where('status', 'scheduled')
+                ->update(['status' => 'completed']);
+        }
 
         return redirect()->route('evolutions.index')
             ->with('success', 'Evolução registrada com sucesso!');
