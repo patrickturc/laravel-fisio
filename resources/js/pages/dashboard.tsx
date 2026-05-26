@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-import { Users, Calendar, FileText, Clock, Plus, ChevronRight, ChevronLeft, TrendingUp, TrendingDown } from 'lucide-react';
+import { Users, Calendar, FileText, Clock, Plus, ChevronRight, ChevronLeft, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, CreditCard, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -49,6 +49,12 @@ interface Props {
         pending_income: number;
         pending_expense: number;
     };
+    growthIndicators: {
+        newPatients: { current: number; change: number };
+        revenue: { current: number; change: number };
+        completionRate: { current: number; change: number };
+        activeMemberships: { current: number; expiring: number };
+    };
 }
 
 function navigateToDate(date: string) {
@@ -61,7 +67,7 @@ function shiftWeek(currentDate: string, direction: number) {
     navigateToDate(d.toISOString().split('T')[0]);
 }
 
-export default function Dashboard({ totalPatients, dayAppointments, dayCount, pendingEvolutions, selectedDate, weekDays, weekLabel, upcomingBirthdays, financialSummary }: Props) {
+export default function Dashboard({ totalPatients, dayAppointments, dayCount, pendingEvolutions, selectedDate, weekDays, weekLabel, upcomingBirthdays, financialSummary, growthIndicators }: Props) {
     const statusLabel: Record<string, string> = { scheduled: 'Agendado', completed: 'Realizado', cancelled: 'Cancelado' };
     const statusColor: Record<string, string> = { scheduled: 'bg-blue-100 text-blue-700', completed: 'bg-emerald-100 text-emerald-700', cancelled: 'bg-red-100 text-red-700' };
 
@@ -149,6 +155,65 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
                         </p>
                     </motion.div>
                 </div>
+
+                {/* Growth Indicators */}
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}
+                    className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-5">
+                        <h2 className="text-lg font-bold flex items-center gap-2">
+                            <BarChart3 className="size-5 text-primary" />
+                            Indicadores de Crescimento
+                        </h2>
+                        <span className="text-xs text-muted-foreground">vs. mês anterior</span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Users className="size-4 text-primary" />
+                                <span className="text-xs text-muted-foreground">Novos Pacientes</span>
+                            </div>
+                            <p className="text-2xl font-bold">{growthIndicators.newPatients.current}</p>
+                            <div className={`flex items-center gap-1 mt-1 text-xs font-semibold ${growthIndicators.newPatients.change >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                {growthIndicators.newPatients.change >= 0 ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
+                                {Math.abs(growthIndicators.newPatients.change)}%
+                            </div>
+                        </div>
+                        <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                            <div className="flex items-center gap-2 mb-2">
+                                <TrendingUp className="size-4 text-emerald-600" />
+                                <span className="text-xs text-muted-foreground">Receita</span>
+                            </div>
+                            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(growthIndicators.revenue.current)}</p>
+                            <div className={`flex items-center gap-1 mt-1 text-xs font-semibold ${growthIndicators.revenue.change >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                {growthIndicators.revenue.change >= 0 ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
+                                {Math.abs(growthIndicators.revenue.change)}%
+                            </div>
+                        </div>
+                        <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Calendar className="size-4 text-blue-500" />
+                                <span className="text-xs text-muted-foreground">Taxa Conclusão</span>
+                            </div>
+                            <p className="text-2xl font-bold">{growthIndicators.completionRate.current}%</p>
+                            <div className={`flex items-center gap-1 mt-1 text-xs font-semibold ${growthIndicators.completionRate.change >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                {growthIndicators.completionRate.change >= 0 ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
+                                {Math.abs(growthIndicators.completionRate.change)}pp
+                            </div>
+                        </div>
+                        <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                            <div className="flex items-center gap-2 mb-2">
+                                <CreditCard className="size-4 text-purple-500" />
+                                <span className="text-xs text-muted-foreground">Matrículas Ativas</span>
+                            </div>
+                            <p className="text-2xl font-bold">{growthIndicators.activeMemberships.current}</p>
+                            {growthIndicators.activeMemberships.expiring > 0 && (
+                                <p className="text-xs text-amber-500 font-medium mt-1">
+                                    ⚠ {growthIndicators.activeMemberships.expiring} vencendo em breve
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </motion.div>
 
                 {/* Weekly Agenda */}
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}

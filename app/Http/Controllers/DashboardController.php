@@ -73,6 +73,34 @@ class DashboardController extends Controller
             'pending_expense' => \App\Models\FinancialTransaction::where('type', 'expense')->where('status', 'pending')->whereMonth('date', $currentMonth)->whereYear('date', $currentYear)->sum('amount'),
         ];
 
+        // Growth Indicators
+        $lastMonth = now()->subMonth();
+        $newPatientsThisMonth = Patient::whereMonth('created_at', $currentMonth)->whereYear('created_at', $currentYear)->count();
+        $newPatientsLastMonth = Patient::whereMonth('created_at', $lastMonth->month)->whereYear('created_at', $lastMonth->year)->count();
+
+        $revenueThisMonth = $financialSummary['income'];
+        $revenueLastMonth = \App\Models\FinancialTransaction::where('type', 'income')->where('status', 'paid')->whereMonth('date', $lastMonth->month)->whereYear('date', $lastMonth->year)->sum('amount');
+
+        $appointmentsThisMonth = Appointment::whereMonth('appointment_date', $currentMonth)->whereYear('appointment_date', $currentYear)->count();
+        $completedThisMonth = Appointment::where('status', 'completed')->whereMonth('appointment_date', $currentMonth)->whereYear('appointment_date', $currentYear)->count();
+        $completionRateThisMonth = $appointmentsThisMonth > 0 ? round(($completedThisMonth / $appointmentsThisMonth) * 100) : 0;
+
+        $appointmentsLastMonth = Appointment::whereMonth('appointment_date', $lastMonth->month)->whereYear('appointment_date', $lastMonth->year)->count();
+        $completedLastMonth = Appointment::where('status', 'completed')->whereMonth('appointment_date', $lastMonth->month)->whereYear('appointment_date', $lastMonth->year)->count();
+        $completionRateLastMonth = $appointmentsLastMonth > 0 ? round(($completedLastMonth / $appointmentsLastMonth) * 100) : 0;
+
+        $activeMemberships = \App\Models\Membership::where('status', 'active')->count();
+        $expiringMemberships = \App\Models\Membership::where('status', 'active')->where('end_date', '<=', now()->addDays(7))->where('end_date', '>=', now())->count();
+
+        $calcChange = fn($current, $previous) => $previous > 0 ? round((($current - $previous) / $previous) * 100) : ($current > 0 ? 100 : 0);
+
+        $growthIndicators = [
+            'newPatients' => ['current' => $newPatientsThisMonth, 'change' => $calcChange($newPatientsThisMonth, $newPatientsLastMonth)],
+            'revenue' => ['current' => $revenueThisMonth, 'change' => $calcChange($revenueThisMonth, $revenueLastMonth)],
+            'completionRate' => ['current' => $completionRateThisMonth, 'change' => $completionRateThisMonth - $completionRateLastMonth],
+            'activeMemberships' => ['current' => $activeMemberships, 'expiring' => $expiringMemberships],
+        ];
+
         return Inertia::render('dashboard', [
             'totalPatients' => $totalPatients,
             'dayAppointments' => $dayAppointments,
@@ -83,6 +111,7 @@ class DashboardController extends Controller
             'weekDays' => $weekDays,
             'weekLabel' => $startOfWeek->locale('pt_BR')->isoFormat('D [de] MMM') . ' — ' . $startOfWeek->copy()->addDays(6)->locale('pt_BR')->isoFormat('D [de] MMM, YYYY'),
             'financialSummary' => $financialSummary,
+            'growthIndicators' => $growthIndicators,
         ]);
     }
 }
