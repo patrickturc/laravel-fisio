@@ -136,8 +136,8 @@ export default function CalendarView() {
                 allDaySlot={false}
                 slotMinTime="06:00:00"
                 slotMaxTime="22:00:00"
-                expandRows={true}
-                height="100%"
+                expandRows={false}
+                height="auto"
                 eventClick={handleEventClick}
                 select={handleDateSelect}
                 nowIndicator={true}
