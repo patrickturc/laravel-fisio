@@ -11,6 +11,7 @@ class CommercialPlan extends Model
 
     protected $fillable = [
         'name',
+        'category',
         'price',
         'duration_months',
         'description',

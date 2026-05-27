@@ -1,19 +1,37 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-import { ArrowLeft, Edit, Trash2, Clock, User, FileText } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Clock, User, Users, FileText, CheckCircle2, XCircle, Clock4, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useConfirmModal } from '@/components/confirm-modal';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+
+interface Patient {
+    id: string;
+    name: string;
+    type: string;
+    pivot: {
+        status: 'scheduled' | 'attended' | 'missed' | 'cancelled';
+    };
+}
 
 interface Appointment {
     id: string;
-    patient_id: string;
+    type: 'individual' | 'group';
+    title: string | null;
+    max_participants: number;
     appointment_date: string;
     start_time: string;
     duration_minutes: number;
     status: string;
     notes: string | null;
-    patient: { id: string; name: string; type: string };
+    patients: Patient[];
 }
 
 export default function AppointmentShow({ appointment }: { appointment: Appointment }) {
@@ -33,8 +51,21 @@ export default function AppointmentShow({ appointment }: { appointment: Appointm
         if (confirmed) router.delete(`/appointments/${appointment.id}`);
     }
 
+    function updatePatientStatus(patientId: string, status: string) {
+        router.post(`/appointments/${appointment.id}/patients/${patientId}/status`, { status }, {
+            preserveScroll: true,
+        });
+    }
+
     const statusLabel: Record<string, string> = { scheduled: 'Agendado', completed: 'Realizado', cancelled: 'Cancelado' };
     const statusColor: Record<string, string> = { scheduled: 'bg-blue-100 text-blue-700', completed: 'bg-emerald-100 text-emerald-700', cancelled: 'bg-red-100 text-red-700' };
+
+    const pivotStatusInfo: Record<string, { label: string, color: string, icon: any }> = {
+        scheduled: { label: 'Agendado', color: 'text-blue-600 bg-blue-100', icon: Clock4 },
+        attended: { label: 'Presente', color: 'text-emerald-600 bg-emerald-100', icon: CheckCircle2 },
+        missed: { label: 'Faltou', color: 'text-amber-600 bg-amber-100', icon: XCircle },
+        cancelled: { label: 'Cancelado', color: 'text-red-600 bg-red-100', icon: XCircle },
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -44,7 +75,10 @@ export default function AppointmentShow({ appointment }: { appointment: Appointm
                     <div className="flex items-center gap-4">
                         <Link href="/appointments" className="p-2 rounded-xl hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"><ArrowLeft className="size-5" /></Link>
                         <div>
-                            <h1 className="text-2xl font-bold tracking-tight">Detalhes do Agendamento</h1>
+                            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                                {appointment.type === 'group' ? <Users className="size-6 text-primary" /> : <User className="size-6 text-primary" />}
+                                {appointment.type === 'group' ? (appointment.title || 'Turma') : 'Detalhes do Agendamento'}
+                            </h1>
                             <span className={`inline-block mt-1 px-3 py-0.5 rounded-full text-xs font-semibold ${statusColor[appointment.status]}`}>{statusLabel[appointment.status]}</span>
                         </div>
                     </div>
@@ -56,8 +90,13 @@ export default function AppointmentShow({ appointment }: { appointment: Appointm
 
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 flex items-center gap-3">
-                        <div className="p-2.5 bg-primary/10 rounded-xl text-primary"><User className="size-4" /></div>
-                        <div><p className="text-xs text-muted-foreground">Paciente</p><Link href={`/patients/${appointment.patient.id}`} className="font-semibold text-sm text-primary hover:underline">{appointment.patient.name}</Link></div>
+                        <div className="p-2.5 bg-primary/10 rounded-xl text-primary"><Users className="size-4" /></div>
+                        <div>
+                            <p className="text-xs text-muted-foreground">Tipo</p>
+                            <p className="font-semibold text-sm">
+                                {appointment.type === 'group' ? `Turma (${appointment.patients.length}/${appointment.max_participants} participantes)` : 'Sessão Individual'}
+                            </p>
+                        </div>
                     </div>
                     <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 flex items-center gap-3">
                         <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-600"><Clock className="size-4" /></div>
@@ -65,18 +104,79 @@ export default function AppointmentShow({ appointment }: { appointment: Appointm
                     </div>
                 </motion.div>
 
+                {/* Patients List */}
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden shadow-sm">
+                    <div className="p-5 border-b border-border/50 flex items-center justify-between">
+                        <h2 className="text-lg font-bold flex items-center gap-2">
+                            <User className="size-5 text-primary" /> Pacientes
+                        </h2>
+                    </div>
+                    <div className="divide-y divide-border/50">
+                        {appointment.patients?.map(patient => {
+                            const pStatus = patient.pivot?.status || 'scheduled';
+                            const StatusIcon = pivotStatusInfo[pStatus].icon;
+                            return (
+                                <div key={patient.id} className="p-4 flex items-center justify-between hover:bg-muted/20 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                                            {patient.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <Link href={`/patients/${patient.id}`} className="font-semibold text-sm hover:underline">{patient.name}</Link>
+                                            <div className="flex items-center gap-1 mt-0.5">
+                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${pivotStatusInfo[pStatus].color}`}>
+                                                    <StatusIcon className="size-3" />
+                                                    {pivotStatusInfo[pStatus].label}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="outline" size="sm" className="h-8 text-xs font-medium border-border/50">
+                                                    Alterar Status
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-40">
+                                                <DropdownMenuItem onClick={() => updatePatientStatus(patient.id, 'scheduled')} className="flex items-center gap-2 cursor-pointer">
+                                                    <Clock4 className="size-4 text-blue-500" /> Agendado
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => updatePatientStatus(patient.id, 'attended')} className="flex items-center gap-2 cursor-pointer">
+                                                    <CheckCircle2 className="size-4 text-emerald-500" /> Presente
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => updatePatientStatus(patient.id, 'missed')} className="flex items-center gap-2 cursor-pointer">
+                                                    <XCircle className="size-4 text-amber-500" /> Faltou
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => updatePatientStatus(patient.id, 'cancelled')} className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600">
+                                                    <XCircle className="size-4 text-red-500" /> Cancelado
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {(!appointment.patients || appointment.patients.length === 0) && (
+                            <div className="p-8 text-center text-muted-foreground text-sm">
+                                Nenhum paciente vinculado a este agendamento.
+                            </div>
+                        )}
+                    </div>
+                </motion.div>
+
                 {appointment.notes && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm">
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm">
                         <h2 className="text-lg font-bold flex items-center gap-2 mb-3"><FileText className="size-5 text-primary" /> Observações</h2>
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{appointment.notes}</p>
                     </motion.div>
                 )}
 
                 {/* Register Evolution Action */}
-                {appointment.status === 'scheduled' && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+                {appointment.status === 'scheduled' && appointment.type === 'individual' && appointment.patients?.length === 1 && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                         <Link
-                            href={`/evolutions/create?paciente_id=${appointment.patient_id}&agendamento_id=${appointment.id}`}
+                            href={`/evolutions/create?paciente_id=${appointment.patients[0].id}&agendamento_id=${appointment.id}`}
                             className="flex items-center justify-center gap-3 w-full p-5 bg-gradient-to-r from-primary to-emerald-500 text-white font-semibold rounded-2xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
                         >
                             <FileText className="size-5" />
@@ -87,9 +187,21 @@ export default function AppointmentShow({ appointment }: { appointment: Appointm
                         </p>
                     </motion.div>
                 )}
+                
+                {appointment.status === 'scheduled' && appointment.type === 'group' && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                        <Button
+                            onClick={() => router.put(`/appointments/${appointment.id}`, { status: 'completed' })}
+                            className="flex items-center justify-center gap-3 w-full p-5 bg-gradient-to-r from-primary to-emerald-500 text-white font-semibold rounded-2xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 h-auto"
+                        >
+                            <Check className="size-5" />
+                            Concluir Sessão da Turma
+                        </Button>
+                    </motion.div>
+                )}
 
                 {appointment.status === 'completed' && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                         className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 text-center">
                         <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">✅ Sessão realizada</p>
                     </motion.div>

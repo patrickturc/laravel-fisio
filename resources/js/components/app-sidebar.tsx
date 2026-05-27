@@ -31,12 +31,20 @@ export function AppSidebar() {
         { title: 'Relatórios', href: '/reports', icon: BarChart3, show: can('reports.manage.view') },
         { title: 'Protocolos Clínicos', href: '/clinical-protocols', icon: ClipboardList, show: can('treatment_plans.manage.view') },
         { title: 'Matrículas', href: '/memberships', icon: CreditCard, show: can('memberships.manage.view') },
-        { title: 'Financeiro', href: '/financial', icon: DollarSign, show: can('financial.transactions.view') },
+        {
+            title: 'Financeiro',
+            href: '/financial',
+            icon: DollarSign,
+            show: can('financial.transactions.view'),
+            items: [
+                { title: 'Fluxo de Caixa', href: '/financial', show: can('financial.transactions.view') },
+                { title: 'Gastos Recorrentes', href: '/recurring-expenses', show: can('financial.transactions.view') },
+            ].filter(item => item.show)
+        },
     ].filter(item => item.show);
 
     const settingsNavItems = [
         { title: 'Planos e Pacotes', href: '/commercial-plans', icon: Tag, show: can('memberships.manage.view') },
-        { title: 'Gastos Recorrentes', href: '/recurring-expenses', icon: RefreshCw, show: can('financial.transactions.view') },
         { title: 'Usuários', href: '/settings/users', icon: Users, show: can('settings.users.view') },
         { title: 'Perfis de Acesso', href: '/settings/roles', icon: ShieldCheck, show: can('settings.roles.view') },
     ].filter(item => item.show);

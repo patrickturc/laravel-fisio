@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Plus, Tag, Edit, Trash2 } from 'lucide-react';
 import { useConfirmModal, ConfirmModal } from '@/components/confirm-modal';
+import { Badge } from '@/components/ui/badge';
 
 interface CommercialPlan {
     id: string;
@@ -10,6 +11,7 @@ interface CommercialPlan {
     price: string;
     duration_months: number | null;
     description: string | null;
+    category: 'fisioterapia' | 'pilates' | 'teste';
 }
 
 export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[] }) {
@@ -59,7 +61,16 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                                                     <Tag className="size-4" />
                                                 </div>
                                                 <div>
-                                                    <div className="font-medium text-foreground">{plan.name}</div>
+                                                    <div className="font-medium text-foreground flex items-center gap-2">
+                                                        {plan.name}
+                                                        <Badge variant="outline" className={
+                                                            plan.category === 'fisioterapia' ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' :
+                                                            plan.category === 'pilates' ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800' :
+                                                            plan.category === 'teste' ? 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800' : ''
+                                                        }>
+                                                            {plan.category === 'fisioterapia' ? 'Fisioterapia' : plan.category === 'pilates' ? 'Pilates' : plan.category === 'teste' ? 'Aula Teste' : plan.category}
+                                                        </Badge>
+                                                    </div>
                                                     {plan.description && <div className="text-xs text-muted-foreground mt-0.5 truncate max-w-xs">{plan.description}</div>}
                                                 </div>
                                             </div>

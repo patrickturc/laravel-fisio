@@ -5,17 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/input-error';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Users, User } from 'lucide-react';
 
 interface Appointment {
     id: string;
-    patient_id: string;
+    type: 'individual' | 'group';
+    title: string | null;
+    max_participants: number;
     appointment_date: string;
     start_time: string;
     duration_minutes: number;
     status: string;
     notes: string | null;
-    patient: { id: string; name: string };
+    patients: Array<{ id: string; name: string }>;
 }
 
 interface Props {
@@ -31,7 +33,10 @@ export default function AppointmentEdit({ appointment, patients }: Props) {
     ];
 
     const { data, setData, put, processing, errors } = useForm({
-        patient_id: appointment.patient_id,
+        type: appointment.type || 'individual',
+        title: appointment.title || '',
+        max_participants: appointment.max_participants || 1,
+        patient_ids: appointment.patients ? appointment.patients.map(p => p.id) : [],
         appointment_date: appointment.appointment_date?.slice(0, 10) || '',
         start_time: appointment.start_time?.slice(0, 5) || '',
         duration_minutes: String(appointment.duration_minutes),
@@ -52,18 +57,82 @@ export default function AppointmentEdit({ appointment, patients }: Props) {
                     <Link href={`/appointments/${appointment.id}`} className="p-2 rounded-xl hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"><ArrowLeft className="size-5" /></Link>
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">Editar Agendamento</h1>
-                        <p className="text-muted-foreground text-sm mt-0.5">{appointment.patient.name}</p>
+                        <p className="text-muted-foreground text-sm mt-0.5">
+                            {data.type === 'group' ? (data.title || 'Turma') : (appointment.patients?.[0]?.name || 'Sessão Individual')}
+                        </p>
                     </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
+                    
+                    {/* Tipo de Agendamento */}
+                    <div className="flex bg-muted/50 p-1 rounded-xl border border-border/50 w-fit">
+                        <button
+                            type="button"
+                            onClick={() => { setData(d => ({ ...d, type: 'individual', max_participants: 1, title: '', patient_ids: d.patient_ids.length > 0 ? [d.patient_ids[0]] : [] })); }}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${data.type === 'individual' ? 'bg-background shadow-sm text-primary border border-border/50' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+                        >
+                            <User className="size-4" />
+                            Individual
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setData('type', 'group'); setData('max_participants', Math.max(4, data.patient_ids.length)); }}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${data.type === 'group' ? 'bg-background shadow-sm text-primary border border-border/50' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+                        >
+                            <Users className="size-4" />
+                            Turma (Grupo)
+                        </button>
+                    </div>
+
+                    {data.type === 'group' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-primary/5 border border-primary/10 rounded-xl">
+                            <div className="grid gap-2">
+                                <Label htmlFor="title">Título da Turma *</Label>
+                                <Input id="title" value={data.title} onChange={e => setData('title', e.target.value)} className="bg-background" placeholder="Ex: Pilates Segunda" required={data.type === 'group'} />
+                                <InputError message={errors.title} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="max_participants">Capacidade Máxima *</Label>
+                                <Input id="max_participants" type="number" min={Math.max(2, data.patient_ids.length)} value={data.max_participants} onChange={e => setData('max_participants', Number(e.target.value))} className="bg-background" required={data.type === 'group'} />
+                                <InputError message={errors.max_participants} />
+                            </div>
+                        </div>
+                    )}
+
                     <div className="grid gap-2">
-                        <Label htmlFor="patient_id">Paciente *</Label>
-                        <select id="patient_id" value={data.patient_id} onChange={e => setData('patient_id', e.target.value)} className="flex h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" required>
-                            <option value="">Selecione um paciente</option>
-                            {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                        <InputError message={errors.patient_id} />
+                        <Label>Pacientes {data.type === 'group' ? `(Máx. ${data.max_participants})` : '*'}</Label>
+                        <div className="max-h-[200px] overflow-y-auto border border-neutral-200 rounded-lg p-2 bg-neutral-50 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {patients.map(p => (
+                                <label key={p.id} className="flex items-center gap-3 p-2 hover:bg-white rounded-md cursor-pointer transition-colors border border-transparent hover:border-border/50 hover:shadow-sm">
+                                    <input
+                                        type={data.type === 'individual' ? 'radio' : 'checkbox'}
+                                        name="patients"
+                                        value={p.id}
+                                        checked={data.patient_ids.includes(p.id)}
+                                        onChange={(e) => {
+                                            if (data.type === 'individual') {
+                                                setData('patient_ids', [p.id]);
+                                            } else {
+                                                if (e.target.checked) {
+                                                    if (data.patient_ids.length < data.max_participants) {
+                                                        setData('patient_ids', [...data.patient_ids, p.id]);
+                                                    }
+                                                } else {
+                                                    setData('patient_ids', data.patient_ids.filter(id => id !== p.id));
+                                                }
+                                            }
+                                        }}
+                                        className="size-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <span className="text-sm font-medium">{p.name}</span>
+                                </label>
+                            ))}
+                            {patients.length === 0 && (
+                                <div className="text-sm text-muted-foreground text-center py-4 col-span-full">Nenhum paciente encontrado.</div>
+                            )}
+                        </div>
+                        <InputError message={errors.patient_ids as string} />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

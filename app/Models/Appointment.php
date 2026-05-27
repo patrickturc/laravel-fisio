@@ -12,25 +12,29 @@ class Appointment extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'patient_id',
         'user_id',
         'appointment_date',
         'start_time',
         'duration_minutes',
-        'status',
-        'notes'
+        'notes',
+        'title',
+        'type',
+        'max_participants'
     ];
     
     protected function casts(): array
     {
         return [
             'appointment_date' => 'date',
+            'max_participants' => 'integer',
         ];
     }
 
-    public function patient()
+    public function patients()
     {
-        return $this->belongsTo(Patient::class);
+        return $this->belongsToMany(Patient::class)
+                    ->withPivot('status')
+                    ->withTimestamps();
     }
     
     public function user()

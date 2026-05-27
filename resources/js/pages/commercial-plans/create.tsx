@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/input-error';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function CommercialPlansCreate() {
     const breadcrumbs: BreadcrumbItem[] = [
@@ -18,6 +19,7 @@ export default function CommercialPlansCreate() {
         price: '',
         duration_months: '',
         description: '',
+        category: 'fisioterapia',
     });
 
     function handleSubmit(e: React.FormEvent) {
@@ -41,17 +43,33 @@ export default function CommercialPlansCreate() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
-                    <div className="grid gap-2">
-                        <Label htmlFor="name">Nome do Plano *</Label>
-                        <Input
-                            id="name"
-                            value={data.name}
-                            onChange={e => setData('name', e.target.value)}
-                            placeholder="Ex: Pilates Mensal 2x Semana"
-                            className="bg-background"
-                            required
-                        />
-                        <InputError message={errors.name} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid gap-2">
+                            <Label htmlFor="name">Nome do Plano *</Label>
+                            <Input
+                                id="name"
+                                value={data.name}
+                                onChange={e => setData('name', e.target.value)}
+                                placeholder="Ex: Pilates Mensal 2x Semana"
+                                className="bg-background"
+                                required
+                            />
+                            <InputError message={errors.name} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="category">Categoria *</Label>
+                            <Select value={data.category} onValueChange={(value) => setData('category', value)}>
+                                <SelectTrigger className="bg-background" id="category">
+                                    <SelectValue placeholder="Selecione a categoria" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="fisioterapia">Fisioterapia</SelectItem>
+                                    <SelectItem value="pilates">Pilates</SelectItem>
+                                    <SelectItem value="teste">Aula Teste</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.category} />
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

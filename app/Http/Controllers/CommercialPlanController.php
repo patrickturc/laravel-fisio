@@ -23,6 +23,7 @@ class CommercialPlanController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'category' => 'required|in:fisioterapia,pilates,teste',
             'price' => 'required|numeric|min:0',
             'duration_months' => 'nullable|integer|min:1',
             'description' => 'nullable|string|max:1000',
@@ -42,6 +43,7 @@ class CommercialPlanController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'category' => 'required|in:fisioterapia,pilates,teste',
             'price' => 'required|numeric|min:0',
             'duration_months' => 'nullable|integer|min:1',
             'description' => 'nullable|string|max:1000',

@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { CalendarPlus, Search, Clock, Calendar as CalendarIcon, User, List, CalendarDays } from 'lucide-react';
+import { CalendarPlus, Search, Clock, Calendar as CalendarIcon, User, Users, List, CalendarDays } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Pagination } from '@/components/pagination';
@@ -32,7 +32,6 @@ export default function AppointmentsIndex({ appointments, filters = {} }: { appo
         const st = overrides?.status ?? statusFilter;
         const df = overrides?.date_from ?? dateFrom;
         const dt = overrides?.date_to ?? dateTo;
-        const view = overrides?.view_mode ?? viewMode;
 
         if (s) params.search = s;
         if (st) params.status = st;
@@ -62,7 +61,6 @@ export default function AppointmentsIndex({ appointments, filters = {} }: { appo
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6 md:p-10 max-w-7xl mx-auto w-full">
 
-                {/* Header section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-emerald-600">Agenda</h1>
@@ -91,7 +89,6 @@ export default function AppointmentsIndex({ appointments, filters = {} }: { appo
                     </div>
                 </div>
 
-                {/* Filters bar */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex flex-wrap items-center gap-3">
                         <select
@@ -178,7 +175,6 @@ export default function AppointmentsIndex({ appointments, filters = {} }: { appo
                             transition={{ duration: 0.2 }}
                             className="flex-1"
                         >
-                            {/* Grid view of appointments */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {appointments.data.length > 0 ? (
                                     appointments.data.map((app: any, index: number) => (
@@ -204,12 +200,22 @@ export default function AppointmentsIndex({ appointments, filters = {} }: { appo
 
                                             <h3 className="text-xl font-bold text-foreground mb-1 flex items-center gap-2">
                                                 <div className="bg-primary/10 p-1.5 rounded-lg">
-                                                    <User className="size-5 text-primary" />
+                                                    {app.type === 'group' ? <Users className="size-5 text-primary" /> : <User className="size-5 text-primary" />}
                                                 </div>
-                                                <span className="truncate">{app.patient?.name || 'Não encontrado'}</span>
+                                                <span className="truncate">
+                                                    {app.type === 'group' 
+                                                        ? (app.title || 'Turma') 
+                                                        : (app.patients?.[0]?.name || 'Não encontrado')}
+                                                </span>
                                             </h3>
+                                            
+                                            {app.type === 'group' && (
+                                                <p className="text-xs text-muted-foreground font-medium mb-2">
+                                                    {app.patients?.length || 0} / {app.max_participants} participantes
+                                                </p>
+                                            )}
 
-                                            <p className="text-sm text-muted-foreground line-clamp-2 mt-4 min-h-[40px]">
+                                            <p className="text-sm text-muted-foreground line-clamp-2 mt-2 min-h-[40px]">
                                                 {app.notes || 'Sem observações.'}
                                             </p>
 

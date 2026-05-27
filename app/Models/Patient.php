@@ -48,7 +48,9 @@ class Patient extends Model
     
     public function appointments()
     {
-        return $this->hasMany(Appointment::class);
+        return $this->belongsToMany(Appointment::class)
+                    ->withPivot('status')
+                    ->withTimestamps();
     }
     
     public function evolutions()

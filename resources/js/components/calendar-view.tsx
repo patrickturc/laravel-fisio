@@ -148,6 +148,22 @@ export default function CalendarView() {
                     minute: '2-digit',
                     meridiem: false
                 }}
+                eventContent={(eventInfo) => {
+                    const isGroup = eventInfo.event.extendedProps.type === 'group';
+                    return (
+                        <div className="p-1 w-full overflow-hidden flex flex-col gap-0.5">
+                            <div className="font-semibold text-xs flex items-center justify-between">
+                                <span>{eventInfo.timeText}</span>
+                                {isGroup && (
+                                    <span className="text-[9px] bg-white/20 px-1 rounded">
+                                        {eventInfo.event.extendedProps.patient_count || 0}/{eventInfo.event.extendedProps.max_participants || 1}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="truncate text-xs font-medium">{eventInfo.event.title}</div>
+                        </div>
+                    );
+                }}
             />
         </div>
     );
