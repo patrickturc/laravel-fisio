@@ -96,6 +96,8 @@ class FinancialTransactionController extends Controller
                 ->values(),
         ];
 
+        $patients = Patient::orderBy('name')->get(['id', 'name']);
+
         return Inertia::render('financial/index', [
             'transactions' => $transactions,
             'summary' => $summary,
@@ -104,16 +106,10 @@ class FinancialTransactionController extends Controller
             'filters' => $request->only(['type', 'status', 'search', 'month', 'year']),
             'currentMonth' => (int) $month,
             'currentYear' => (int) $year,
-        ]);
-    }
-
-    public function create()
-    {
-        $patients = Patient::orderBy('name')->get(['id', 'name']);
-        return Inertia::render('financial/create', [
             'patients' => $patients,
         ]);
     }
+
 
     public function store(Request $request)
     {
@@ -139,14 +135,6 @@ class FinancialTransactionController extends Controller
         return redirect()->route('financial.index')->with('success', 'Transação registrada!');
     }
 
-    public function edit(FinancialTransaction $financial)
-    {
-        $patients = Patient::orderBy('name')->get(['id', 'name']);
-        return Inertia::render('financial/edit', [
-            'transaction' => $financial,
-            'patients' => $patients,
-        ]);
-    }
 
     public function update(Request $request, FinancialTransaction $financial)
     {

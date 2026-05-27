@@ -4,10 +4,13 @@ import type { BreadcrumbItem } from '@/types';
 import { ArrowLeft, Edit, Trash2, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useConfirmModal } from '@/components/confirm-modal';
+import { useState } from 'react';
+import EvolutionFormSheet from '@/components/EvolutionFormSheet';
 
 interface Evolution {
     id: string;
     paciente_id: string;
+    clinical_protocol_id: string | null;
     data_atendimento: string;
     tipo_atendimento: string;
     queixa_principal: string | null;
@@ -27,12 +30,13 @@ interface Evolution {
     professional?: { id: string; name: string } | null;
 }
 
-export default function EvolutionShow({ evolution }: { evolution: Evolution }) {
+export default function EvolutionShow({ evolution, protocols = [] }: { evolution: Evolution, protocols?: Array<{ id: string; name: string }> }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Evoluções', href: '/evolutions' },
         { title: new Date(evolution.data_atendimento).toLocaleDateString('pt-BR'), href: `/evolutions/${evolution.id}` },
     ];
 
+    const [isEvolutionSheetOpen, setIsEvolutionSheetOpen] = useState(false);
     const { confirm, modal } = useConfirmModal();
 
     async function handleDelete() {
@@ -73,7 +77,7 @@ export default function EvolutionShow({ evolution }: { evolution: Evolution }) {
                         <a href={`/evolutions/${evolution.id}/pdf`} target="_blank" className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Exportar PDF">
                             <Download className="size-4" />
                         </a>
-                        <Link href={`/evolutions/${evolution.id}/edit`} className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"><Edit className="size-4" /></Link>
+                        <button onClick={() => setIsEvolutionSheetOpen(true)} className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"><Edit className="size-4" /></button>
                         <button onClick={handleDelete} className="p-2.5 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 className="size-4" /></button>
                     </div>
                 </div>
@@ -106,6 +110,13 @@ export default function EvolutionShow({ evolution }: { evolution: Evolution }) {
                 </Section>
             </div>
             {modal}
+            <EvolutionFormSheet
+                isOpen={isEvolutionSheetOpen}
+                onOpenChange={setIsEvolutionSheetOpen}
+                patientId={evolution.paciente_id}
+                protocols={protocols}
+                evolution={evolution}
+            />
         </AppLayout>
     );
 }

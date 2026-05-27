@@ -33,9 +33,12 @@ class AppointmentController extends Controller
 
         $appointments = $query->paginate(15)->withQueryString();
 
+        $patients = Patient::orderBy('name')->get(['id', 'name']);
+
         return Inertia::render('appointments/index', [
             'appointments' => $appointments,
             'filters' => $request->only(['date_from', 'date_to', 'search']),
+            'patients' => $patients,
         ]);
     }
 
@@ -206,12 +209,20 @@ class AppointmentController extends Controller
         return response()->json($events);
     }
 
+    public function details(Appointment $appointment)
+    {
+        $appointment->load('patients');
+        return response()->json($appointment);
+    }
+
     public function show(Appointment $appointment)
     {
         $appointment->load('patients');
+        $protocols = \App\Models\ClinicalProtocol::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('appointments/show', [
-            'appointment' => $appointment
+            'appointment' => $appointment,
+            'protocols' => $protocols,
         ]);
     }
 

@@ -1,9 +1,16 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Plus, Tag, Edit, Trash2 } from 'lucide-react';
 import { useConfirmModal, ConfirmModal } from '@/components/confirm-modal';
 import { Badge } from '@/components/ui/badge';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import InputError from '@/components/input-error';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CommercialPlan {
     id: string;
@@ -21,6 +28,59 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
 
     const confirm = useConfirmModal();
 
+    const [sheetOpen, setSheetOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+
+    const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
+        name: '',
+        price: '',
+        duration_months: '',
+        description: '',
+        category: 'fisioterapia',
+    });
+
+    const openCreateSheet = () => {
+        setIsEditing(false);
+        setEditingId(null);
+        reset();
+        clearErrors();
+        setSheetOpen(true);
+    };
+
+    const openEditSheet = (plan: CommercialPlan) => {
+        setIsEditing(true);
+        setEditingId(plan.id);
+        setData({
+            name: plan.name,
+            price: plan.price,
+            duration_months: plan.duration_months?.toString() || '',
+            description: plan.description || '',
+            category: plan.category || 'fisioterapia',
+        });
+        clearErrors();
+        setSheetOpen(true);
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        const options = {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                setSheetOpen(false);
+                reset();
+            }
+        };
+
+        if (isEditing && editingId) {
+            put(`/commercial-plans/${editingId}`, options);
+        } else {
+            post('/commercial-plans', options);
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Planos Comerciais - Phisio" />
@@ -32,13 +92,13 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                         <h1 className="text-3xl font-bold tracking-tight text-foreground">Planos e Pacotes</h1>
                         <p className="text-muted-foreground mt-1">Gerencie os pacotes comerciais disponíveis para matrículas.</p>
                     </div>
-                    <Link
-                        href="/commercial-plans/create"
+                    <button
+                        onClick={openCreateSheet}
                         className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-primary text-white text-sm font-medium shadow-sm hover:bg-primary/90 transition-colors"
                     >
                         <Plus className="size-4" />
                         Novo Plano
-                    </Link>
+                    </button>
                 </div>
 
                 <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden shadow-sm">
@@ -83,13 +143,13 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Link
-                                                    href={`/commercial-plans/${plan.id}/edit`}
+                                                <button
+                                                    onClick={() => openEditSheet(plan)}
                                                     className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                                                     title="Editar"
                                                 >
                                                     <Edit className="size-4" />
-                                                </Link>
+                                                </button>
                                                 <button
                                                     onClick={() => confirm.open({
                                                         title: 'Excluir Plano',
@@ -117,6 +177,95 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                     </div>
                 </div>
             </div>
+
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+                <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+                    <SheetHeader>
+                        <SheetTitle>{isEditing ? 'Editar Plano Comercial' : 'Novo Plano Comercial'}</SheetTitle>
+                    </SheetHeader>
+
+                    <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+                        <div className="grid gap-2">
+                            <Label htmlFor="name">Nome do Plano *</Label>
+                            <Input
+                                id="name"
+                                value={data.name}
+                                onChange={e => setData('name', e.target.value)}
+                                placeholder="Ex: Pilates Mensal 2x Semana"
+                                className="bg-background"
+                                required
+                            />
+                            <InputError message={errors.name} />
+                        </div>
+                        
+                        <div className="grid gap-2">
+                            <Label htmlFor="category">Categoria *</Label>
+                            <Select value={data.category} onValueChange={(value) => setData('category', value)}>
+                                <SelectTrigger className="bg-background" id="category">
+                                    <SelectValue placeholder="Selecione a categoria" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="fisioterapia">Fisioterapia</SelectItem>
+                                    <SelectItem value="pilates">Pilates</SelectItem>
+                                    <SelectItem value="teste">Aula Teste</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.category} />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="price">Valor Base (R$) *</Label>
+                            <Input
+                                id="price"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={data.price}
+                                onChange={e => setData('price', e.target.value)}
+                                placeholder="0.00"
+                                className="bg-background"
+                                required
+                            />
+                            <InputError message={errors.price} />
+                        </div>
+                        
+                        <div className="grid gap-2">
+                            <Label htmlFor="duration_months">Duração Padrão (Meses)</Label>
+                            <Input
+                                id="duration_months"
+                                type="number"
+                                min="1"
+                                value={data.duration_months}
+                                onChange={e => setData('duration_months', e.target.value)}
+                                placeholder="Ex: 1 para mensal, 3 para trimestral"
+                                className="bg-background"
+                            />
+                            <InputError message={errors.duration_months} />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="description">Descrição / Regras</Label>
+                            <textarea
+                                id="description"
+                                value={data.description}
+                                onChange={e => setData('description', e.target.value)}
+                                placeholder="Detalhes sobre o que está incluso..."
+                                className="flex w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[100px] resize-y"
+                            />
+                            <InputError message={errors.description} />
+                        </div>
+
+                        <div className="flex items-center justify-end gap-4 pt-4 border-t border-border/30">
+                            <Button type="button" variant="ghost" onClick={() => setSheetOpen(false)}>
+                                Cancelar
+                            </Button>
+                            <Button type="submit" disabled={processing} className="px-6 py-2.5 bg-primary text-white rounded-xl shadow-sm hover:bg-primary/90">
+                                {processing ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Salvar Plano')}
+                            </Button>
+                        </div>
+                    </form>
+                </SheetContent>
+            </Sheet>
         </AppLayout>
     );
 }

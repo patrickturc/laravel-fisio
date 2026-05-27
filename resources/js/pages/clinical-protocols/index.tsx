@@ -1,10 +1,11 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { ClipboardList, Search, Plus } from 'lucide-react';
+import { ClipboardList, Search, Plus, Edit2 } from 'lucide-react';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Pagination } from '@/components/pagination';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Protocolos Clínicos', href: '/clinical-protocols' },
@@ -20,6 +21,55 @@ interface PaginatedProtocols {
 
 export default function ClinicalProtocolsIndex({ protocols, filters = {} }: { protocols: PaginatedProtocols; filters?: any }) {
     const [search, setSearch] = useState(filters.search || '');
+
+    const [isSheetOpen, setSheetOpen] = useState(false);
+    const [mode, setMode] = useState<'create' | 'edit'>('create');
+    const [editingId, setEditingId] = useState<string | null>(null);
+
+    const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
+        name: '',
+        description: '',
+        total_sessions: 10 as number | '',
+        notes: '',
+    });
+
+    function openCreate() {
+        setMode('create');
+        reset();
+        clearErrors();
+        setEditingId(null);
+        setSheetOpen(true);
+    }
+
+    function openEdit(protocol: any) {
+        setMode('edit');
+        clearErrors();
+        setEditingId(protocol.id);
+        setData({
+            name: protocol.name,
+            description: protocol.description || '',
+            total_sessions: protocol.total_sessions || '',
+            notes: protocol.notes || '',
+        });
+        setSheetOpen(true);
+    }
+
+    function handleSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        if (mode === 'create') {
+            post('/clinical-protocols', {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => setSheetOpen(false)
+            });
+        } else {
+            put(`/clinical-protocols/${editingId}`, {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => setSheetOpen(false)
+            });
+        }
+    }
 
     function applyFilters(overrides?: any) {
         const params: any = {};
@@ -55,9 +105,9 @@ export default function ClinicalProtocolsIndex({ protocols, filters = {} }: { pr
                         {hasFilters && (
                             <button onClick={clearFilters} className="h-10 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl transition-colors border border-border">Limpar</button>
                         )}
-                        <Link href="/clinical-protocols/create" className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm">
+                        <button onClick={openCreate} className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm">
                             <Plus className="size-4" /><span className="hidden sm:inline">Novo Protocolo</span>
-                        </Link>
+                        </button>
                     </div>
                 </div>
 
@@ -74,9 +124,14 @@ export default function ClinicalProtocolsIndex({ protocols, filters = {} }: { pr
                                     <p className="text-sm text-muted-foreground line-clamp-3">{protocol.description || 'Nenhuma descrição fornecida.'}</p>
                                 </div>
 
-                                <Link href={`/clinical-protocols/${protocol.id}`} className="text-sm font-semibold text-primary hover:text-emerald-500 transition-colors mt-6 inline-flex items-center gap-1">
-                                    Detalhes →
-                                </Link>
+                                <div className="flex items-center justify-between gap-4 mt-6">
+                                    <Link href={`/clinical-protocols/${protocol.id}`} className="text-sm font-semibold text-primary hover:text-emerald-500 transition-colors inline-flex items-center gap-1">
+                                        Detalhes →
+                                    </Link>
+                                    <button onClick={() => openEdit(protocol)} className="text-sm font-semibold text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
+                                        <Edit2 className="size-4" /> Editar
+                                    </button>
+                                </div>
                             </motion.div>
                         );
                     }) : (
@@ -90,6 +145,51 @@ export default function ClinicalProtocolsIndex({ protocols, filters = {} }: { pr
 
                 {protocols.total > 0 && <Pagination links={protocols.links} from={protocols.from} to={protocols.to} total={protocols.total} />}
             </div>
+
+            <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
+                <SheetContent className="overflow-y-auto sm:max-w-md w-full">
+                    <SheetHeader>
+                        <SheetTitle>{mode === 'create' ? 'Novo Protocolo Clínico' : 'Editar Protocolo'}</SheetTitle>
+                    </SheetHeader>
+                    
+                    <form onSubmit={handleSubmit} className="space-y-5 mt-6">
+                        <div>
+                            <label className="text-sm font-medium text-foreground mb-1.5 block">Nome do Protocolo *</label>
+                            <input type="text" value={data.name} onChange={e => setData('name', e.target.value)}
+                                className="w-full h-11 px-4 border border-border rounded-xl bg-background text-sm" placeholder="Ex: Acupuntura, RPG, Pilates Clínico" />
+                            {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium text-foreground mb-1.5 block">Descrição / Objetivo Geral</label>
+                            <textarea value={data.description} onChange={e => setData('description', e.target.value)} rows={3}
+                                className="w-full px-4 py-3 border border-border rounded-xl bg-background text-sm resize-none" placeholder="Descreva o procedimento e seus objetivos gerais..." />
+                            {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium text-foreground mb-1.5 block">Total de Sessões Padrão</label>
+                            <input type="number" value={data.total_sessions} onChange={e => setData('total_sessions', e.target.value ? parseInt(e.target.value) : '')} min={1}
+                                className="w-full h-11 px-4 border border-border rounded-xl bg-background text-sm" placeholder="Opcional. Ex: 10" />
+                            {errors.total_sessions && <p className="text-xs text-red-500 mt-1">{errors.total_sessions}</p>}
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium text-foreground mb-1.5 block">Observações Adicionais</label>
+                            <textarea value={data.notes} onChange={e => setData('notes', e.target.value)} rows={3}
+                                className="w-full px-4 py-3 border border-border rounded-xl bg-background text-sm resize-none" placeholder="Qualquer nota técnica sobre o protocolo..." />
+                            {errors.notes && <p className="text-xs text-red-500 mt-1">{errors.notes}</p>}
+                        </div>
+
+                        <div className="flex justify-end pt-4">
+                            <button type="submit" disabled={processing}
+                                className="px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50">
+                                {mode === 'create' ? 'Salvar Protocolo' : 'Salvar Alterações'}
+                            </button>
+                        </div>
+                    </form>
+                </SheetContent>
+            </Sheet>
         </AppLayout>
     );
 }

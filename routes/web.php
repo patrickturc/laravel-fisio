@@ -11,9 +11,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
     Route::resource('patients', App\Http\Controllers\PatientController::class);
     Route::get('api/appointments/events', [App\Http\Controllers\AppointmentController::class, 'events'])->name('appointments.events');
+    Route::get('api/appointments/{appointment}', [App\Http\Controllers\AppointmentController::class, 'details'])->name('appointments.details');
     Route::post('appointments/{appointment}/patients/{patientId}/status', [App\Http\Controllers\AppointmentController::class, 'updateStatus'])->name('appointments.update-status');
     Route::resource('appointments', App\Http\Controllers\AppointmentController::class);
-    Route::resource('evolutions', App\Http\Controllers\EvolutionController::class);
+    Route::resource('evolutions', App\Http\Controllers\EvolutionController::class)->except(['create', 'edit', 'index']);
     Route::post('memberships/{membership}/renew', [App\Http\Controllers\MembershipController::class, 'renew'])->name('memberships.renew');
     Route::resource('memberships', App\Http\Controllers\MembershipController::class);
     Route::post('financial/{financial}/mark-paid', [App\Http\Controllers\FinancialTransactionController::class, 'markAsPaid'])->name('financial.mark-paid');

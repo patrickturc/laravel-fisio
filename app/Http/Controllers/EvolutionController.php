@@ -90,16 +90,17 @@ class EvolutionController extends Controller
                 ->update(['status' => 'completed']);
         }
 
-        return redirect()->route('evolutions.index')
-            ->with('success', 'Evolução registrada com sucesso!');
+        return back()->with('success', 'Evolução registrada com sucesso!');
     }
 
     public function show(Evolution $evolution)
     {
         $evolution->load(['patient', 'professional']);
+        $protocols = \App\Models\ClinicalProtocol::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('evolutions/show', [
-            'evolution' => $evolution
+            'evolution' => $evolution,
+            'protocols' => $protocols,
         ]);
     }
 
@@ -145,8 +146,7 @@ class EvolutionController extends Controller
 
         $evolution->update($validated);
 
-        return redirect()->route('evolutions.show', $evolution)
-            ->with('success', 'Evolução atualizada!');
+        return back()->with('success', 'Evolução atualizada!');
     }
 
     public function destroy(Evolution $evolution)

@@ -5,6 +5,7 @@ import { UserPlus, Search, Edit, FileText, Filter } from 'lucide-react';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Pagination } from '@/components/pagination';
+import { PatientFormSheet, type Patient } from './PatientFormSheet';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Pacientes', href: '/patients' },
@@ -21,6 +22,8 @@ interface PaginatedPatients {
 export default function PatientsIndex({ patients, filters = {} }: { patients: PaginatedPatients; filters?: any }) {
     const [search, setSearch] = useState(filters.search || '');
     const [typeFilter, setTypeFilter] = useState(filters.type || '');
+    const [isSheetOpen, setIsSheetOpen] = useState(false);
+    const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
 
     function applyFilters() {
         router.get('/patients', {
@@ -80,13 +83,16 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
                                 Limpar
                             </button>
                         )}
-                        <Link
-                            href="/patients/create"
+                        <button
+                            onClick={() => {
+                                setEditingPatient(null);
+                                setIsSheetOpen(true);
+                            }}
                             className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
                         >
                             <UserPlus className="size-4" />
                             <span className="hidden sm:inline">Novo Paciente</span>
-                        </Link>
+                        </button>
                     </div>
                 </div>
 
@@ -153,9 +159,16 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
                                                     <Link href={`/patients/${patient.id}/evolutions`} className="p-2 text-muted-foreground hover:text-emerald-500 transition-colors rounded-lg hover:bg-emerald-500/10" title="Ver Evoluções">
                                                         <FileText className="size-4" />
                                                     </Link>
-                                                    <Link href={`/patients/${patient.id}/edit`} className="p-2 text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-primary/10" title="Editar Paciente">
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingPatient(patient);
+                                                            setIsSheetOpen(true);
+                                                        }}
+                                                        className="p-2 text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-primary/10"
+                                                        title="Editar Paciente"
+                                                    >
                                                         <Edit className="size-4" />
-                                                    </Link>
+                                                    </button>
                                                 </div>
                                             </td>
                                         </motion.tr>
@@ -184,6 +197,13 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
                 </div>
 
             </div>
+            
+            <PatientFormSheet 
+                key={editingPatient ? editingPatient.id : 'new'} 
+                open={isSheetOpen} 
+                onOpenChange={setIsSheetOpen} 
+                patient={editingPatient} 
+            />
         </AppLayout>
     );
 }

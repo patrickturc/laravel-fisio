@@ -4,6 +4,8 @@ import type { BreadcrumbItem } from '@/types';
 import { ArrowLeft, Edit, Trash2, Clock, User, Users, FileText, CheckCircle2, XCircle, Clock4, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useConfirmModal } from '@/components/confirm-modal';
+import { useState } from 'react';
+import EvolutionFormSheet from '@/components/EvolutionFormSheet';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -31,15 +33,16 @@ interface Appointment {
     duration_minutes: number;
     status: string;
     notes: string | null;
-    patients: Patient[];
+    patients?: Array<{ id: string; name: string; pivot?: { status: string } }>;
 }
 
-export default function AppointmentShow({ appointment }: { appointment: Appointment }) {
+export default function AppointmentShow({ appointment, protocols = [] }: { appointment: Appointment, protocols?: Array<{ id: string; name: string }> }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Agenda', href: '/appointments' },
         { title: `${new Date(appointment.appointment_date).toLocaleDateString('pt-BR')}`, href: `/appointments/${appointment.id}` },
     ];
 
+    const [isEvolutionSheetOpen, setIsEvolutionSheetOpen] = useState(false);
     const { confirm, modal } = useConfirmModal();
 
     async function handleDelete() {
@@ -94,7 +97,7 @@ export default function AppointmentShow({ appointment }: { appointment: Appointm
                         <div>
                             <p className="text-xs text-muted-foreground">Tipo</p>
                             <p className="font-semibold text-sm">
-                                {appointment.type === 'group' ? `Turma (${appointment.patients.length}/${appointment.max_participants} participantes)` : 'Sessão Individual'}
+                                {appointment.type === 'group' ? `Turma (${appointment.patients?.length || 0}/${appointment.max_participants} participantes)` : 'Sessão Individual'}
                             </p>
                         </div>
                     </div>
@@ -175,13 +178,13 @@ export default function AppointmentShow({ appointment }: { appointment: Appointm
                 {/* Register Evolution Action */}
                 {appointment.status === 'scheduled' && appointment.type === 'individual' && appointment.patients?.length === 1 && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                        <Link
-                            href={`/evolutions/create?paciente_id=${appointment.patients[0].id}&agendamento_id=${appointment.id}`}
+                        <button
+                            onClick={() => setIsEvolutionSheetOpen(true)}
                             className="flex items-center justify-center gap-3 w-full p-5 bg-gradient-to-r from-primary to-emerald-500 text-white font-semibold rounded-2xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
                         >
                             <FileText className="size-5" />
                             Registrar Evolução e Concluir Sessão
-                        </Link>
+                        </button>
                         <p className="text-xs text-muted-foreground text-center mt-2">
                             Ao registrar a evolução, o agendamento será marcado como "Realizado" automaticamente.
                         </p>
@@ -208,6 +211,16 @@ export default function AppointmentShow({ appointment }: { appointment: Appointm
                 )}
             </div>
             {modal}
+            
+            {appointment.patients?.length === 1 && (
+                <EvolutionFormSheet
+                    isOpen={isEvolutionSheetOpen}
+                    onOpenChange={setIsEvolutionSheetOpen}
+                    patientId={appointment.patients[0].id}
+                    appointmentId={appointment.id}
+                    protocols={protocols}
+                />
+            )}
         </AppLayout>
     );
 }

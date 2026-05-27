@@ -13,7 +13,7 @@ class MembershipController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Membership::with('patient')->orderBy('created_at', 'desc');
+        $query = Membership::with('patient', 'commercialPlan')->orderBy('created_at', 'desc');
 
         if ($request->filled('search')) {
             $query->whereHas('patient', function ($q) use ($request) {
@@ -27,9 +27,14 @@ class MembershipController extends Controller
 
         $memberships = $query->paginate(15)->withQueryString();
 
+        $patients = Patient::orderBy('name')->get(['id', 'name']);
+        $commercialPlans = CommercialPlan::orderBy('name')->get(['id', 'name', 'price', 'duration_months']);
+
         return Inertia::render('memberships/index', [
             'memberships' => $memberships,
             'filters' => $request->only(['search', 'status']),
+            'patients' => $patients,
+            'commercialPlans' => $commercialPlans,
         ]);
     }
 

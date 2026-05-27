@@ -1,10 +1,11 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Plus, Search, TrendingUp, TrendingDown, DollarSign, Wallet, User, Edit, Trash2, ChevronLeft, ChevronRight, AlertTriangle, ArrowUpRight, ArrowDownRight, CheckCircle, RefreshCw } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { Plus, Search, TrendingUp, TrendingDown, DollarSign, Wallet, User, Edit, Trash2, ChevronLeft, ChevronRight, AlertTriangle, ArrowUpRight, ArrowDownRight, CheckCircle, RefreshCw, Save, AlignLeft, Calendar as CalendarIcon, Tag } from 'lucide-react';
+import { useState, useMemo, FormEvent } from 'react';
 import { Pagination } from '@/components/pagination';
 import { useConfirmModal } from '@/components/confirm-modal';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Financeiro', href: '/financial' },
@@ -29,6 +30,9 @@ const categoryColors: Record<string, string> = {
     'Sem categoria': 'bg-gray-300',
 };
 
+const incomeCategories = ['Mensalidade', 'Avaliação', 'Sessão Avulsa', 'Matrícula', 'Outros'];
+const expenseCategories = ['Aluguel', 'Equipamentos', 'Material', 'Água/Luz/Internet', 'Salários', 'Impostos', 'Marketing', 'Manutenção', 'Outros'];
+
 interface Props {
     transactions: any;
     summary: any;
@@ -37,13 +41,80 @@ interface Props {
     filters: any;
     currentMonth: number;
     currentYear: number;
+    patients: any[];
 }
 
-export default function FinancialIndex({ transactions, summary, chartData, categoryBreakdown, filters = {}, currentMonth, currentYear }: Props) {
+export default function FinancialIndex({ transactions, summary, chartData, categoryBreakdown, filters = {}, currentMonth, currentYear, patients }: Props) {
     const [typeFilter, setTypeFilter] = useState(filters.type || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const { confirm, modal } = useConfirmModal();
+
+    const [sheetOpen, setSheetOpen] = useState(false);
+    const [editingTransaction, setEditingTransaction] = useState<any>(null);
+
+    const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
+        type: 'income',
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        description: '',
+        category: '',
+        status: 'paid',
+        patient_id: '',
+        due_date: '',
+    });
+
+    const formCategories = data.type === 'income' ? incomeCategories : expenseCategories;
+
+    function openCreateSheet() {
+        clearErrors();
+        reset();
+        setData({
+            type: 'income',
+            amount: '',
+            date: new Date().toISOString().split('T')[0],
+            description: '',
+            category: '',
+            status: 'paid',
+            patient_id: '',
+            due_date: '',
+        });
+        setEditingTransaction(null);
+        setSheetOpen(true);
+    }
+
+    function openEditSheet(t: any) {
+        clearErrors();
+        setEditingTransaction(t);
+        setData({
+            type: t.type || 'income',
+            amount: t.amount || '',
+            date: t.date ? t.date.split('T')[0] : '',
+            description: t.description || '',
+            category: t.category || '',
+            status: t.status || 'paid',
+            patient_id: t.patient_id || '',
+            due_date: t.due_date ? t.due_date.split('T')[0] : '',
+        });
+        setSheetOpen(true);
+    }
+
+    function submit(e: FormEvent) {
+        e.preventDefault();
+        if (editingTransaction) {
+            put(`/financial/${editingTransaction.id}`, {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => setSheetOpen(false)
+            });
+        } else {
+            post('/financial', {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => setSheetOpen(false)
+            });
+        }
+    }
 
     function navigate(params: Record<string, any>) {
         const current: Record<string, any> = { month: currentMonth, year: currentYear };
@@ -126,13 +197,13 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                             <RefreshCw className="size-4" />
                             <span className="hidden sm:inline">Recorrentes</span>
                         </Link>
-                        <Link
-                            href="/financial/create"
+                        <button
+                            onClick={openCreateSheet}
                             className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
                         >
                             <Plus className="size-4" />
                             <span className="hidden sm:inline">Nova Transação</span>
-                        </Link>
+                        </button>
                     </div>
                 </div>
 
@@ -373,9 +444,9 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                                                             <CheckCircle className="size-4" />
                                                         </button>
                                                     )}
-                                                    <Link href={`/financial/${t.id}/edit`} className="p-1.5 text-muted-foreground hover:text-primary rounded-lg hover:bg-primary/10 transition-colors" title="Editar">
+                                                    <button onClick={() => openEditSheet(t)} className="p-1.5 text-muted-foreground hover:text-primary rounded-lg hover:bg-primary/10 transition-colors" title="Editar">
                                                         <Edit className="size-4" />
-                                                    </Link>
+                                                    </button>
                                                     <button onClick={() => handleDelete(t)} className="p-1.5 text-muted-foreground hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors" title="Excluir">
                                                         <Trash2 className="size-4" />
                                                     </button>
@@ -407,6 +478,171 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                     </div>
                 )}
             </div>
+
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+                <SheetContent side="right" className="w-full max-w-md p-6 overflow-y-auto sm:max-w-lg border-l-0 shadow-2xl">
+                    <SheetHeader className="mb-6">
+                        <SheetTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-emerald-600">
+                            {editingTransaction ? 'Editar Lançamento' : 'Novo Lançamento'}
+                        </SheetTitle>
+                    </SheetHeader>
+                    <form onSubmit={submit} className="space-y-6">
+                        {/* Tipo de Transação */}
+                        <div className="grid grid-cols-2 gap-4 bg-muted/30 p-2 rounded-xl">
+                            <button
+                                type="button"
+                                onClick={() => { setData('type', 'income'); setData('category', ''); }}
+                                className={`flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-all ${data.type === 'income' ? 'bg-emerald-500 text-white shadow-md' : 'text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-600'}`}
+                            >
+                                Receita (+)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { setData('type', 'expense'); setData('category', ''); }}
+                                className={`flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-all ${data.type === 'expense' ? 'bg-red-500 text-white shadow-md' : 'text-muted-foreground hover:bg-red-500/10 hover:text-red-600'}`}
+                            >
+                                Despesa (-)
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-foreground">Valor (R$)</label>
+                                <div className="relative">
+                                    <DollarSign className={`absolute left-3 top-1/2 -translate-y-1/2 size-5 ${data.type === 'income' ? 'text-emerald-500' : 'text-red-500'}`} />
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={data.amount}
+                                        onChange={e => setData('amount', e.target.value)}
+                                        className="w-full h-14 pl-12 pr-3 text-2xl font-bold border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
+                                        required
+                                    />
+                                </div>
+                                {errors.amount && <p className="text-sm text-red-500 mt-1">{errors.amount}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-foreground">Descrição</label>
+                                <div className="relative">
+                                    <AlignLeft className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                                    <input
+                                        type="text"
+                                        placeholder="Ex: Mensalidade Pilates, Luz, Água, etc..."
+                                        value={data.description}
+                                        onChange={e => setData('description', e.target.value)}
+                                        className="w-full h-11 pl-10 pr-3 border border-border rounded-xl bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
+                                        required
+                                    />
+                                </div>
+                                {errors.description && <p className="text-sm text-red-500 mt-1">{errors.description}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-foreground">Data</label>
+                                <div className="relative">
+                                    <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                                    <input
+                                        type="date"
+                                        value={data.date}
+                                        onChange={e => setData('date', e.target.value)}
+                                        className="w-full h-11 pl-10 pr-3 border border-border rounded-xl bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
+                                        required
+                                    />
+                                </div>
+                                {errors.date && <p className="text-sm text-red-500 mt-1">{errors.date}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-foreground">Categoria</label>
+                                <div className="relative">
+                                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                                    <select
+                                        value={data.category}
+                                        onChange={e => setData('category', e.target.value)}
+                                        className="w-full h-11 pl-10 pr-3 border border-border rounded-xl bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm appearance-none"
+                                    >
+                                        <option value="">Selecione uma categoria</option>
+                                        {formCategories.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                {errors.category && <p className="text-sm text-red-500 mt-1">{errors.category}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-foreground">Status</label>
+                                <select
+                                    value={data.status}
+                                    onChange={e => setData('status', e.target.value)}
+                                    className="w-full h-11 px-3 border border-border rounded-xl bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
+                                    required
+                                >
+                                    <option value="paid">{data.type === 'income' ? 'Recebido' : 'Pago'}</option>
+                                    <option value="pending">Pendente (A receber / A pagar)</option>
+                                </select>
+                                {errors.status && <p className="text-sm text-red-500 mt-1">{errors.status}</p>}
+                            </div>
+
+                            {data.status === 'pending' && (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-foreground">Data de Vencimento</label>
+                                    <div className="relative">
+                                        <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                                        <input
+                                            type="date"
+                                            value={data.due_date}
+                                            onChange={e => setData('due_date', e.target.value)}
+                                            className="w-full h-11 pl-10 pr-3 border border-border rounded-xl bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
+                                        />
+                                    </div>
+                                    {errors.due_date && <p className="text-sm text-red-500 mt-1">{errors.due_date}</p>}
+                                </div>
+                            )}
+
+                            {data.type === 'income' && (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-foreground">Vincular Paciente / Aluno (Opcional)</label>
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                                        <select
+                                            value={data.patient_id}
+                                            onChange={e => setData('patient_id', e.target.value)}
+                                            className="w-full h-11 pl-10 pr-3 border border-border rounded-xl bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
+                                        >
+                                            <option value="">Nenhum</option>
+                                            {patients && patients.map(p => (
+                                                <option key={p.id} value={p.id}>{p.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    {errors.patient_id && <p className="text-sm text-red-500 mt-1">{errors.patient_id}</p>}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="pt-6 border-t border-border/50 flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setSheetOpen(false)}
+                                className="h-11 px-6 flex items-center justify-center border border-border bg-card hover:bg-muted text-foreground font-medium rounded-xl transition-colors shadow-sm"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="h-11 px-6 flex items-center justify-center gap-2 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
+                            >
+                                <Save className="size-4" />
+                                {editingTransaction ? 'Salvar Alterações' : 'Salvar Lançamento'}
+                            </button>
+                        </div>
+                    </form>
+                </SheetContent>
+            </Sheet>
             {modal}
         </AppLayout>
     );

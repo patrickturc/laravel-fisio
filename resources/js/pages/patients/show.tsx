@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { useConfirmModal } from '@/components/confirm-modal';
 import { useState } from 'react';
+import EvolutionFormSheet from '@/components/EvolutionFormSheet';
 
 interface Patient {
     id: string;
@@ -64,13 +65,15 @@ interface TimelineItem {
 
 type Tab = 'info' | 'memberships' | 'timeline';
 
-export default function PatientShow({ patient }: { patient: Patient }) {
+export default function PatientShow({ patient, protocols = [] }: { patient: Patient, protocols?: Array<{ id: string; name: string }> }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Pacientes', href: '/patients' },
         { title: patient.nickname || patient.name, href: `/patients/${patient.id}` },
     ];
 
     const [activeTab, setActiveTab] = useState<Tab>('info');
+    const [isEvolutionSheetOpen, setIsEvolutionSheetOpen] = useState(false);
+    const [editingEvolution, setEditingEvolution] = useState<any>(null);
     const { confirm, modal } = useConfirmModal();
 
     async function handleDelete() {
@@ -171,9 +174,9 @@ export default function PatientShow({ patient }: { patient: Patient }) {
                     <Link href={`/appointments/create?patient_id=${patient.id}`} className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-semibold hover:bg-primary/20 transition-colors">
                         <Calendar className="size-4" /> Novo Agendamento
                     </Link>
-                    <Link href={`/evolutions/create?paciente_id=${patient.id}`} className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 text-indigo-600 rounded-xl text-sm font-semibold hover:bg-indigo-500/20 transition-colors">
+                    <button onClick={() => { setEditingEvolution(null); setIsEvolutionSheetOpen(true); }} className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 text-indigo-600 rounded-xl text-sm font-semibold hover:bg-indigo-500/20 transition-colors">
                         <Activity className="size-4" /> Nova Evolução
-                    </Link>
+                    </button>
                     <Link href={`/memberships/create?patient_id=${patient.id}`} className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-600 rounded-xl text-sm font-semibold hover:bg-emerald-500/20 transition-colors">
                         <Plus className="size-4" /> Nova Matrícula
                     </Link>
@@ -378,12 +381,22 @@ export default function PatientShow({ patient }: { patient: Patient }) {
                                                         </p>
                                                     )}
                                                 </div>
-                                                <Link
-                                                    href={item.type === 'appointment' ? `/appointments/${item.data.id}` : `/evolutions/${item.data.id}`}
-                                                    className="text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity self-center"
-                                                >
-                                                    Ver →
-                                                </Link>
+                                                <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity self-center items-end">
+                                                    <Link
+                                                        href={item.type === 'appointment' ? `/appointments/${item.data.id}` : `/evolutions/${item.data.id}`}
+                                                        className="text-xs font-medium text-primary hover:underline"
+                                                    >
+                                                        Ver →
+                                                    </Link>
+                                                    {item.type === 'evolution' && (
+                                                        <button 
+                                                            onClick={() => { setEditingEvolution(item.data); setIsEvolutionSheetOpen(true); }} 
+                                                            className="text-xs font-medium text-muted-foreground hover:text-foreground"
+                                                        >
+                                                            Editar
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </motion.div>
                                         ))}
                                     </div>
@@ -394,6 +407,13 @@ export default function PatientShow({ patient }: { patient: Patient }) {
                 )}
             </div>
             {modal}
+            <EvolutionFormSheet
+                isOpen={isEvolutionSheetOpen}
+                onOpenChange={setIsEvolutionSheetOpen}
+                patientId={patient.id}
+                protocols={protocols}
+                evolution={editingEvolution}
+            />
         </AppLayout>
     );
 }

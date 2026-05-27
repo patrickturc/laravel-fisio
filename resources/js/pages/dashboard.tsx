@@ -352,9 +352,9 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
                         <div className="p-2.5 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500/20 transition-colors"><Calendar className="size-5 text-emerald-600" /></div>
                         <div><p className="font-semibold text-sm">Agendar Sessão</p><p className="text-xs text-muted-foreground">Criar agendamento</p></div>
                     </Link>
-                    <Link href="/evolutions/create" className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-amber-500/30 transition-all group flex items-center gap-4">
+                    <Link href="/patients" className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-amber-500/30 transition-all group flex items-center gap-4">
                         <div className="p-2.5 bg-amber-500/10 rounded-xl group-hover:bg-amber-500/20 transition-colors"><FileText className="size-5 text-amber-600" /></div>
-                        <div><p className="font-semibold text-sm">Nova Evolução</p><p className="text-xs text-muted-foreground">Registrar atendimento</p></div>
+                        <div><p className="font-semibold text-sm">Prontuários</p><p className="text-xs text-muted-foreground">Acessar ficha de pacientes</p></div>
                     </Link>
                 </div>
             </div>

@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Pagination } from '@/components/pagination';
 import CalendarView from '@/components/calendar-view';
+import { AppointmentFormSheet } from './appointment-form-sheet';
+import axios from 'axios';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Agenda', href: '/appointments' },
@@ -19,12 +21,17 @@ interface PaginatedAppointments {
     total: number;
 }
 
-export default function AppointmentsIndex({ appointments, filters = {} }: { appointments: PaginatedAppointments; filters?: any }) {
+export default function AppointmentsIndex({ appointments, filters = {}, patients = [] }: { appointments: PaginatedAppointments; filters?: any; patients?: any[] }) {
     const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
     const [search, setSearch] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
     const [dateFrom, setDateFrom] = useState(filters.date_from || '');
     const [dateTo, setDateTo] = useState(filters.date_to || '');
+
+    const [sheetOpen, setSheetOpen] = useState(false);
+    const [editingAppointment, setEditingAppointment] = useState<any>(null);
+    const [initialDate, setInitialDate] = useState('');
+    const [initialTime, setInitialTime] = useState('');
 
     function applyFilters(overrides?: any) {
         const params: any = { ...overrides };
@@ -79,13 +86,18 @@ export default function AppointmentsIndex({ appointments, filters = {} }: { appo
                                 className="w-full h-10 pl-9 border border-border rounded-xl bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
                             />
                         </div>
-                        <Link
-                            href="/appointments/create"
+                        <button
+                            onClick={() => {
+                                setEditingAppointment(null);
+                                setInitialDate(new Date().toISOString().split('T')[0]);
+                                setInitialTime('08:00');
+                                setSheetOpen(true);
+                            }}
                             className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
                         >
                             <CalendarPlus className="size-4" />
                             <span className="hidden sm:inline">Novo Agendamento</span>
-                        </Link>
+                        </button>
                     </div>
                 </div>
 
@@ -164,7 +176,21 @@ export default function AppointmentsIndex({ appointments, filters = {} }: { appo
                             transition={{ duration: 0.2 }}
                             className="flex-1 min-h-[600px] w-full"
                         >
-                            <CalendarView />
+                            <CalendarView 
+                                onEventClick={(eventId) => {
+                                    axios.get(`/api/appointments/${eventId}`)
+                                        .then(res => {
+                                            setEditingAppointment(res.data);
+                                            setSheetOpen(true);
+                                        });
+                                }}
+                                onDateSelect={(date, time) => {
+                                    setEditingAppointment(null);
+                                    setInitialDate(date);
+                                    setInitialTime(time);
+                                    setSheetOpen(true);
+                                }}
+                            />
                         </motion.div>
                     ) : (
                         <motion.div
@@ -228,9 +254,18 @@ export default function AppointmentsIndex({ appointments, filters = {} }: { appo
                                                     {app.status === 'completed' ? 'Concluído' : app.status === 'cancelled' ? 'Cancelado' : 'Agendado'}
                                                 </span>
 
-                                                <Link href={`/appointments/${app.id}`} className="text-sm font-semibold text-primary hover:text-emerald-500 transition-colors flex items-center gap-1">
-                                                    Detalhes <span aria-hidden="true">&rarr;</span>
-                                                </Link>
+                                                <button 
+                                                    onClick={() => {
+                                                        axios.get(`/api/appointments/${app.id}`)
+                                                            .then(res => {
+                                                                setEditingAppointment(res.data);
+                                                                setSheetOpen(true);
+                                                            });
+                                                    }}
+                                                    className="text-sm font-semibold text-primary hover:text-emerald-500 transition-colors flex items-center gap-1"
+                                                >
+                                                    Editar <span aria-hidden="true">&rarr;</span>
+                                                </button>
                                             </div>
                                         </motion.div>
                                     ))
@@ -252,6 +287,15 @@ export default function AppointmentsIndex({ appointments, filters = {} }: { appo
                     )}
                 </AnimatePresence>
             </div>
+
+            <AppointmentFormSheet 
+                isOpen={sheetOpen} 
+                setIsOpen={setSheetOpen} 
+                patients={patients || []} 
+                editingAppointment={editingAppointment} 
+                initialDate={initialDate} 
+                initialTime={initialTime} 
+            />
         </AppLayout>
     );
 }

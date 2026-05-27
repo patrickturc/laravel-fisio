@@ -6,7 +6,12 @@ import ptBrLocale from '@fullcalendar/core/locales/pt-br';
 import { router } from '@inertiajs/react';
 import { useRef, useEffect } from 'react';
 
-export default function CalendarView() {
+interface CalendarViewProps {
+    onEventClick?: (eventId: string) => void;
+    onDateSelect?: (startDate: string, startTime: string) => void;
+}
+
+export default function CalendarView({ onEventClick, onDateSelect }: CalendarViewProps) {
     const calendarRef = useRef<FullCalendar>(null);
 
     useEffect(() => {
@@ -16,7 +21,11 @@ export default function CalendarView() {
 
     const handleEventClick = (clickInfo: any) => {
         const eventId = clickInfo.event.id;
-        router.visit(`/appointments/${eventId}`);
+        if (onEventClick) {
+            onEventClick(eventId);
+        } else {
+            router.visit(`/appointments/${eventId}`);
+        }
     };
 
     const handleDateSelect = (selectInfo: any) => {
@@ -24,12 +33,15 @@ export default function CalendarView() {
         const startDate = selectInfo.startStr.split('T')[0];
         const startTime = selectInfo.startStr.split('T')[1]?.substring(0, 5) || '08:00';
         
-        const params = new URLSearchParams({
-            date: startDate,
-            time: startTime
-        });
-        
-        router.visit(`/appointments/create?${params.toString()}`);
+        if (onDateSelect) {
+            onDateSelect(startDate, startTime);
+        } else {
+            const params = new URLSearchParams({
+                date: startDate,
+                time: startTime
+            });
+            router.visit(`/appointments/create?${params.toString()}`);
+        }
     };
 
     return (

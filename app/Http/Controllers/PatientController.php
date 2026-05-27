@@ -79,8 +79,11 @@ class PatientController extends Controller
             'memberships' => fn($q) => $q->orderBy('end_date', 'desc'),
         ]);
 
+        $protocols = \App\Models\ClinicalProtocol::orderBy('name')->get(['id', 'name', 'total_sessions']);
+
         return Inertia::render('patients/show', [
-            'patient' => $patient
+            'patient' => $patient,
+            'protocols' => $protocols,
         ]);
     }
 
