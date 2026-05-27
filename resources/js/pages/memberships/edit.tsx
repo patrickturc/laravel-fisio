@@ -19,6 +19,7 @@ export default function MembershipEdit({ membership, patients, commercialPlans }
         end_date: membership.end_date ? membership.end_date.split('T')[0] : '',
         price: membership.price || '',
         status: membership.status || 'active',
+        billing_day: membership.billing_day || 10,
     });
 
     const handlePlanChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -151,7 +152,7 @@ export default function MembershipEdit({ membership, patients, commercialPlans }
                                 {errors.end_date && <p className="text-sm text-red-500 mt-1">{errors.end_date}</p>}
                             </div>
 
-                            <div className="space-y-2 md:col-span-2">
+                            <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground">Valor do Plano (R$)</label>
                                 <div className="relative">
                                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -166,6 +167,20 @@ export default function MembershipEdit({ membership, patients, commercialPlans }
                                     />
                                 </div>
                                 {errors.price && <p className="text-sm text-red-500 mt-1">{errors.price}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-foreground">Dia de Vencimento</label>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    max={31}
+                                    value={data.billing_day}
+                                    onChange={e => setData('billing_day', parseInt(e.target.value) || 1)}
+                                    className="w-full h-11 px-4 border border-border rounded-xl bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
+                                />
+                                <p className="text-xs text-muted-foreground">Todo dia {data.billing_day}, uma cobrança pendente será gerada automaticamente.</p>
+                                {errors.billing_day && <p className="text-sm text-red-500 mt-1">{errors.billing_day}</p>}
                             </div>
                         </div>
 

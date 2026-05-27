@@ -15,7 +15,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('evolutions', App\Http\Controllers\EvolutionController::class);
     Route::post('memberships/{membership}/renew', [App\Http\Controllers\MembershipController::class, 'renew'])->name('memberships.renew');
     Route::resource('memberships', App\Http\Controllers\MembershipController::class);
+    Route::post('financial/{financial}/mark-paid', [App\Http\Controllers\FinancialTransactionController::class, 'markAsPaid'])->name('financial.mark-paid');
     Route::resource('financial', App\Http\Controllers\FinancialTransactionController::class)->parameters(['financial' => 'financial']);
+    Route::post('recurring-expenses/{recurringExpense}/toggle-active', [App\Http\Controllers\RecurringExpenseController::class, 'toggleActive'])->name('recurring-expenses.toggle-active');
+    Route::resource('recurring-expenses', App\Http\Controllers\RecurringExpenseController::class);
     Route::get('reports', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
     Route::get('reports/pdf', [App\Http\Controllers\ReportController::class, 'pdf'])->name('reports.pdf');
     Route::get('evolutions/{evolution}/pdf', [App\Http\Controllers\EvolutionController::class, 'pdf'])->name('evolutions.pdf');

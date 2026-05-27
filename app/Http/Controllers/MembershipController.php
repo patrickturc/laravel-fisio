@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Membership;
 use App\Models\Patient;
 use App\Models\CommercialPlan;
+use App\Models\FinancialTransaction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -54,21 +55,29 @@ class MembershipController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'price' => 'required|numeric|min:0',
             'status' => 'required|in:active,expired,cancelled',
+            'billing_day' => 'nullable|integer|min:1|max:31',
         ]);
 
         $membership = Membership::create($validated);
 
-        // Auto-create a financial transaction for this membership
+        // Auto-create first financial transaction for this membership
         if ($membership->price > 0) {
             $planNameDesc = $membership->commercialPlan ? $membership->commercialPlan->name : $membership->plan_name;
-            \App\Models\FinancialTransaction::create([
+            $patient = Patient::find($membership->patient_id);
+            $dueDate = $membership->billing_day
+                ? $membership->start_date->copy()->day(min($membership->billing_day, $membership->start_date->daysInMonth))
+                : $membership->start_date;
+
+            FinancialTransaction::create([
                 'type' => 'income',
                 'amount' => $membership->price,
                 'date' => $membership->start_date,
-                'description' => "Matrícula: {$planNameDesc}",
+                'due_date' => $dueDate,
+                'description' => "Mensalidade: {$planNameDesc} — {$patient->name}",
                 'category' => 'Mensalidade',
-                'status' => $membership->status === 'active' ? 'paid' : 'pending',
+                'status' => 'pending',
                 'patient_id' => $membership->patient_id,
+                'membership_id' => $membership->id,
             ]);
         }
 
@@ -77,7 +86,9 @@ class MembershipController extends Controller
 
     public function show(Membership $membership)
     {
-        $membership->load(['patient', 'commercialPlan']);
+        $membership->load(['patient', 'commercialPlan', 'financialTransactions' => function ($q) {
+            $q->orderBy('date', 'desc');
+        }]);
         return Inertia::render('memberships/show', ['membership' => $membership]);
     }
 
@@ -101,6 +112,7 @@ class MembershipController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'price' => 'required|numeric|min:0',
             'status' => 'required|in:active,expired,cancelled',
+            'billing_day' => 'nullable|integer|min:1|max:31',
         ]);
 
         $membership->update($validated);
@@ -110,6 +122,8 @@ class MembershipController extends Controller
 
     public function destroy(Membership $membership)
     {
+        // Delete pending financial transactions linked to this membership
+        $membership->financialTransactions()->where('status', 'pending')->delete();
         $membership->delete();
         return redirect()->route('memberships.index')->with('success', 'Matrícula excluída.');
     }
@@ -137,18 +151,26 @@ class MembershipController extends Controller
             'end_date' => $newEnd->format('Y-m-d'),
             'price' => $membership->price,
             'status' => 'active',
+            'billing_day' => $membership->billing_day,
         ]);
 
         if ($newMembership->price > 0) {
             $planNameDesc = $newMembership->commercialPlan ? $newMembership->commercialPlan->name : $newMembership->plan_name;
-            \App\Models\FinancialTransaction::create([
+            $patient = Patient::find($newMembership->patient_id);
+            $dueDate = $newMembership->billing_day
+                ? $newStart->copy()->day(min($newMembership->billing_day, $newStart->daysInMonth))
+                : $newStart;
+
+            FinancialTransaction::create([
                 'type' => 'income',
                 'amount' => $newMembership->price,
                 'date' => $newMembership->start_date,
-                'description' => "Renovação de Matrícula: {$planNameDesc}",
+                'due_date' => $dueDate,
+                'description' => "Mensalidade: {$planNameDesc} — {$patient->name}",
                 'category' => 'Mensalidade',
                 'status' => 'pending',
                 'patient_id' => $newMembership->patient_id,
+                'membership_id' => $newMembership->id,
             ]);
         }
 

@@ -17,7 +17,7 @@ class FinancialTransactionController extends Controller
         $month = $request->input('month', now()->month);
         $year = $request->input('year', now()->year);
 
-        $query = FinancialTransaction::with('patient')->orderBy('date', 'desc');
+        $query = FinancialTransaction::with(['patient', 'membership.commercialPlan'])->orderBy('date', 'desc');
 
         // Monthly filter
         $query->whereMonth('date', $month)->whereYear('date', $year);
@@ -176,5 +176,15 @@ class FinancialTransactionController extends Controller
     {
         $financial->delete();
         return redirect()->route('financial.index')->with('success', 'Transação excluída.');
+    }
+
+    public function markAsPaid(FinancialTransaction $financial)
+    {
+        $financial->update([
+            'status' => 'paid',
+            'paid_at' => now()->toDateString(),
+        ]);
+
+        return redirect()->back()->with('success', 'Transação marcada como paga!');
     }
 }

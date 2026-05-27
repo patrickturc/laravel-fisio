@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Plus, Search, TrendingUp, TrendingDown, DollarSign, Wallet, User, Edit, Trash2, ChevronLeft, ChevronRight, AlertTriangle, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, DollarSign, Wallet, User, Edit, Trash2, ChevronLeft, ChevronRight, AlertTriangle, ArrowUpRight, ArrowDownRight, CheckCircle, RefreshCw } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Pagination } from '@/components/pagination';
 import { useConfirmModal } from '@/components/confirm-modal';
@@ -119,6 +119,13 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                                 <ChevronRight className="size-4" />
                             </button>
                         </div>
+                        <Link
+                            href="/recurring-expenses"
+                            className="flex items-center gap-2 h-10 px-4 border border-border text-foreground font-medium rounded-xl hover:bg-muted/50 transition-colors shadow-sm"
+                        >
+                            <RefreshCw className="size-4" />
+                            <span className="hidden sm:inline">Recorrentes</span>
+                        </Link>
                         <Link
                             href="/financial/create"
                             className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
@@ -361,6 +368,11 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                                             </td>
                                             <td className="px-5 py-3.5">
                                                 <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {t.status === 'pending' && (
+                                                        <button onClick={() => router.post(`/financial/${t.id}/mark-paid`, {}, { preserveState: true })} className="p-1.5 text-muted-foreground hover:text-emerald-600 rounded-lg hover:bg-emerald-500/10 transition-colors" title="Marcar como Pago">
+                                                            <CheckCircle className="size-4" />
+                                                        </button>
+                                                    )}
                                                     <Link href={`/financial/${t.id}/edit`} className="p-1.5 text-muted-foreground hover:text-primary rounded-lg hover:bg-primary/10 transition-colors" title="Editar">
                                                         <Edit className="size-4" />
                                                     </Link>

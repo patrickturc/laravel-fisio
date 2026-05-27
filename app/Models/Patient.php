@@ -66,8 +66,8 @@ class Patient extends Model
         return $this->hasOne(Membership::class)->where('status', 'active')->latest('end_date');
     }
 
-    public function treatmentPlans()
+    public function financialTransactions()
     {
-        return $this->hasMany(TreatmentPlan::class);
+        return $this->hasMany(FinancialTransaction::class);
     }
 }

@@ -19,6 +19,8 @@ class FinancialTransaction extends Model
         'category',
         'status',
         'patient_id',
+        'membership_id',
+        'recurring_expense_id',
     ];
 
     protected function casts(): array
@@ -41,5 +43,15 @@ class FinancialTransaction extends Model
         return $query->where('status', 'pending')
             ->whereNotNull('due_date')
             ->where('due_date', '<', now()->toDateString());
+    }
+
+    public function membership()
+    {
+        return $this->belongsTo(Membership::class);
+    }
+
+    public function recurringExpense()
+    {
+        return $this->belongsTo(RecurringExpense::class);
     }
 }

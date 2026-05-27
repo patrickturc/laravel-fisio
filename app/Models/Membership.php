@@ -17,6 +17,8 @@ class Membership extends Model
         'end_date',
         'price',
         'status',
+        'billing_day',
+        'last_billed_at',
     ];
 
     public function commercialPlan()
@@ -29,12 +31,19 @@ class Membership extends Model
         return [
             'start_date' => 'date',
             'end_date' => 'date',
+            'last_billed_at' => 'date',
             'price' => 'decimal:2',
+            'billing_day' => 'integer',
         ];
     }
 
     public function patient()
     {
         return $this->belongsTo(Patient::class);
+    }
+
+    public function financialTransactions()
+    {
+        return $this->hasMany(FinancialTransaction::class);
     }
 }

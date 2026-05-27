@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, Users, CalendarRange, Activity, BarChart3, ClipboardList, DollarSign, CreditCard, Settings, ShieldCheck, Tag } from 'lucide-react';
+import { BookOpen, FolderGit2, LayoutGrid, Users, CalendarRange, Activity, BarChart3, ClipboardList, DollarSign, CreditCard, Settings, ShieldCheck, Tag, RefreshCw } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -36,6 +36,7 @@ export function AppSidebar() {
 
     const settingsNavItems = [
         { title: 'Planos e Pacotes', href: '/commercial-plans', icon: Tag, show: can('memberships.manage.view') },
+        { title: 'Gastos Recorrentes', href: '/recurring-expenses', icon: RefreshCw, show: can('financial.transactions.view') },
         { title: 'Usuários', href: '/settings/users', icon: Users, show: can('settings.users.view') },
         { title: 'Perfis de Acesso', href: '/settings/roles', icon: ShieldCheck, show: can('settings.roles.view') },
     ].filter(item => item.show);
