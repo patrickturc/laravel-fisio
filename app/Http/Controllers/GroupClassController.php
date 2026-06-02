@@ -15,8 +15,10 @@ class GroupClassController extends Controller
     public function index()
     {
         $groupClasses = GroupClass::with(['schedules', 'patients'])->orderBy('name')->get();
+        $patients = Patient::orderBy('name')->get(['id', 'name']);
         return Inertia::render('group-classes/index', [
-            'groupClasses' => $groupClasses
+            'groupClasses' => $groupClasses,
+            'patients' => $patients
         ]);
     }
 
@@ -24,17 +26,19 @@ class GroupClassController extends Controller
     {
         $groupClass->load(['schedules', 'patients']);
         
-        $appointments = $groupClass->appointments()
+        $futureAppointments = $groupClass->appointments()
+            ->where('appointment_date', '>=', now()->format('Y-m-d'))
+            ->orderBy('appointment_date')
+            ->orderBy('start_time')
             ->with('patients')
-            ->orderBy('appointment_date', 'desc')
-            ->paginate(15);
-            
+            ->get();
+
         $patients = Patient::orderBy('name')->get(['id', 'name']);
-        
+
         return Inertia::render('group-classes/show', [
             'groupClass' => $groupClass,
-            'appointments' => $appointments,
-            'patients' => $patients,
+            'futureAppointments' => $futureAppointments,
+            'patients' => $patients
         ]);
     }
 
@@ -77,19 +81,39 @@ class GroupClassController extends Controller
             'status' => 'required|in:active,inactive',
             'patient_ids' => 'nullable|array',
             'patient_ids.*' => 'exists:patients,id',
+            'schedules' => 'nullable|array',
+            'schedules.*.day_of_week' => 'required|integer|min:0|max:6',
+            'schedules.*.start_time' => 'required',
+            'schedules.*.duration_minutes' => 'required|integer|min:10',
         ]);
 
-        $groupClass->update([
-            'name' => $validated['name'],
-            'max_participants' => $validated['max_participants'],
-            'status' => $validated['status'],
-        ]);
+        DB::beginTransaction();
+        try {
+            $groupClass->update([
+                'name' => $validated['name'],
+                'max_participants' => $validated['max_participants'],
+                'status' => $validated['status'],
+            ]);
 
-        if (isset($validated['patient_ids'])) {
-            $groupClass->patients()->sync($validated['patient_ids']);
+            if (isset($validated['schedules'])) {
+                $groupClass->schedules()->delete();
+                foreach ($validated['schedules'] as $schedule) {
+                    $groupClass->schedules()->create($schedule);
+                }
+            }
+
+            if (isset($validated['patient_ids'])) {
+                $groupClass->patients()->sync($validated['patient_ids']);
+            } else {
+                $groupClass->patients()->detach();
+            }
+
+            DB::commit();
+            return redirect()->back()->with('success', 'Turma atualizada com sucesso!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Erro ao atualizar turma: ' . $e->getMessage());
         }
-
-        return redirect()->back()->with('success', 'Turma atualizada com sucesso!');
     }
 
     public function destroy(GroupClass $groupClass)

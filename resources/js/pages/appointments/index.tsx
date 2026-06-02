@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Pagination } from '@/components/pagination';
 import CalendarView from '@/components/calendar-view';
 import { AppointmentFormSheet } from './appointment-form-sheet';
+import { GroupClassFormSheet } from '../group-classes/group-class-form-sheet';
 import axios from 'axios';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -33,6 +34,8 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
     const [initialDate, setInitialDate] = useState('');
     const [initialTime, setInitialTime] = useState('');
     const [initialDuration, setInitialDuration] = useState<number | undefined>(undefined);
+
+    const [groupClassSheetOpen, setGroupClassSheetOpen] = useState(false);
 
     function applyFilters(overrides?: any) {
         const params: any = { ...overrides };
@@ -302,7 +305,7 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                 </AnimatePresence>
             </div>
 
-            <AppointmentFormSheet 
+            <AppointmentFormSheet
                 isOpen={sheetOpen} 
                 setIsOpen={setSheetOpen} 
                 patients={patients || []} 
@@ -310,7 +313,23 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                 editingAppointment={editingAppointment} 
                 initialDate={initialDate} 
                 initialTime={initialTime} 
-                initialDuration={initialDuration}
+                initialDuration={initialDuration} 
+                onNewGroupClass={() => {
+                    setSheetOpen(false);
+                    setTimeout(() => setGroupClassSheetOpen(true), 300);
+                }}
+            />
+
+            <GroupClassFormSheet
+                isOpen={groupClassSheetOpen}
+                setIsOpen={(open) => {
+                    setGroupClassSheetOpen(open);
+                    if (!open) {
+                        // Refresh data when closing the group class sheet to get the newly created Turma
+                        router.reload({ only: ['groupClasses'] });
+                    }
+                }}
+                patients={patients || []}
             />
         </AppLayout>
     );

@@ -18,15 +18,17 @@ interface GroupClassFormSheetProps {
     isOpen: boolean;
     setIsOpen: (open: boolean) => void;
     groupClass?: any;
+    patients?: any[];
 }
 
-export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass }: GroupClassFormSheetProps) {
+export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = [] }: GroupClassFormSheetProps) {
     const isEditMode = !!groupClass;
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         name: groupClass?.name || '',
         max_participants: groupClass?.max_participants || 4,
         schedules: groupClass?.schedules || [{ day_of_week: 1, start_time: '08:00', duration_minutes: 50 }],
+        patient_ids: groupClass?.patients?.map((p: any) => p.id) || [] as string[],
     });
 
     useEffect(() => {
@@ -39,6 +41,7 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass }: GroupClas
                     name: groupClass.name,
                     max_participants: groupClass.max_participants,
                     schedules: groupClass.schedules,
+                    patient_ids: groupClass.patients?.map((p: any) => p.id) || [],
                 });
             }
         }
@@ -109,8 +112,38 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass }: GroupClas
                         <InputError message={errors.max_participants} />
                     </div>
 
-                    {!isEditMode && (
-                        <div className="space-y-4 pt-4 border-t border-border">
+                    <div className="grid gap-2">
+                        <Label>Alunos da Turma ({data.patient_ids.length}/{data.max_participants})</Label>
+                        <div className="max-h-[160px] overflow-y-auto border border-border/50 rounded-lg p-2 bg-muted/20 grid grid-cols-1 gap-1">
+                            {patients.map(p => (
+                                <label key={p.id} className="flex items-center gap-2 p-1.5 hover:bg-background rounded-md cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        name="patients"
+                                        value={p.id}
+                                        checked={data.patient_ids.includes(p.id)}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                if (data.patient_ids.length < data.max_participants) {
+                                                    setData('patient_ids', [...data.patient_ids, p.id]);
+                                                }
+                                            } else {
+                                                setData('patient_ids', data.patient_ids.filter((id: string) => id !== p.id));
+                                            }
+                                        }}
+                                        className="size-3.5 rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <span className="text-sm font-medium">{p.name}</span>
+                                </label>
+                            ))}
+                            {patients.length === 0 && (
+                                <div className="text-xs text-muted-foreground text-center py-2">Nenhum paciente.</div>
+                            )}
+                        </div>
+                        <InputError message={errors.patient_ids as string} />
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t border-border">
                             <div className="flex items-center justify-between">
                                 <Label className="text-base font-semibold flex items-center gap-2">
                                     <CalendarClock className="size-4" /> Horários Base
@@ -175,7 +208,6 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass }: GroupClas
                                 </div>
                             ))}
                         </div>
-                    )}
 
                     <div className="pt-4 flex justify-end gap-3 mt-6">
                         <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>

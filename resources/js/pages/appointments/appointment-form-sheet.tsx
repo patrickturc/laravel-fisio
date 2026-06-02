@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/input-error';
-import { Users, User, Trash2 } from 'lucide-react';
+import { Users, User, Trash2, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { router } from '@inertiajs/react';
 
@@ -18,6 +18,7 @@ interface AppointmentFormSheetProps {
     initialDuration?: number;
     initialPatientId?: string;
     groupClasses?: Array<{ id: string; name: string; max_participants: number }>;
+    onNewGroupClass?: () => void;
 }
 
 export function AppointmentFormSheet({
@@ -29,7 +30,8 @@ export function AppointmentFormSheet({
     initialTime,
     initialDuration,
     initialPatientId,
-    groupClasses = []
+    groupClasses = [],
+    onNewGroupClass
 }: AppointmentFormSheetProps) {
     const isEditMode = !!editingAppointment;
 
@@ -146,39 +148,38 @@ export function AppointmentFormSheet({
                     </div>
 
                     {data.type === 'group' && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-primary/5 border border-primary/10 rounded-xl">
-                            <div className="grid gap-1.5 sm:col-span-2">
-                                <Label htmlFor="group_class_id" className="text-xs">Vincular a uma Turma (Opcional)</Label>
-                                <select 
-                                    id="group_class_id"
-                                    value={data.group_class_id}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        setData('group_class_id', val);
-                                        if (val) {
-                                            const gc = groupClasses.find(g => g.id === val);
-                                            if (gc) {
-                                                setData(d => ({...d, group_class_id: val, title: gc.name, max_participants: gc.max_participants}));
+                        <div className="grid grid-cols-1 gap-4 p-3 bg-primary/5 border border-primary/10 rounded-xl">
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="group_class_id" className="text-xs">Turma *</Label>
+                                <div className="flex items-center gap-2">
+                                    <select 
+                                        id="group_class_id"
+                                        value={data.group_class_id}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setData('group_class_id', val);
+                                            if (val) {
+                                                const gc = groupClasses.find(g => g.id === val);
+                                                if (gc) {
+                                                    setData(d => ({...d, group_class_id: val, title: gc.name, max_participants: gc.max_participants}));
+                                                }
                                             }
-                                        }
-                                    }}
-                                    className="bg-background h-8 text-sm rounded-md border-border/50 focus:ring-primary/20 focus:border-primary"
-                                >
-                                    <option value="">-- Nenhuma / Nova Turma --</option>
-                                    {groupClasses.map(gc => (
-                                        <option key={gc.id} value={gc.id}>{gc.name} ({gc.max_participants} vagas)</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grid gap-1.5">
-                                <Label htmlFor="title" className="text-xs">Título *</Label>
-                                <Input id="title" value={data.title} onChange={e => setData('title', e.target.value)} className="bg-background h-8 text-sm" placeholder="Ex: Pilates" required={data.type === 'group'} />
-                                <InputError message={errors.title} className="text-[10px]" />
-                            </div>
-                            <div className="grid gap-1.5">
-                                <Label htmlFor="max_participants" className="text-xs">Capacidade *</Label>
-                                <Input id="max_participants" type="number" min={isEditMode ? Math.max(2, data.patient_ids.length) : 2} value={data.max_participants} onChange={e => setData('max_participants', Number(e.target.value))} className="bg-background h-8 text-sm" required={data.type === 'group'} />
-                                <InputError message={errors.max_participants} className="text-[10px]" />
+                                        }}
+                                        className="bg-background h-8 text-sm rounded-md border-border/50 focus:ring-primary/20 focus:border-primary flex-1"
+                                        required={data.type === 'group'}
+                                    >
+                                        <option value="">-- Selecione uma Turma --</option>
+                                        {groupClasses.map(gc => (
+                                            <option key={gc.id} value={gc.id}>{gc.name} ({gc.max_participants} vagas)</option>
+                                        ))}
+                                    </select>
+                                    {onNewGroupClass && (
+                                        <Button type="button" onClick={onNewGroupClass} variant="outline" className="h-8 px-3 text-xs gap-1">
+                                            <Plus className="size-3" /> Nova Turma
+                                        </Button>
+                                    )}
+                                </div>
+                                <InputError message={errors.group_class_id} className="text-[10px]" />
                             </div>
                         </div>
                     )}

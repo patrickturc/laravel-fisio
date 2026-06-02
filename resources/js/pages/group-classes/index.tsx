@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { GroupClassFormSheet } from './group-class-form-sheet';
 
-export default function GroupClassesIndex({ groupClasses }: { groupClasses: any[] }) {
+export default function GroupClassesIndex({ groupClasses, patients = [] }: { groupClasses: any[], patients?: any[] }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Turmas', href: '/group-classes' },
     ];
@@ -125,6 +125,7 @@ export default function GroupClassesIndex({ groupClasses }: { groupClasses: any[
             <GroupClassFormSheet 
                 isOpen={isSheetOpen}
                 setIsOpen={setIsSheetOpen}
+                patients={patients}
             />
         </AppLayout>
     );

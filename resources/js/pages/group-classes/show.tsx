@@ -265,6 +265,7 @@ export default function GroupClassShow({ groupClass, appointments, patients }: {
                 isOpen={isEditSheetOpen}
                 setIsOpen={setIsEditSheetOpen}
                 groupClass={groupClass}
+                patients={patients}
             />
         </AppLayout>
     );
