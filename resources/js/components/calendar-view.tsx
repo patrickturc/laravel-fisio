@@ -158,7 +158,7 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
                 }
 
                 .calendar-container .fc-timegrid-slot {
-                    height: 1.25rem; /* Make slots smaller so hours are more compact */
+                    height: 0.75rem; /* Make slots even smaller for maximum compactness (12px per 15min) */
                 }
                 
                 /* Now Indicator */

@@ -66,7 +66,7 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Agenda - Phisio" />
 
-            <div className="flex h-full flex-1 flex-col gap-6 p-6 md:p-10 max-w-7xl mx-auto w-full">
+            <div className="flex h-full flex-1 flex-col gap-4 p-4 md:p-6 w-full mx-auto">
 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
