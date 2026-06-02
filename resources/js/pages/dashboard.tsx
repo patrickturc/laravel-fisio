@@ -14,7 +14,9 @@ interface DayAppointment {
     start_time: string;
     duration_minutes: number;
     status: string;
-    patient: { id: string; name: string; type: string };
+    type: string;
+    title: string;
+    patients: Array<{ id: string; name: string; type: string }>;
 }
 
 interface WeekDay {
@@ -291,8 +293,14 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
                                             </div>
                                             <div className="h-10 w-px bg-border/30" />
                                             <div>
-                                                <p className="font-semibold text-sm">{app.patient.name}</p>
-                                                <p className="text-xs text-muted-foreground capitalize">{app.patient.type === 'pilates' ? 'Pilates' : 'Fisioterapia'}</p>
+                                                <p className="font-semibold text-sm line-clamp-1">
+                                                    {app.type === 'group' ? app.title || 'Turma' : (app.patients?.[0]?.name || 'Sem paciente')}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground capitalize">
+                                                    {app.type === 'group' 
+                                                        ? `${app.patients?.length || 0} participante(s)` 
+                                                        : (app.patients?.[0]?.type === 'pilates' ? 'Pilates' : 'Fisioterapia')}
+                                                </p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
