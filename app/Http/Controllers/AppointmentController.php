@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\Membership;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -35,12 +36,14 @@ class AppointmentController extends Controller
 
         $patients = Patient::orderBy('name')->get(['id', 'name']);
         $groupClasses = \App\Models\GroupClass::orderBy('name')->get(['id', 'name', 'max_participants']);
+        $users = User::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('appointments/index', [
             'appointments' => $appointments,
             'filters' => $request->only(['date_from', 'date_to', 'search']),
             'patients' => $patients,
             'groupClasses' => $groupClasses,
+            'users' => $users,
         ]);
     }
 
@@ -137,7 +140,7 @@ class AppointmentController extends Controller
                         'start_time' => $validated['start_time'],
                         'duration_minutes' => $validated['duration_minutes'],
                         'notes' => $validated['notes'],
-                        'user_id' => $userId,
+                        'user_id' => $request->input('user_id', auth()->id()),
                     ]);
 
                     foreach ($validated['patient_ids'] as $patientId) {
@@ -299,10 +302,16 @@ class AppointmentController extends Controller
     {
         $appointment->load('patients');
         $protocols = \App\Models\ClinicalProtocol::orderBy('name')->get(['id', 'name']);
+        $patients = Patient::orderBy('name')->get(['id', 'name']);
+        $users = User::orderBy('name')->get(['id', 'name']);
+        $groupClasses = \App\Models\GroupClass::orderBy('name')->get(['id', 'name', 'max_participants']);
 
         return Inertia::render('appointments/show', [
             'appointment' => $appointment,
             'protocols' => $protocols,
+            'patients' => $patients,
+            'users' => $users,
+            'groupClasses' => $groupClasses,
         ]);
     }
 
@@ -385,6 +394,7 @@ class AppointmentController extends Controller
                 'start_time' => $validated['start_time'],
                 'duration_minutes' => $validated['duration_minutes'],
                 'notes' => $validated['notes'],
+                'user_id' => $request->input('user_id', auth()->id()),
             ]);
 
             // Sync patients. Keep status of existing ones, set 'scheduled' for new ones.

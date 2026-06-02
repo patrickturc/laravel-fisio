@@ -10,7 +10,7 @@ import { Pagination } from '@/components/pagination';
 import { useForm } from '@inertiajs/react';
 import { GroupClassFormSheet } from './group-class-form-sheet';
 
-export default function GroupClassShow({ groupClass, futureAppointments = [], patients }: { groupClass: any, futureAppointments?: any[], patients: any[] }) {
+export default function GroupClassShow({ groupClass, futureAppointments = [], patients, users = [] }: { groupClass: any, futureAppointments?: any[], patients: any[], users?: any[] }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Turmas', href: '/group-classes' },
         { title: groupClass.name, href: `/group-classes/${groupClass.id}` },
@@ -252,10 +252,11 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], pa
             {modal}
             
             <GroupClassFormSheet 
-                isOpen={isEditSheetOpen}
-                setIsOpen={setIsEditSheetOpen}
+                isOpen={isEditSheetOpen} 
+                setIsOpen={setIsEditSheetOpen} 
                 groupClass={groupClass}
                 patients={patients}
+                users={users}
             />
         </AppLayout>
     );

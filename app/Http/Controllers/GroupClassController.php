@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\GroupClass;
 use App\Models\Patient;
 use App\Models\Appointment;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -16,9 +17,11 @@ class GroupClassController extends Controller
     {
         $groupClasses = GroupClass::with(['schedules', 'patients'])->orderBy('name')->get();
         $patients = Patient::orderBy('name')->get(['id', 'name']);
+        $users = User::orderBy('name')->get(['id', 'name']);
         return Inertia::render('group-classes/index', [
             'groupClasses' => $groupClasses,
-            'patients' => $patients
+            'patients' => $patients,
+            'users' => $users
         ]);
     }
 
@@ -34,11 +37,13 @@ class GroupClassController extends Controller
             ->get();
 
         $patients = Patient::orderBy('name')->get(['id', 'name']);
+        $users = User::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('group-classes/show', [
             'groupClass' => $groupClass,
             'futureAppointments' => $futureAppointments,
-            'patients' => $patients
+            'patients' => $patients,
+            'users' => $users
         ]);
     }
 
@@ -58,7 +63,7 @@ class GroupClassController extends Controller
         DB::beginTransaction();
         try {
             $groupClass = GroupClass::create([
-                'user_id' => auth()->id(),
+                'user_id' => $request->input('user_id', auth()->id()),
                 'name' => $validated['name'],
                 'max_participants' => $validated['max_participants'],
             ]);
@@ -96,6 +101,7 @@ class GroupClassController extends Controller
         DB::beginTransaction();
         try {
             $groupClass->update([
+                'user_id' => $request->input('user_id', auth()->id()),
                 'name' => $validated['name'],
                 'max_participants' => $validated['max_participants'],
                 'status' => $validated['status'],

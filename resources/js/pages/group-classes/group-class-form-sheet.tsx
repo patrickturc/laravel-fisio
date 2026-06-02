@@ -19,13 +19,15 @@ interface GroupClassFormSheetProps {
     setIsOpen: (open: boolean) => void;
     groupClass?: any;
     patients?: any[];
+    users?: Array<{ id: number; name: string }>;
 }
 
-export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = [] }: GroupClassFormSheetProps) {
+export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = [], users = [] }: GroupClassFormSheetProps) {
     const isEditMode = !!groupClass;
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         name: groupClass?.name || '',
+        user_id: groupClass?.user_id || '',
         max_participants: groupClass?.max_participants || 4,
         status: groupClass?.status || 'active',
         schedules: groupClass?.schedules || [{ day_of_week: 1, start_time: '08:00', duration_minutes: 50 }],
@@ -40,6 +42,7 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = 
             } else {
                 setData({
                     name: groupClass.name,
+                    user_id: groupClass.user_id || '',
                     max_participants: groupClass.max_participants,
                     status: groupClass.status,
                     schedules: groupClass.schedules,
@@ -99,8 +102,25 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = 
                             placeholder="ex: Pilates T/Q 08:00"
                             value={data.name}
                             onChange={(e) => setData('name', e.target.value)}
+                            className="bg-background"
                         />
                         <InputError message={errors.name} />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="user_id">Profissional Responsável</Label>
+                        <select 
+                            id="user_id"
+                            value={data.user_id}
+                            onChange={(e) => setData('user_id', e.target.value)}
+                            className="bg-background h-10 w-full text-sm rounded-md border-border/50 focus:ring-primary/20 focus:border-primary px-3"
+                        >
+                            <option value="">-- Selecione (Padrão: Você) --</option>
+                            {users.map(u => (
+                                <option key={u.id} value={u.id}>{u.name}</option>
+                            ))}
+                        </select>
+                        <InputError message={errors.user_id as string} />
                     </div>
 
                     <div className="space-y-2">

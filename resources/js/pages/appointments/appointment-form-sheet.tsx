@@ -17,6 +17,7 @@ interface AppointmentFormSheetProps {
     initialTime?: string;
     initialDuration?: number;
     initialPatientId?: string;
+    users?: Array<{ id: number; name: string }>;
     groupClasses?: Array<{ id: string; name: string; max_participants: number }>;
     onNewGroupClass?: () => void;
 }
@@ -30,6 +31,7 @@ export function AppointmentFormSheet({
     initialTime,
     initialDuration,
     initialPatientId,
+    users = [],
     groupClasses = [],
     onNewGroupClass
 }: AppointmentFormSheetProps) {
@@ -38,6 +40,7 @@ export function AppointmentFormSheet({
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         type: 'individual',
         title: '',
+        user_id: '',
         group_class_id: '',
         max_participants: 1,
         patient_ids: initialPatientId ? [initialPatientId] : ([] as string[]),
@@ -57,6 +60,7 @@ export function AppointmentFormSheet({
                 setData({
                     type: editingAppointment.type || 'individual',
                     title: editingAppointment.title || '',
+                    user_id: editingAppointment.user_id || '',
                     group_class_id: editingAppointment.group_class_id || '',
                     max_participants: editingAppointment.max_participants || 1,
                     patient_ids: editingAppointment.patients ? editingAppointment.patients.map((p: any) => p.id) : [],
@@ -72,6 +76,7 @@ export function AppointmentFormSheet({
                 setData({
                     type: 'individual',
                     title: '',
+                    user_id: '',
                     group_class_id: '',
                     max_participants: 1,
                     patient_ids: initialPatientId ? [initialPatientId] : [],
@@ -145,6 +150,22 @@ export function AppointmentFormSheet({
                             <Users className="size-4" />
                             Turma
                         </button>
+                    </div>
+
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="user_id" className="text-xs">Profissional Responsável</Label>
+                        <select 
+                            id="user_id"
+                            value={data.user_id}
+                            onChange={(e) => setData('user_id', e.target.value)}
+                            className="bg-background h-8 text-sm rounded-md border-border/50 focus:ring-primary/20 focus:border-primary"
+                        >
+                            <option value="">-- Selecione (Padrão: Você) --</option>
+                            {users.map(u => (
+                                <option key={u.id} value={u.id}>{u.name}</option>
+                            ))}
+                        </select>
+                        <InputError message={errors.user_id} className="text-[10px]" />
                     </div>
 
                     {data.type === 'group' && (

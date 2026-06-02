@@ -22,7 +22,7 @@ interface PaginatedAppointments {
     total: number;
 }
 
-export default function AppointmentsIndex({ appointments, filters = {}, patients = [], groupClasses = [] }: { appointments: PaginatedAppointments; filters?: any; patients?: any[]; groupClasses?: any[] }) {
+export default function AppointmentsIndex({ appointments, filters = {}, patients = [], groupClasses = [], users = [] }: { appointments: PaginatedAppointments; filters?: any; patients?: any[]; groupClasses?: any[]; users?: any[] }) {
     const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
     const [search, setSearch] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
@@ -345,6 +345,7 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                 isOpen={sheetOpen} 
                 setIsOpen={setSheetOpen} 
                 patients={patients || []} 
+                users={users || []}
                 groupClasses={groupClasses}
                 editingAppointment={editingAppointment} 
                 initialDate={initialDate} 
