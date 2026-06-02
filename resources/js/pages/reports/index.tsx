@@ -70,7 +70,7 @@ function BarChart({ data, label }: { data: MonthData[]; label: string }) {
                                 transition={{ delay: i * 0.05, type: 'spring', stiffness: 100 }}
                                 className="w-full bg-gradient-to-t from-primary to-emerald-400 rounded-t-lg relative group min-h-[4px]"
                             >
-                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-foreground text-background text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-foreground text-background text-xs rounded-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap">
                                     {d.total}
                                 </div>
                             </motion.div>

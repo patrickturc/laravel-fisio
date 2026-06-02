@@ -114,7 +114,7 @@ export default function RecurringExpenseIndex({ expenses }: { expenses: Recurrin
                     <div className="grid gap-3">
                         {expenses.map((expense, i) => (
                             <motion.div key={expense.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                                className={`flex items-center gap-4 p-5 rounded-2xl border shadow-sm transition-colors ${expense.is_active ? 'bg-card/60 backdrop-blur-xl border-border/50' : 'bg-muted/30 border-border/30 opacity-60'}`}>
+                                className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-5 rounded-2xl border shadow-sm transition-colors ${expense.is_active ? 'bg-card/60 backdrop-blur-xl border-border/50' : 'bg-muted/30 border-border/30 opacity-60'}`}>
                                 
                                 <div className="p-2.5 rounded-xl bg-red-500/10">
                                     <RefreshCw className="size-5 text-red-500" />
@@ -140,16 +140,16 @@ export default function RecurringExpenseIndex({ expenses }: { expenses: Recurrin
 
                                 <div className="flex items-center gap-1">
                                     <button onClick={() => toggleActive(expense)}
-                                        className={`p-2 rounded-xl transition-colors ${expense.is_active ? 'text-emerald-600 hover:bg-emerald-500/10' : 'text-gray-400 hover:bg-gray-500/10'}`}
+                                        className={`p-2.5 rounded-xl transition-colors ${expense.is_active ? 'text-emerald-600 hover:bg-emerald-500/10' : 'text-gray-400 hover:bg-gray-500/10'}`}
                                         title={expense.is_active ? 'Desativar' : 'Ativar'}>
                                         {expense.is_active ? <Power className="size-4" /> : <PowerOff className="size-4" />}
                                     </button>
                                     <button onClick={() => openEdit(expense)}
-                                        className="p-2 text-muted-foreground hover:text-primary rounded-xl hover:bg-primary/10 transition-colors">
+                                        className="p-2.5 text-muted-foreground hover:text-primary rounded-xl hover:bg-primary/10 transition-colors">
                                         <Edit className="size-4" />
                                     </button>
                                     <button onClick={() => handleDelete(expense)}
-                                        className="p-2 text-muted-foreground hover:text-red-500 rounded-xl hover:bg-red-500/10 transition-colors">
+                                        className="p-2.5 text-muted-foreground hover:text-red-500 rounded-xl hover:bg-red-500/10 transition-colors">
                                         <Trash2 className="size-4" />
                                     </button>
                                 </div>

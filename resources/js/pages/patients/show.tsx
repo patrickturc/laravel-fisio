@@ -381,7 +381,7 @@ export default function PatientShow({ patient, protocols = [] }: { patient: Pati
                                                         </p>
                                                     )}
                                                 </div>
-                                                <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity self-center items-end">
+                                                <div className="flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-center items-end">
                                                     <Link
                                                         href={item.type === 'appointment' ? `/appointments/${item.data.id}` : `/evolutions/${item.data.id}`}
                                                         className="text-xs font-medium text-primary hover:underline"

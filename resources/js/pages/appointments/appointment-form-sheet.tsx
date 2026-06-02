@@ -137,7 +137,7 @@ export function AppointmentFormSheet({
                     </div>
 
                     {data.type === 'group' && (
-                        <div className="grid grid-cols-2 gap-4 p-3 bg-primary/5 border border-primary/10 rounded-xl">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-primary/5 border border-primary/10 rounded-xl">
                             <div className="grid gap-1.5">
                                 <Label htmlFor="title" className="text-xs">Título *</Label>
                                 <Input id="title" value={data.title} onChange={e => setData('title', e.target.value)} className="bg-background h-8 text-sm" placeholder="Ex: Pilates" required={data.type === 'group'} />
@@ -186,7 +186,7 @@ export function AppointmentFormSheet({
                         <InputError message={errors.patient_ids as string} />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="grid gap-1.5">
                             <Label htmlFor="appointment_date" className="text-xs">Data *</Label>
                             <Input id="appointment_date" type="date" value={data.appointment_date} onChange={e => setData('appointment_date', e.target.value)} className="h-8 text-sm" required />

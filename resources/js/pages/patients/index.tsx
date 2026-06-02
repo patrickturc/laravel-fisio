@@ -57,7 +57,7 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
                         <p className="text-muted-foreground mt-1">Gerencie os cadastros e informações dos seus pacientes.</p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                         <div className="relative w-full md:w-64">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                             <input
@@ -155,8 +155,8 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
-                                                    <Link href={`/patients/${patient.id}/evolutions`} className="p-2 text-muted-foreground hover:text-emerald-500 transition-colors rounded-lg hover:bg-emerald-500/10" title="Ver Evoluções">
+                                                <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                                    <Link href={`/patients/${patient.id}/evolutions`} className="p-2.5 text-muted-foreground hover:text-emerald-500 transition-colors rounded-lg hover:bg-emerald-500/10" title="Ver Evoluções">
                                                         <FileText className="size-4" />
                                                     </Link>
                                                     <button
@@ -164,7 +164,7 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
                                                             setEditingPatient(patient);
                                                             setIsSheetOpen(true);
                                                         }}
-                                                        className="p-2 text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-primary/10"
+                                                        className="p-2.5 text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-primary/10"
                                                         title="Editar Paciente"
                                                     >
                                                         <Edit className="size-4" />

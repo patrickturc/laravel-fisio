@@ -221,7 +221,7 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
 
                     {/* Week Navigation Header */}
                     <div className="px-6 pt-5 pb-4 border-b border-border/30">
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                             <h2 className="text-lg font-bold flex items-center gap-2">
                                 <Clock className="size-5 text-primary" />
                                 Agenda Semanal
@@ -233,7 +233,7 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
                                 >
                                     <ChevronLeft className="size-4" />
                                 </button>
-                                <span className="text-sm font-medium text-muted-foreground min-w-[180px] text-center">{weekLabel}</span>
+                                <span className="text-sm font-medium text-muted-foreground text-center">{weekLabel}</span>
                                 <button
                                     onClick={() => shiftWeek(selectedDate, 1)}
                                     className="p-2 rounded-xl hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
@@ -241,18 +241,18 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
                                     <ChevronRight className="size-4" />
                                 </button>
                             </div>
-                            <Link href="/appointments/create" className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
+                            <Link href="/appointments/create" className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
                                 <Plus className="size-4" /> Agendar
                             </Link>
                         </div>
 
                         {/* Day Pills */}
-                        <div className="flex gap-2">
+                        <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-2 px-2 snap-x">
                             {weekDays.map((day) => (
                                 <button
                                     key={day.date}
                                     onClick={() => navigateToDate(day.date)}
-                                    className={`flex-1 flex flex-col items-center py-2.5 px-1 rounded-xl transition-all text-center cursor-pointer border
+                                    className={`snap-start flex-shrink-0 min-w-[2.75rem] flex-1 flex flex-col items-center py-2.5 px-1 rounded-xl transition-all text-center cursor-pointer border
                                         ${day.isSelected
                                             ? 'bg-primary text-white border-primary shadow-md shadow-primary/20'
                                             : day.isToday

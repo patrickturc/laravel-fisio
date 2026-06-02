@@ -177,8 +177,8 @@ export default function MembershipsIndex({
                             <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border/50">
                                 <tr>
                                     <th className="px-6 py-4 font-semibold">Aluno</th>
-                                    <th className="px-6 py-4 font-semibold">Plano</th>
-                                    <th className="px-6 py-4 font-semibold">Período</th>
+                                    <th className="px-6 py-4 font-semibold hidden sm:table-cell">Plano</th>
+                                    <th className="px-6 py-4 font-semibold hidden md:table-cell">Período</th>
                                     <th className="px-6 py-4 font-semibold">Valor</th>
                                     <th className="px-6 py-4 font-semibold">Status</th>
                                     <th className="px-6 py-4 font-semibold text-right">Ação</th>
@@ -196,13 +196,13 @@ export default function MembershipsIndex({
                                                     {membership.patient?.name}
                                                 </Link>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4 hidden sm:table-cell">
                                                 <div className="flex items-center gap-1.5 text-foreground/80 font-medium">
                                                     <Tag className="size-3.5 text-muted-foreground" />
                                                     {membership.commercial_plan?.name || membership.plan_name}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">
+                                            <td className="px-6 py-4 text-muted-foreground whitespace-nowrap hidden md:table-cell">
                                                 <div className="flex items-center gap-1.5">
                                                     <CalendarIcon className="size-3.5" />
                                                     {new Date(membership.start_date).toLocaleDateString()} a {new Date(membership.end_date).toLocaleDateString()}
@@ -308,7 +308,7 @@ export default function MembershipsIndex({
                             {errors.status && <p className="text-sm text-red-500 mt-1">{errors.status}</p>}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground">Início do Plano</label>
                                 <div className="relative">
@@ -340,7 +340,7 @@ export default function MembershipsIndex({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground">Valor (R$)</label>
                                 <div className="relative">

@@ -108,7 +108,7 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                                 <tr>
                                     <th className="px-6 py-4 font-medium">Nome do Plano</th>
                                     <th className="px-6 py-4 font-medium">Valor Base</th>
-                                    <th className="px-6 py-4 font-medium">Duração Padrão</th>
+                                    <th className="px-6 py-4 font-medium hidden sm:table-cell">Duração Padrão</th>
                                     <th className="px-6 py-4 font-medium text-right">Ações</th>
                                 </tr>
                             </thead>
@@ -138,14 +138,14 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                                         <td className="px-6 py-4 font-medium text-emerald-600 dark:text-emerald-400">
                                             R$ {parseFloat(plan.price).toFixed(2).replace('.', ',')}
                                         </td>
-                                        <td className="px-6 py-4 text-muted-foreground">
+                                        <td className="px-6 py-4 text-muted-foreground hidden sm:table-cell">
                                             {plan.duration_months ? `${plan.duration_months} ${plan.duration_months === 1 ? 'mês' : 'meses'}` : 'Não definida'}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                                 <button
                                                     onClick={() => openEditSheet(plan)}
-                                                    className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                                    className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                                                     title="Editar"
                                                 >
                                                     <Edit className="size-4" />
@@ -156,7 +156,7 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                                                         message: 'Tem certeza que deseja excluir este plano comercial?',
                                                         onConfirm: () => router.delete(`/commercial-plans/${plan.id}`),
                                                     })}
-                                                    className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                    className="p-2.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                                                     title="Excluir"
                                                 >
                                                     <Trash2 className="size-4" />

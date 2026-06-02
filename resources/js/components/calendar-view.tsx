@@ -45,7 +45,7 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
     };
 
     return (
-        <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm overflow-hidden calendar-container w-full min-h-[600px]">
+        <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-3 sm:p-6 shadow-sm overflow-hidden calendar-container w-full min-h-[600px]">
             <style>{`
                 /* FullCalendar Tailwind overrides */
                 .calendar-container .fc {
@@ -134,7 +134,7 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
             <FullCalendar
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                initialView="timeGridWeek"
+                initialView={typeof window !== 'undefined' && window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek'}
                 headerToolbar={{
                     left: 'prev,next today',
                     center: 'title',
@@ -152,6 +152,14 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
                 height="auto"
                 eventClick={handleEventClick}
                 select={handleDateSelect}
+                windowResize={(arg) => {
+                    const api = arg.view.calendar;
+                    if (window.innerWidth < 768) {
+                        api.changeView('timeGridDay');
+                    } else {
+                        api.changeView('timeGridWeek');
+                    }
+                }}
                 nowIndicator={true}
                 slotDuration="00:15:00"
                 slotLabelInterval="01:00"

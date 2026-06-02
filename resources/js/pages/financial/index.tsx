@@ -385,7 +385,7 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                                     <th className="px-5 py-3.5 font-semibold hidden md:table-cell">Categoria</th>
                                     <th className="px-5 py-3.5 font-semibold hidden lg:table-cell">Vencimento</th>
                                     <th className="px-5 py-3.5 font-semibold text-right">Valor</th>
-                                    <th className="px-5 py-3.5 font-semibold text-center">Status</th>
+                                    <th className="px-5 py-3.5 font-semibold text-center hidden sm:table-cell">Status</th>
                                     <th className="px-5 py-3.5 w-24"></th>
                                 </tr>
                             </thead>
@@ -428,7 +428,7 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                                             <td className={`px-5 py-3.5 font-bold text-right whitespace-nowrap ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                                 {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
                                             </td>
-                                            <td className="px-5 py-3.5 text-center">
+                                            <td className="px-5 py-3.5 text-center hidden sm:table-cell">
                                                 {isOverdue(t) ? (
                                                     <span className="px-2.5 py-1 text-xs font-semibold rounded-md bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Vencido</span>
                                                 ) : t.status === 'paid' ? (
@@ -438,16 +438,16 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                                                 )}
                                             </td>
                                             <td className="px-5 py-3.5">
-                                                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                                     {t.status === 'pending' && (
-                                                        <button onClick={() => router.post(`/financial/${t.id}/mark-paid`, {}, { preserveState: true })} className="p-1.5 text-muted-foreground hover:text-emerald-600 rounded-lg hover:bg-emerald-500/10 transition-colors" title="Marcar como Pago">
+                                                        <button onClick={() => router.post(`/financial/${t.id}/mark-paid`, {}, { preserveState: true })} className="p-2.5 text-muted-foreground hover:text-emerald-600 rounded-lg hover:bg-emerald-500/10 transition-colors" title="Marcar como Pago">
                                                             <CheckCircle className="size-4" />
                                                         </button>
                                                     )}
-                                                    <button onClick={() => openEditSheet(t)} className="p-1.5 text-muted-foreground hover:text-primary rounded-lg hover:bg-primary/10 transition-colors" title="Editar">
+                                                    <button onClick={() => openEditSheet(t)} className="p-2.5 text-muted-foreground hover:text-primary rounded-lg hover:bg-primary/10 transition-colors" title="Editar">
                                                         <Edit className="size-4" />
                                                     </button>
-                                                    <button onClick={() => handleDelete(t)} className="p-1.5 text-muted-foreground hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors" title="Excluir">
+                                                    <button onClick={() => handleDelete(t)} className="p-2.5 text-muted-foreground hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors" title="Excluir">
                                                         <Trash2 className="size-4" />
                                                     </button>
                                                 </div>

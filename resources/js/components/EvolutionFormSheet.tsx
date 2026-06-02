@@ -131,7 +131,7 @@ export default function EvolutionFormSheet({ isOpen, onOpenChange, patientId, pr
 
                 <form onSubmit={handleSubmit} className="space-y-6 pb-12">
                     <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="data_atendimento">Data *</Label>
                                 <Input id="data_atendimento" type="date" value={data.data_atendimento} onChange={e => setData('data_atendimento', e.target.value)} className="bg-neutral-50 border-neutral-200" required />
@@ -181,7 +181,7 @@ export default function EvolutionFormSheet({ isOpen, onOpenChange, patientId, pr
                             <Label>Relato do paciente</Label>
                             <textarea value={data.relato_paciente} onChange={e => setData('relato_paciente', e.target.value)} className={textareaClass} placeholder="O que o paciente relatou..." />
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="grid gap-2">
                                 <Label>EVA Dor (0-10)</Label>
                                 <Input type="number" value={data.dor_eva} onChange={e => setData('dor_eva', e.target.value)} className="bg-neutral-50 border-neutral-200" min="0" max="10" />
@@ -200,7 +200,7 @@ export default function EvolutionFormSheet({ isOpen, onOpenChange, patientId, pr
                     {/* O - Objetivo */}
                     <div className="space-y-4">
                         <h3 className="font-semibold text-foreground border-b pb-2"><span className="text-emerald-600 mr-1">O</span> — Objetivo</h3>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="grid gap-2"><Label>PA</Label><Input value={data.pressao_arterial} onChange={e => setData('pressao_arterial', e.target.value)} className="bg-neutral-50 border-neutral-200" placeholder="120/80" /></div>
                             <div className="grid gap-2"><Label>FC</Label><Input value={data.frequencia_cardiaca} onChange={e => setData('frequencia_cardiaca', e.target.value)} className="bg-neutral-50 border-neutral-200" placeholder="72 bpm" /></div>
                             <div className="grid gap-2"><Label>SpO2</Label><Input value={data.saturacao} onChange={e => setData('saturacao', e.target.value)} className="bg-neutral-50 border-neutral-200" placeholder="98%" /></div>
