@@ -80,10 +80,12 @@ class PatientController extends Controller
         ]);
 
         $protocols = \App\Models\ClinicalProtocol::orderBy('name')->get(['id', 'name', 'total_sessions']);
+        $commercialPlans = \App\Models\CommercialPlan::orderBy('name')->get(['id', 'name', 'price', 'duration_months']);
 
         return Inertia::render('patients/show', [
             'patient' => $patient,
             'protocols' => $protocols,
+            'commercialPlans' => $commercialPlans,
         ]);
     }
 

@@ -7,6 +7,8 @@ import { motion } from 'framer-motion';
 import { useConfirmModal } from '@/components/confirm-modal';
 import { useState } from 'react';
 import EvolutionFormSheet from '@/components/EvolutionFormSheet';
+import { AppointmentFormSheet } from '../appointments/appointment-form-sheet';
+import { MembershipFormSheet } from '../memberships/membership-form-sheet';
 
 interface Patient {
     id: string;
@@ -65,7 +67,7 @@ interface TimelineItem {
 
 type Tab = 'info' | 'memberships' | 'timeline';
 
-export default function PatientShow({ patient, protocols = [] }: { patient: Patient, protocols?: Array<{ id: string; name: string }> }) {
+export default function PatientShow({ patient, protocols = [], commercialPlans = [] }: { patient: Patient, protocols?: Array<{ id: string; name: string }>, commercialPlans?: any[] }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Pacientes', href: '/patients' },
         { title: patient.nickname || patient.name, href: `/patients/${patient.id}` },
@@ -74,6 +76,8 @@ export default function PatientShow({ patient, protocols = [] }: { patient: Pati
     const [activeTab, setActiveTab] = useState<Tab>('info');
     const [isEvolutionSheetOpen, setIsEvolutionSheetOpen] = useState(false);
     const [editingEvolution, setEditingEvolution] = useState<any>(null);
+    const [isAppointmentSheetOpen, setIsAppointmentSheetOpen] = useState(false);
+    const [isMembershipSheetOpen, setIsMembershipSheetOpen] = useState(false);
     const { confirm, modal } = useConfirmModal();
 
     async function handleDelete() {
@@ -171,15 +175,15 @@ export default function PatientShow({ patient, protocols = [] }: { patient: Pati
 
                 {/* Quick actions */}
                 <div className="flex gap-3 flex-wrap">
-                    <Link href={`/appointments/create?patient_id=${patient.id}`} className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-semibold hover:bg-primary/20 transition-colors">
+                    <button onClick={() => setIsAppointmentSheetOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-semibold hover:bg-primary/20 transition-colors">
                         <Calendar className="size-4" /> Novo Agendamento
-                    </Link>
+                    </button>
                     <button onClick={() => { setEditingEvolution(null); setIsEvolutionSheetOpen(true); }} className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 text-indigo-600 rounded-xl text-sm font-semibold hover:bg-indigo-500/20 transition-colors">
                         <Activity className="size-4" /> Nova Evolução
                     </button>
-                    <Link href={`/memberships/create?patient_id=${patient.id}`} className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-600 rounded-xl text-sm font-semibold hover:bg-emerald-500/20 transition-colors">
+                    <button onClick={() => setIsMembershipSheetOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-600 rounded-xl text-sm font-semibold hover:bg-emerald-500/20 transition-colors">
                         <Plus className="size-4" /> Nova Matrícula
-                    </Link>
+                    </button>
                 </div>
 
                 {/* Tabs */}
@@ -286,9 +290,9 @@ export default function PatientShow({ patient, protocols = [] }: { patient: Pati
                             <h2 className="text-lg font-bold flex items-center gap-2">
                                 <Tag className="size-5 text-primary" /> Matrículas e Planos
                             </h2>
-                            <Link href={`/memberships/create?patient_id=${patient.id}`} className="flex items-center gap-2 h-9 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors text-sm shadow-sm">
+                            <button onClick={() => setIsMembershipSheetOpen(true)} className="flex items-center gap-2 h-9 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors text-sm shadow-sm">
                                 <Plus className="size-4" /> Nova Matrícula
-                            </Link>
+                            </button>
                         </div>
 
                         {patient.memberships && patient.memberships.length > 0 ? (
@@ -319,9 +323,9 @@ export default function PatientShow({ patient, protocols = [] }: { patient: Pati
                             <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-12 text-center shadow-sm">
                                 <Tag className="size-12 text-muted-foreground/30 mx-auto mb-3" />
                                 <p className="text-muted-foreground text-sm">Nenhuma matrícula cadastrada.</p>
-                                <Link href={`/memberships/create?patient_id=${patient.id}`} className="text-primary text-sm font-semibold hover:text-primary/80 mt-2 inline-block">
+                                <button onClick={() => setIsMembershipSheetOpen(true)} className="text-primary text-sm font-semibold hover:text-primary/80 mt-2 inline-block">
                                     Criar primeira matrícula →
-                                </Link>
+                                </button>
                             </div>
                         )}
                     </motion.div>
@@ -413,6 +417,19 @@ export default function PatientShow({ patient, protocols = [] }: { patient: Pati
                 patientId={patient.id}
                 protocols={protocols}
                 evolution={editingEvolution}
+            />
+            <AppointmentFormSheet
+                isOpen={isAppointmentSheetOpen}
+                setIsOpen={setIsAppointmentSheetOpen}
+                patients={[{ id: patient.id, name: patient.name }]}
+                initialPatientId={patient.id}
+            />
+            <MembershipFormSheet
+                isOpen={isMembershipSheetOpen}
+                setIsOpen={setIsMembershipSheetOpen}
+                patients={[{ id: patient.id, name: patient.name }]}
+                commercialPlans={commercialPlans}
+                initialPatientId={patient.id}
             />
         </AppLayout>
     );

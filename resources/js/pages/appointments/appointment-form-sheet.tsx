@@ -16,6 +16,7 @@ interface AppointmentFormSheetProps {
     initialDate?: string;
     initialTime?: string;
     initialDuration?: number;
+    initialPatientId?: string;
 }
 
 export function AppointmentFormSheet({
@@ -25,7 +26,8 @@ export function AppointmentFormSheet({
     editingAppointment,
     initialDate,
     initialTime,
-    initialDuration
+    initialDuration,
+    initialPatientId
 }: AppointmentFormSheetProps) {
     const isEditMode = !!editingAppointment;
 
@@ -33,7 +35,7 @@ export function AppointmentFormSheet({
         type: 'individual',
         title: '',
         max_participants: 1,
-        patient_ids: [] as string[],
+        patient_ids: initialPatientId ? [initialPatientId] : ([] as string[]),
         appointment_date: initialDate || new Date().toISOString().split('T')[0],
         start_time: initialTime || '08:00',
         duration_minutes: initialDuration ? String(initialDuration) : '50',
@@ -65,7 +67,7 @@ export function AppointmentFormSheet({
                     type: 'individual',
                     title: '',
                     max_participants: 1,
-                    patient_ids: [],
+                    patient_ids: initialPatientId ? [initialPatientId] : [],
                     appointment_date: initialDate || new Date().toISOString().split('T')[0],
                     start_time: initialTime || '08:00',
                     duration_minutes: initialDuration ? String(initialDuration) : '50',
