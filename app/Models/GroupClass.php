@@ -13,6 +13,7 @@ class GroupClass extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'color',
         'max_participants',
         'status',
     ];

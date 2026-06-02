@@ -42,4 +42,9 @@ class Appointment extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function groupClass()
+    {
+        return $this->belongsTo(GroupClass::class);
+    }
 }

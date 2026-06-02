@@ -63,7 +63,7 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], pa
                             <ArrowLeft className="size-5" />
                         </Link>
                         <div className="flex items-center gap-4">
-                            <div className="size-16 rounded-2xl bg-gradient-to-br from-primary/20 to-indigo-500/20 flex items-center justify-center text-primary text-2xl font-bold shadow-inner">
+                            <div className="size-16 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-inner" style={{ backgroundColor: groupClass.color || '#8b5cf6' }}>
                                 <Users className="size-8" />
                             </div>
                             <div>

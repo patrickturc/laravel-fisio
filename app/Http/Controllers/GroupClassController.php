@@ -65,6 +65,7 @@ class GroupClassController extends Controller
             $groupClass = GroupClass::create([
                 'user_id' => $request->input('user_id', auth()->id()),
                 'name' => $validated['name'],
+                'color' => $request->input('color', '#8b5cf6'),
                 'max_participants' => $validated['max_participants'],
             ]);
 
@@ -103,6 +104,7 @@ class GroupClassController extends Controller
             $groupClass->update([
                 'user_id' => $request->input('user_id', auth()->id()),
                 'name' => $validated['name'],
+                'color' => $request->input('color', $groupClass->color),
                 'max_participants' => $validated['max_participants'],
                 'status' => $validated['status'],
             ]);

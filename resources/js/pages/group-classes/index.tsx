@@ -57,10 +57,10 @@ export default function GroupClassesIndex({ groupClasses, patients = [], users =
                         >
                             <Link href={`/group-classes/${groupClass.id}`} className="block h-full">
                                 <div className="bg-card/50 backdrop-blur-xl border border-border/50 hover:border-primary/30 rounded-2xl p-6 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 group h-full flex flex-col relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-[100px] -z-10 transition-transform group-hover:scale-110" />
+                                    <div className="absolute top-0 left-0 h-1.5 w-full rounded-t-2xl" style={{ backgroundColor: groupClass.color || '#8b5cf6' }} />
                                     
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="size-12 rounded-xl bg-gradient-to-br from-primary/20 to-indigo-500/20 flex items-center justify-center text-primary shadow-inner">
+                                    <div className="flex items-start justify-between mb-4 mt-1">
+                                        <div className="size-12 rounded-xl flex items-center justify-center text-white shadow-inner" style={{ backgroundColor: groupClass.color || '#8b5cf6' }}>
                                             <Users className="size-6" />
                                         </div>
                                         <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${

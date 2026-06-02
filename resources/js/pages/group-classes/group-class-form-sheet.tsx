@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { useForm } from '@inertiajs/react';
 import { FormEvent, useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
-import { Plus, Trash2, CalendarClock } from 'lucide-react';
+import { Plus, Trash2, CalendarClock, Palette } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -27,12 +27,19 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = 
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         name: groupClass?.name || '',
+        color: groupClass?.color || '#8b5cf6',
         user_id: groupClass?.user_id || '',
         max_participants: groupClass?.max_participants || 4,
         status: groupClass?.status || 'active',
         schedules: groupClass?.schedules || [{ day_of_week: 1, start_time: '08:00', duration_minutes: 50 }],
         patient_ids: groupClass?.patients?.map((p: any) => p.id) || [] as string[],
     });
+
+    const presetColors = [
+        '#8b5cf6', '#3b82f6', '#06b6d4', '#10b981', '#22c55e',
+        '#eab308', '#f97316', '#ef4444', '#ec4899', '#a855f7',
+        '#6366f1', '#0ea5e9', '#14b8a6', '#84cc16', '#f59e0b',
+    ];
 
     useEffect(() => {
         if (isOpen) {
@@ -42,6 +49,7 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = 
             } else {
                 setData({
                     name: groupClass.name,
+                    color: groupClass.color || '#8b5cf6',
                     user_id: groupClass.user_id || '',
                     max_participants: groupClass.max_participants,
                     status: groupClass.status,
@@ -105,6 +113,33 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = 
                             className="bg-background"
                         />
                         <InputError message={errors.name} />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="flex items-center gap-2"><Palette className="size-4" /> Cor da Turma</Label>
+                        <div className="flex items-center gap-3">
+                            <div className="flex flex-wrap gap-1.5">
+                                {presetColors.map(c => (
+                                    <button
+                                        key={c}
+                                        type="button"
+                                        onClick={() => setData('color', c)}
+                                        className={`size-7 rounded-lg transition-all hover:scale-110 ${data.color === c ? 'ring-2 ring-offset-2 ring-primary scale-110' : 'ring-1 ring-black/10'}`}
+                                        style={{ backgroundColor: c }}
+                                    />
+                                ))}
+                            </div>
+                            <div className="flex items-center gap-2 ml-auto">
+                                <input
+                                    type="color"
+                                    value={data.color}
+                                    onChange={(e) => setData('color', e.target.value)}
+                                    className="size-8 rounded-lg border border-border/50 cursor-pointer p-0.5"
+                                    title="Cor personalizada"
+                                />
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">Essa cor será usada na agenda para identificar esta turma.</p>
                     </div>
 
                     <div className="space-y-2">

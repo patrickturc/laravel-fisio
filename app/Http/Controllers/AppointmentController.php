@@ -35,7 +35,7 @@ class AppointmentController extends Controller
         $appointments = $query->paginate(15)->withQueryString();
 
         $patients = Patient::orderBy('name')->get(['id', 'name']);
-        $groupClasses = \App\Models\GroupClass::orderBy('name')->get(['id', 'name', 'max_participants']);
+        $groupClasses = \App\Models\GroupClass::orderBy('name')->get(['id', 'name', 'color', 'max_participants']);
         $users = User::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('appointments/index', [
@@ -172,7 +172,7 @@ class AppointmentController extends Controller
 
     public function events(Request $request)
     {
-        $query = Appointment::with('patients');
+        $query = Appointment::with(['patients', 'groupClass']);
 
         if ($request->filled('start')) {
             $query->where('appointment_date', '>=', substr($request->start, 0, 10));
@@ -188,7 +188,12 @@ class AppointmentController extends Controller
             $start_datetime = $app->appointment_date->format('Y-m-d') . 'T' . $app->start_time;
             $end_datetime = date('Y-m-d\TH:i:s', strtotime($start_datetime) + ($app->duration_minutes * 60));
             
-            $bgColor = $app->type === 'group' ? '#8b5cf6' : '#3b82f6'; // purple for group, blue for individual
+            // Use the group class color if available, otherwise default purple for group / blue for individual
+            if ($app->type === 'group' && $app->groupClass) {
+                $bgColor = $app->groupClass->color ?: '#8b5cf6';
+            } else {
+                $bgColor = $app->type === 'group' ? '#8b5cf6' : '#3b82f6';
+            }
             
             $title = $app->title;
             if (!$title && $app->patients->count() > 0) {
@@ -304,7 +309,7 @@ class AppointmentController extends Controller
         $protocols = \App\Models\ClinicalProtocol::orderBy('name')->get(['id', 'name']);
         $patients = Patient::orderBy('name')->get(['id', 'name']);
         $users = User::orderBy('name')->get(['id', 'name']);
-        $groupClasses = \App\Models\GroupClass::orderBy('name')->get(['id', 'name', 'max_participants']);
+        $groupClasses = \App\Models\GroupClass::orderBy('name')->get(['id', 'name', 'color', 'max_participants']);
 
         return Inertia::render('appointments/show', [
             'appointment' => $appointment,
