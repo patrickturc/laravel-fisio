@@ -32,7 +32,7 @@ class DashboardController extends Controller
 
         $totalPatients = Patient::count();
 
-        $dayAppointments = Appointment::with('patient')
+        $dayAppointments = Appointment::with('patients')
             ->where('appointment_date', $selectedDate)
             ->orderBy('start_time')
             ->get();
