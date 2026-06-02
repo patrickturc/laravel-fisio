@@ -141,6 +141,9 @@ export default function CalendarView({ onEventClick, onDateSelect, onEventDrop }
                 .calendar-container .fc-timegrid-divider {
                     display: none;
                 }
+                .calendar-container .fc-timegrid-slot {
+                    height: 12px !important; /* Make each 15min block half the default size */
+                }
                 
                 /* Remove border from the time axis column to match Google */
                 .calendar-container .fc-theme-standard .fc-timegrid-axis {
