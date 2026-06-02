@@ -142,7 +142,7 @@ export default function CalendarView({ onEventClick, onDateSelect, onEventDrop }
                     display: none;
                 }
                 .calendar-container .fc-timegrid-slot {
-                    height: 12px !important; /* Make each 15min block half the default size */
+                    height: 24px !important; /* Make each 30min block 24px, so 1h = 48px */
                 }
                 
                 /* Remove border from the time axis column to match Google */
@@ -225,9 +225,16 @@ export default function CalendarView({ onEventClick, onDateSelect, onEventDrop }
                     }
                 }}
                 nowIndicator={true}
-                slotDuration="00:15:00"
+                slotDuration="00:30:00"
                 slotLabelInterval="01:00"
                 dayHeaderContent={(args) => {
+                    if (args.view.type === 'dayGridMonth') {
+                        return (
+                            <div className="py-2 text-sm font-medium text-gray-500 uppercase tracking-wider">
+                                {args.date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+                            </div>
+                        );
+                    }
                     // Custom Google-like header
                     const dayName = args.date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').toUpperCase();
                     const dayNumber = args.date.getDate();
