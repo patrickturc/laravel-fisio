@@ -34,11 +34,13 @@ class AppointmentController extends Controller
         $appointments = $query->paginate(15)->withQueryString();
 
         $patients = Patient::orderBy('name')->get(['id', 'name']);
+        $groupClasses = \App\Models\GroupClass::orderBy('name')->get(['id', 'name', 'max_participants']);
 
         return Inertia::render('appointments/index', [
             'appointments' => $appointments,
             'filters' => $request->only(['date_from', 'date_to', 'search']),
             'patients' => $patients,
+            'groupClasses' => $groupClasses,
         ]);
     }
 
@@ -58,6 +60,7 @@ class AppointmentController extends Controller
             'patient_ids' => 'required|array',
             'patient_ids.*' => 'uuid|exists:patients,id',
             'type' => 'required|in:individual,group',
+            'group_class_id' => 'nullable|uuid|exists:group_classes,id',
             'title' => 'nullable|string|max:255',
             'max_participants' => 'required|integer|min:1',
             'appointment_date' => 'required|date',
@@ -128,6 +131,7 @@ class AppointmentController extends Controller
                     $appointment = Appointment::create([
                         'title' => $validated['title'],
                         'type' => $validated['type'],
+                        'group_class_id' => $validated['group_class_id'] ?? null,
                         'max_participants' => $validated['max_participants'],
                         'appointment_date' => $dateString,
                         'start_time' => $validated['start_time'],
@@ -310,6 +314,7 @@ class AppointmentController extends Controller
             $appointment->update([
                 'title' => $validated['title'],
                 'type' => $validated['type'],
+                'group_class_id' => $validated['group_class_id'] ?? null,
                 'max_participants' => $validated['max_participants'],
                 'appointment_date' => $validated['appointment_date'],
                 'start_time' => $validated['start_time'],

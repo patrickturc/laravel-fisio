@@ -26,10 +26,10 @@ export function AppSidebar() {
     const mainNavItems = [
         { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid, show: can('dashboard.view') },
         { title: 'Pacientes', href: '/patients', icon: Users, show: can('patients.manage.view') },
+        { title: 'Turmas', href: '/group-classes', icon: Users, show: can('patients.manage.view') },
         { title: 'Agenda', href: '/appointments', icon: CalendarRange, show: can('appointments.manage.view') },
         { title: 'Evoluções', href: '/evolutions', icon: Activity, show: can('evolutions.manage.view') },
         { title: 'Relatórios', href: '/reports', icon: BarChart3, show: can('reports.manage.view') },
-        { title: 'Protocolos Clínicos', href: '/clinical-protocols', icon: ClipboardList, show: can('treatment_plans.manage.view') },
         { title: 'Matrículas', href: '/memberships', icon: CreditCard, show: can('memberships.manage.view') },
         {
             title: 'Financeiro',
@@ -44,6 +44,7 @@ export function AppSidebar() {
     ].filter(item => item.show);
 
     const settingsNavItems = [
+        { title: 'Protocolos Clínicos', href: '/clinical-protocols', icon: ClipboardList, show: can('treatment_plans.manage.view') },
         { title: 'Planos e Pacotes', href: '/commercial-plans', icon: Tag, show: can('memberships.manage.view') },
         { title: 'Usuários', href: '/settings/users', icon: Users, show: can('settings.users.view') },
         { title: 'Perfis de Acesso', href: '/settings/roles', icon: ShieldCheck, show: can('settings.roles.view') },

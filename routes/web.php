@@ -27,6 +27,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('evolutions/{evolution}/pdf', [App\Http\Controllers\EvolutionController::class, 'pdf'])->name('evolutions.pdf');
     Route::resource('clinical-protocols', App\Http\Controllers\ClinicalProtocolController::class);
     Route::resource('commercial-plans', App\Http\Controllers\CommercialPlanController::class);
+    Route::post('group-classes/{group_class}/generate-appointments', [App\Http\Controllers\GroupClassController::class, 'generateAppointments'])->name('group-classes.generate');
+    Route::resource('group-classes', App\Http\Controllers\GroupClassController::class);
 });
 
 require __DIR__.'/settings.php';

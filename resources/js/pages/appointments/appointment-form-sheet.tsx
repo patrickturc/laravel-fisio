@@ -17,6 +17,7 @@ interface AppointmentFormSheetProps {
     initialTime?: string;
     initialDuration?: number;
     initialPatientId?: string;
+    groupClasses?: Array<{ id: string; name: string; max_participants: number }>;
 }
 
 export function AppointmentFormSheet({
@@ -27,13 +28,15 @@ export function AppointmentFormSheet({
     initialDate,
     initialTime,
     initialDuration,
-    initialPatientId
+    initialPatientId,
+    groupClasses = []
 }: AppointmentFormSheetProps) {
     const isEditMode = !!editingAppointment;
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         type: 'individual',
         title: '',
+        group_class_id: '',
         max_participants: 1,
         patient_ids: initialPatientId ? [initialPatientId] : ([] as string[]),
         appointment_date: initialDate || new Date().toISOString().split('T')[0],
@@ -52,6 +55,7 @@ export function AppointmentFormSheet({
                 setData({
                     type: editingAppointment.type || 'individual',
                     title: editingAppointment.title || '',
+                    group_class_id: editingAppointment.group_class_id || '',
                     max_participants: editingAppointment.max_participants || 1,
                     patient_ids: editingAppointment.patients ? editingAppointment.patients.map((p: any) => p.id) : [],
                     appointment_date: editingAppointment.appointment_date?.slice(0, 10) || '',
@@ -66,6 +70,7 @@ export function AppointmentFormSheet({
                 setData({
                     type: 'individual',
                     title: '',
+                    group_class_id: '',
                     max_participants: 1,
                     patient_ids: initialPatientId ? [initialPatientId] : [],
                     appointment_date: initialDate || new Date().toISOString().split('T')[0],
@@ -142,6 +147,29 @@ export function AppointmentFormSheet({
 
                     {data.type === 'group' && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-primary/5 border border-primary/10 rounded-xl">
+                            <div className="grid gap-1.5 sm:col-span-2">
+                                <Label htmlFor="group_class_id" className="text-xs">Vincular a uma Turma (Opcional)</Label>
+                                <select 
+                                    id="group_class_id"
+                                    value={data.group_class_id}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setData('group_class_id', val);
+                                        if (val) {
+                                            const gc = groupClasses.find(g => g.id === val);
+                                            if (gc) {
+                                                setData(d => ({...d, group_class_id: val, title: gc.name, max_participants: gc.max_participants}));
+                                            }
+                                        }
+                                    }}
+                                    className="bg-background h-8 text-sm rounded-md border-border/50 focus:ring-primary/20 focus:border-primary"
+                                >
+                                    <option value="">-- Nenhuma / Nova Turma --</option>
+                                    {groupClasses.map(gc => (
+                                        <option key={gc.id} value={gc.id}>{gc.name} ({gc.max_participants} vagas)</option>
+                                    ))}
+                                </select>
+                            </div>
                             <div className="grid gap-1.5">
                                 <Label htmlFor="title" className="text-xs">Título *</Label>
                                 <Input id="title" value={data.title} onChange={e => setData('title', e.target.value)} className="bg-background h-8 text-sm" placeholder="Ex: Pilates" required={data.type === 'group'} />

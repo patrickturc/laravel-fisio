@@ -21,7 +21,7 @@ interface PaginatedAppointments {
     total: number;
 }
 
-export default function AppointmentsIndex({ appointments, filters = {}, patients = [] }: { appointments: PaginatedAppointments; filters?: any; patients?: any[] }) {
+export default function AppointmentsIndex({ appointments, filters = {}, patients = [], groupClasses = [] }: { appointments: PaginatedAppointments; filters?: any; patients?: any[]; groupClasses?: any[] }) {
     const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
     const [search, setSearch] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
@@ -198,13 +198,9 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                                         appointment_date: newDate,
                                         start_time: newTime
                                     }).then(() => {
-                                        // Force calendar refresh or just let Inertia reload if needed,
-                                        // but since FullCalendar handles the drop locally, we can just show a success toast.
-                                        // To be safe we can refresh data:
                                         router.reload({ only: ['appointments'] });
                                     }).catch((err) => {
                                         console.error('Failed to reschedule', err);
-                                        // Could add a toast error here and revert the event
                                         router.reload({ only: ['appointments'] });
                                     });
                                 }}
@@ -310,6 +306,7 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                 isOpen={sheetOpen} 
                 setIsOpen={setSheetOpen} 
                 patients={patients || []} 
+                groupClasses={groupClasses}
                 editingAppointment={editingAppointment} 
                 initialDate={initialDate} 
                 initialTime={initialTime} 
