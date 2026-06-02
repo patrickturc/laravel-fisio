@@ -47,88 +47,134 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
     return (
         <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-3 sm:p-6 shadow-sm overflow-hidden calendar-container w-full min-h-[600px]">
             <style>{`
-                /* FullCalendar Tailwind overrides */
+                /* Google Calendar Style Overrides for FullCalendar */
                 .calendar-container .fc {
-                    --fc-border-color: hsl(var(--border) / 0.5);
-                    --fc-button-text-color: hsl(var(--foreground));
-                    --fc-button-bg-color: hsl(var(--background));
-                    --fc-button-border-color: hsl(var(--border));
-                    --fc-button-hover-bg-color: hsl(var(--accent));
-                    --fc-button-hover-border-color: hsl(var(--border));
-                    --fc-button-active-bg-color: hsl(var(--primary));
-                    --fc-button-active-border-color: hsl(var(--primary));
-                    --fc-button-active-text-color: hsl(var(--primary-foreground));
-                    --fc-event-bg-color: hsl(var(--primary));
+                    --fc-border-color: #dadce0;
+                    --fc-button-text-color: #3c4043;
+                    --fc-button-bg-color: transparent;
+                    --fc-button-border-color: #dadce0;
+                    --fc-button-hover-bg-color: #f1f3f4;
+                    --fc-button-hover-border-color: #dadce0;
+                    --fc-button-active-bg-color: #e8eaed;
+                    --fc-button-active-border-color: #dadce0;
+                    --fc-button-active-text-color: #202124;
+                    --fc-event-bg-color: #3f51b5; /* Google default blue */
                     --fc-event-border-color: transparent;
-                    --fc-event-text-color: hsl(var(--primary-foreground));
-                    --fc-today-bg-color: hsl(var(--primary) / 0.05);
+                    --fc-event-text-color: #ffffff;
+                    --fc-today-bg-color: transparent; /* Google uses no background, just the blue circle in header */
                     --fc-page-bg-color: transparent;
-                    --fc-neutral-bg-color: hsl(var(--muted));
-                    --fc-neutral-text-color: hsl(var(--muted-foreground));
-                    --fc-list-event-hover-bg-color: hsl(var(--accent));
-                    color: hsl(var(--foreground));
-                    font-family: inherit;
+                    --fc-neutral-bg-color: #f1f3f4;
+                    --fc-neutral-text-color: #70757a;
+                    --fc-list-event-hover-bg-color: #f1f3f4;
+                    --fc-now-indicator-color: #ea4335; /* Google Red */
+                    color: #3c4043;
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                 }
                 
+                /* Toolbar buttons */
                 .calendar-container .fc-header-toolbar {
-                    margin-bottom: 1.5rem !important;
-                    gap: 1rem;
-                    flex-wrap: wrap;
+                    margin-bottom: 1rem !important;
                 }
                 
                 .calendar-container .fc-button {
-                    border-radius: 0.5rem;
-                    padding: 0.5rem 1rem;
+                    border-radius: 0.25rem;
+                    padding: 0.35rem 0.75rem;
                     font-weight: 500;
                     text-transform: capitalize;
-                    transition: all 0.2s;
-                    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+                    transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+                    box-shadow: none !important;
                 }
                 
-                .calendar-container .fc-button-primary:not(:disabled).fc-button-active,
-                .calendar-container .fc-button-primary:not(:disabled):active {
-                    background-color: var(--fc-button-active-bg-color);
-                    border-color: var(--fc-button-active-border-color);
-                    color: var(--fc-button-active-text-color);
+                .calendar-container .fc-button-primary:focus {
+                    box-shadow: none !important;
                 }
 
+                .calendar-container .fc-toolbar-title {
+                    font-size: 1.375rem !important;
+                    font-weight: 400 !important;
+                    color: #3c4043;
+                    margin-left: 0.5rem;
+                }
+
+                /* Header cells (DOM., SEG., etc) */
                 .calendar-container .fc-theme-standard th {
-                    border-color: var(--fc-border-color);
-                    padding: 0.75rem 0;
-                    background: hsl(var(--muted) / 0.5);
-                    font-weight: 600;
-                    font-size: 0.875rem;
-                }
-
-                .calendar-container .fc-theme-standard td, .calendar-container .fc-theme-standard th {
-                    border-color: var(--fc-border-color);
-                }
-
-                .calendar-container .fc-event {
-                    border-radius: 0.375rem;
-                    padding: 0.125rem 0.25rem;
-                    font-size: 0.75rem;
+                    border: none;
+                    border-bottom: 1px solid var(--fc-border-color);
+                    border-left: 1px solid var(--fc-border-color);
+                    padding: 0;
+                    background: transparent;
                     font-weight: 500;
-                    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-                    cursor: pointer;
-                    transition: opacity 0.2s;
                 }
-                
-                .calendar-container .fc-event:hover {
-                    opacity: 0.9;
-                }
-
-                .calendar-container .fc-timegrid-slot {
-                    height: 2.5rem; /* Better slot height */
+                .calendar-container .fc-theme-standard th:first-child {
+                    border-left: none; /* Time axis header */
                 }
 
                 .calendar-container .fc-col-header-cell-cushion {
-                    padding: 0.5rem;
+                    padding: 0 !important;
+                    width: 100%;
+                }
+
+                /* Grid Lines */
+                .calendar-container .fc-theme-standard td {
+                    border-color: var(--fc-border-color);
+                }
+                .calendar-container .fc-timegrid-slot-minor {
+                    border-top-style: none !important; /* Hide the minor slot line, or make it very light */
+                }
+                .calendar-container .fc-timegrid-slot-label-cushion {
+                    font-size: 0.625rem;
+                    color: #70757a;
+                    padding-right: 0.5rem;
+                    font-weight: 500;
+                }
+                .calendar-container .fc-timegrid-axis-cushion {
+                    font-size: 0.625rem;
+                    color: #70757a;
+                }
+                .calendar-container .fc-timegrid-divider {
+                    display: none;
                 }
                 
-                .calendar-container .fc-direction-ltr .fc-timegrid-slot-label-frame {
-                    text-align: center;
+                /* Remove border from the time axis column to match Google */
+                .calendar-container .fc-theme-standard .fc-timegrid-axis {
+                    border-left: none;
+                    border-bottom: none;
+                    border-top: none;
                 }
+
+                /* Events */
+                .calendar-container .fc-event {
+                    border-radius: 0.25rem;
+                    padding: 0.1rem 0.25rem;
+                    font-size: 0.75rem;
+                    font-weight: 500;
+                    box-shadow: none;
+                    cursor: pointer;
+                    transition: opacity 0.2s, filter 0.2s;
+                }
+                
+                .calendar-container .fc-event:hover {
+                    filter: brightness(0.9);
+                }
+
+                .calendar-container .fc-timegrid-slot {
+                    height: 2.5rem;
+                }
+                
+                /* Now Indicator */
+                .calendar-container .fc-timegrid-now-indicator-line {
+                    border-width: 2px 0 0;
+                }
+                .calendar-container .fc-timegrid-now-indicator-arrow {
+                    border: none;
+                    background-color: var(--fc-now-indicator-color);
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 50%;
+                    margin-top: -6px;
+                    margin-left: -6px;
+                }
+
             `}</style>
             
             <FullCalendar
@@ -163,6 +209,23 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
                 nowIndicator={true}
                 slotDuration="00:15:00"
                 slotLabelInterval="01:00"
+                dayHeaderContent={(args) => {
+                    // Custom Google-like header
+                    const dayName = args.date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').toUpperCase();
+                    const dayNumber = args.date.getDate();
+                    const isToday = args.isToday;
+                    
+                    return (
+                        <div className="flex flex-col items-center py-1">
+                            <span className={`text-[11px] font-medium mb-1 tracking-wider ${isToday ? 'text-blue-600' : 'text-gray-500'}`}>
+                                {dayName}
+                            </span>
+                            <span className={`text-2xl font-normal w-[46px] h-[46px] flex items-center justify-center rounded-full transition-colors ${isToday ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
+                                {dayNumber}
+                            </span>
+                        </div>
+                    );
+                }}
                 eventTimeFormat={{
                     hour: '2-digit',
                     minute: '2-digit',
