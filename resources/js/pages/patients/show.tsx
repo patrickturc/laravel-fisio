@@ -9,6 +9,7 @@ import { useState } from 'react';
 import EvolutionFormSheet from '@/components/EvolutionFormSheet';
 import { AppointmentFormSheet } from '../appointments/appointment-form-sheet';
 import { MembershipFormSheet } from '../memberships/membership-form-sheet';
+import { PatientFormSheet } from './PatientFormSheet';
 
 interface Patient {
     id: string;
@@ -78,6 +79,7 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
     const [editingEvolution, setEditingEvolution] = useState<any>(null);
     const [isAppointmentSheetOpen, setIsAppointmentSheetOpen] = useState(false);
     const [isMembershipSheetOpen, setIsMembershipSheetOpen] = useState(false);
+    const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
     const { confirm, modal } = useConfirmModal();
 
     async function handleDelete() {
@@ -164,9 +166,9 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Link href={`/patients/${patient.id}/edit`} className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                        <button onClick={() => setIsPatientFormOpen(true)} className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                             <Edit className="size-4" />
-                        </Link>
+                        </button>
                         <button onClick={handleDelete} className="p-2.5 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors">
                             <Trash2 className="size-4" />
                         </button>
@@ -411,6 +413,11 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                 )}
             </div>
             {modal}
+            <PatientFormSheet 
+                open={isPatientFormOpen}
+                onOpenChange={setIsPatientFormOpen}
+                patient={patient}
+            />
             <EvolutionFormSheet
                 isOpen={isEvolutionSheetOpen}
                 onOpenChange={setIsEvolutionSheetOpen}
