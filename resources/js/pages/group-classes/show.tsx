@@ -10,7 +10,7 @@ import { Pagination } from '@/components/pagination';
 import { useForm } from '@inertiajs/react';
 import { GroupClassFormSheet } from './group-class-form-sheet';
 
-export default function GroupClassShow({ groupClass, appointments, patients }: { groupClass: any, appointments: any, patients: any[] }) {
+export default function GroupClassShow({ groupClass, futureAppointments = [], patients }: { groupClass: any, futureAppointments?: any[], patients: any[] }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Turmas', href: '/group-classes' },
         { title: groupClass.name, href: `/group-classes/${groupClass.id}` },
@@ -195,9 +195,9 @@ export default function GroupClassShow({ groupClass, appointments, patients }: {
                                 </Button>
                             </div>
 
-                            {appointments.data.length > 0 ? (
-                                <div className="space-y-3">
-                                    {appointments.data.map((appointment: any) => (
+                            {futureAppointments.length > 0 ? (
+                                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                                    {futureAppointments.map((appointment: any) => (
                                         <Link 
                                             key={appointment.id} 
                                             href={`/appointments/${appointment.id}`}
@@ -230,16 +230,6 @@ export default function GroupClassShow({ groupClass, appointments, patients }: {
                                             </div>
                                         </Link>
                                     ))}
-                                    
-                                    {appointments.last_page > 1 && (
-                                        <div className="mt-6">
-                                            <Pagination 
-                                                currentPage={appointments.current_page} 
-                                                lastPage={appointments.last_page} 
-                                                baseUrl={`/group-classes/${groupClass.id}`} 
-                                            />
-                                        </div>
-                                    )}
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-12 text-center bg-muted/20 rounded-2xl border border-dashed border-border">
