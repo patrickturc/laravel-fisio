@@ -25,12 +25,12 @@ export function AppSidebar() {
     // Dynamically build main navigation based on permissions
     const mainNavItems = [
         { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid, show: can('dashboard.view') },
+        { title: 'Agenda', href: '/appointments', icon: CalendarRange, show: can('appointments.manage.view') },
         { title: 'Pacientes', href: '/patients', icon: Users, show: can('patients.manage.view') },
         { title: 'Turmas', href: '/group-classes', icon: Users, show: can('patients.manage.view') },
-        { title: 'Agenda', href: '/appointments', icon: CalendarRange, show: can('appointments.manage.view') },
         { title: 'Evoluções', href: '/evolutions', icon: Activity, show: can('evolutions.manage.view') },
-        { title: 'Relatórios', href: '/reports', icon: BarChart3, show: can('reports.manage.view') },
         { title: 'Matrículas', href: '/memberships', icon: CreditCard, show: can('memberships.manage.view') },
+        { title: 'Relatórios', href: '/reports', icon: BarChart3, show: can('reports.manage.view') },
         {
             title: 'Financeiro',
             href: '/financial',
