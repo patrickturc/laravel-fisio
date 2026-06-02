@@ -27,6 +27,7 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         name: groupClass?.name || '',
         max_participants: groupClass?.max_participants || 4,
+        status: groupClass?.status || 'active',
         schedules: groupClass?.schedules || [{ day_of_week: 1, start_time: '08:00', duration_minutes: 50 }],
         patient_ids: groupClass?.patients?.map((p: any) => p.id) || [] as string[],
     });
@@ -40,6 +41,7 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = 
                 setData({
                     name: groupClass.name,
                     max_participants: groupClass.max_participants,
+                    status: groupClass.status,
                     schedules: groupClass.schedules,
                     patient_ids: groupClass.patients?.map((p: any) => p.id) || [],
                 });

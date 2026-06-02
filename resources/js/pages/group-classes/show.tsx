@@ -167,7 +167,7 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], pa
                                 )}
                             </div>
                             
-                            <Button variant="outline" className="w-full mt-4 gap-2 border-dashed rounded-xl">
+                            <Button variant="outline" onClick={() => setIsEditSheetOpen(true)} className="w-full mt-4 gap-2 border-dashed rounded-xl">
                                 <Plus className="size-4" /> Adicionar Aluno
                             </Button>
                         </motion.div>

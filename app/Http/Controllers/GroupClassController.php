@@ -47,9 +47,11 @@ class GroupClassController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'max_participants' => 'required|integer|min:1',
+            'patient_ids' => 'nullable|array',
+            'patient_ids.*' => 'exists:patients,id',
             'schedules' => 'required|array',
             'schedules.*.day_of_week' => 'required|integer|min:0|max:6',
-            'schedules.*.start_time' => 'required|date_format:H:i',
+            'schedules.*.start_time' => 'required',
             'schedules.*.duration_minutes' => 'required|integer|min:1',
         ]);
 
@@ -63,6 +65,10 @@ class GroupClassController extends Controller
 
             foreach ($validated['schedules'] as $schedule) {
                 $groupClass->schedules()->create($schedule);
+            }
+
+            if (!empty($validated['patient_ids'])) {
+                $groupClass->patients()->attach($validated['patient_ids']);
             }
 
             DB::commit();
