@@ -8,10 +8,11 @@ import { useRef, useEffect } from 'react';
 
 interface CalendarViewProps {
     onEventClick?: (eventId: string) => void;
-    onDateSelect?: (startDate: string, startTime: string) => void;
+    onDateSelect?: (startDate: string, startTime: string, durationMinutes?: number) => void;
+    onEventDrop?: (eventId: string, newDate: string, newTime: string) => void;
 }
 
-export default function CalendarView({ onEventClick, onDateSelect }: CalendarViewProps) {
+export default function CalendarView({ onEventClick, onDateSelect, onEventDrop }: CalendarViewProps) {
     const calendarRef = useRef<FullCalendar>(null);
 
     useEffect(() => {
@@ -33,8 +34,14 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
         const startDate = selectInfo.startStr.split('T')[0];
         const startTime = selectInfo.startStr.split('T')[1]?.substring(0, 5) || '08:00';
         
+        // Calculate duration if the user dragged multiple slots
+        let durationMinutes = 60; // Default
+        if (selectInfo.start && selectInfo.end) {
+            durationMinutes = Math.round((selectInfo.end.getTime() - selectInfo.start.getTime()) / 60000);
+        }
+        
         if (onDateSelect) {
-            onDateSelect(startDate, startTime);
+            onDateSelect(startDate, startTime, durationMinutes);
         } else {
             const params = new URLSearchParams({
                 date: startDate,
@@ -189,6 +196,14 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
                 locale={ptBrLocale}
                 events="/api/appointments/events"
                 selectable={true}
+                editable={!!onEventDrop}
+                eventDrop={(info) => {
+                    if (onEventDrop) {
+                        const newDate = info.event.startStr.split('T')[0];
+                        const newTime = info.event.startStr.split('T')[1]?.substring(0, 5) || '08:00';
+                        onEventDrop(info.event.id, newDate, newTime);
+                    }
+                }}
                 selectMirror={true}
                 dayMaxEvents={true}
                 allDaySlot={false}

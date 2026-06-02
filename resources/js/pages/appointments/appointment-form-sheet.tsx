@@ -15,6 +15,7 @@ interface AppointmentFormSheetProps {
     editingAppointment?: any; // If provided, it's edit mode
     initialDate?: string;
     initialTime?: string;
+    initialDuration?: number;
 }
 
 export function AppointmentFormSheet({
@@ -23,7 +24,8 @@ export function AppointmentFormSheet({
     patients,
     editingAppointment,
     initialDate,
-    initialTime
+    initialTime,
+    initialDuration
 }: AppointmentFormSheetProps) {
     const isEditMode = !!editingAppointment;
 
@@ -34,7 +36,7 @@ export function AppointmentFormSheet({
         patient_ids: [] as string[],
         appointment_date: initialDate || new Date().toISOString().split('T')[0],
         start_time: initialTime || '08:00',
-        duration_minutes: '50',
+        duration_minutes: initialDuration ? String(initialDuration) : '50',
         status: 'scheduled',
         notes: '',
         is_recurring: false,
@@ -66,7 +68,7 @@ export function AppointmentFormSheet({
                     patient_ids: [],
                     appointment_date: initialDate || new Date().toISOString().split('T')[0],
                     start_time: initialTime || '08:00',
-                    duration_minutes: '50',
+                    duration_minutes: initialDuration ? String(initialDuration) : '50',
                     status: 'scheduled',
                     notes: '',
                     is_recurring: false,
@@ -74,7 +76,7 @@ export function AppointmentFormSheet({
                 });
             }
         }
-    }, [isOpen, editingAppointment, initialDate, initialTime]);
+    }, [isOpen, editingAppointment, initialDate, initialTime, initialDuration]);
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();

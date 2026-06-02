@@ -32,6 +32,7 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
     const [editingAppointment, setEditingAppointment] = useState<any>(null);
     const [initialDate, setInitialDate] = useState('');
     const [initialTime, setInitialTime] = useState('');
+    const [initialDuration, setInitialDuration] = useState<number | undefined>(undefined);
 
     function applyFilters(overrides?: any) {
         const params: any = { ...overrides };
@@ -91,6 +92,7 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                                 setEditingAppointment(null);
                                 setInitialDate(new Date().toISOString().split('T')[0]);
                                 setInitialTime('08:00');
+                                setInitialDuration(undefined);
                                 setSheetOpen(true);
                             }}
                             className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
@@ -184,11 +186,27 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                                             setSheetOpen(true);
                                         });
                                 }}
-                                onDateSelect={(date, time) => {
+                                onDateSelect={(date, time, durationMinutes) => {
                                     setEditingAppointment(null);
                                     setInitialDate(date);
                                     setInitialTime(time);
+                                    setInitialDuration(durationMinutes);
                                     setSheetOpen(true);
+                                }}
+                                onEventDrop={(eventId, newDate, newTime) => {
+                                    axios.post(`/appointments/${eventId}/reschedule`, {
+                                        appointment_date: newDate,
+                                        start_time: newTime
+                                    }).then(() => {
+                                        // Force calendar refresh or just let Inertia reload if needed,
+                                        // but since FullCalendar handles the drop locally, we can just show a success toast.
+                                        // To be safe we can refresh data:
+                                        router.reload({ only: ['appointments'] });
+                                    }).catch((err) => {
+                                        console.error('Failed to reschedule', err);
+                                        // Could add a toast error here and revert the event
+                                        router.reload({ only: ['appointments'] });
+                                    });
                                 }}
                             />
                         </motion.div>
@@ -295,6 +313,7 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                 editingAppointment={editingAppointment} 
                 initialDate={initialDate} 
                 initialTime={initialTime} 
+                initialDuration={initialDuration}
             />
         </AppLayout>
     );

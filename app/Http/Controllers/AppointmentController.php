@@ -215,6 +215,18 @@ class AppointmentController extends Controller
         return response()->json($appointment);
     }
 
+    public function reschedule(Request $request, Appointment $appointment)
+    {
+        $validated = $request->validate([
+            'appointment_date' => 'required|date',
+            'start_time' => 'required',
+        ]);
+
+        $appointment->update($validated);
+
+        return response()->json(['success' => true]);
+    }
+
     public function show(Appointment $appointment)
     {
         $appointment->load('patients');

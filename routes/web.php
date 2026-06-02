@@ -13,6 +13,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('api/appointments/events', [App\Http\Controllers\AppointmentController::class, 'events'])->name('appointments.events');
     Route::get('api/appointments/{appointment}', [App\Http\Controllers\AppointmentController::class, 'details'])->name('appointments.details');
     Route::post('appointments/{appointment}/patients/{patientId}/status', [App\Http\Controllers\AppointmentController::class, 'updateStatus'])->name('appointments.update-status');
+    Route::post('appointments/{appointment}/reschedule', [App\Http\Controllers\AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
     Route::resource('appointments', App\Http\Controllers\AppointmentController::class);
     Route::resource('evolutions', App\Http\Controllers\EvolutionController::class)->except(['create', 'edit']);
     Route::post('memberships/{membership}/renew', [App\Http\Controllers\MembershipController::class, 'renew'])->name('memberships.renew');
