@@ -19,7 +19,8 @@ class Appointment extends Model
         'notes',
         'title',
         'type',
-        'max_participants'
+        'max_participants',
+        'group_class_id'
     ];
     
     protected function casts(): array

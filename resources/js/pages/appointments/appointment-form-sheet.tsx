@@ -187,7 +187,13 @@ export function AppointmentFormSheet({
                     <div className="grid gap-2">
                         <Label>Pacientes {data.type === 'group' ? `(${data.patient_ids.length}/${data.max_participants})` : '*'}</Label>
                         <div className="max-h-[160px] overflow-y-auto border border-border/50 rounded-lg p-2 bg-muted/20 grid grid-cols-1 gap-1">
-                            {patients.map(p => (
+                            {[...patients].sort((a, b) => {
+                                const aSelected = data.patient_ids.includes(a.id);
+                                const bSelected = data.patient_ids.includes(b.id);
+                                if (aSelected && !bSelected) return -1;
+                                if (!aSelected && bSelected) return 1;
+                                return a.name.localeCompare(b.name);
+                            }).map(p => (
                                 <label key={p.id} className="flex items-center gap-2 p-1.5 hover:bg-background rounded-md cursor-pointer transition-colors">
                                     <input
                                         type={data.type === 'individual' ? 'radio' : 'checkbox'}
