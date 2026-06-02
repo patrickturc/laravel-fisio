@@ -36,6 +36,32 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
     const [initialDuration, setInitialDuration] = useState<number | undefined>(undefined);
 
     const [groupClassSheetOpen, setGroupClassSheetOpen] = useState(false);
+    const [isGroupClassSheetOpen, setIsGroupClassSheetOpen] = useState(false);
+
+    // Reschedule Prompt State
+    const [reschedulePrompt, setReschedulePrompt] = useState<{
+        open: boolean;
+        eventId: string | null;
+        newDate: string | null;
+        newTime: string | null;
+    }>({ open: false, eventId: null, newDate: null, newTime: null });
+
+    const performReschedule = (mode: 'single' | 'future') => {
+        if (!reschedulePrompt.eventId) return;
+        
+        axios.put(`/api/appointments/${reschedulePrompt.eventId}/reschedule`, {
+            appointment_date: reschedulePrompt.newDate,
+            start_time: reschedulePrompt.newTime,
+            update_mode: mode
+        }).then(() => {
+            setReschedulePrompt({ open: false, eventId: null, newDate: null, newTime: null });
+            router.reload({ only: ['appointments'] });
+        }).catch((err) => {
+            console.error('Failed to reschedule', err);
+            setReschedulePrompt({ open: false, eventId: null, newDate: null, newTime: null });
+            router.reload({ only: ['appointments'] });
+        });
+    };
 
     function applyFilters(overrides?: any) {
         const params: any = { ...overrides };
@@ -196,16 +222,26 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                                     setInitialDuration(durationMinutes);
                                     setSheetOpen(true);
                                 }}
-                                onEventDrop={(eventId, newDate, newTime) => {
-                                    axios.post(`/appointments/${eventId}/reschedule`, {
-                                        appointment_date: newDate,
-                                        start_time: newTime
-                                    }).then(() => {
-                                        router.reload({ only: ['appointments'] });
-                                    }).catch((err) => {
-                                        console.error('Failed to reschedule', err);
-                                        router.reload({ only: ['appointments'] });
-                                    });
+                                onEventDrop={(eventId, newDate, newTime, isGroup) => {
+                                    if (isGroup) {
+                                        setReschedulePrompt({
+                                            open: true,
+                                            eventId,
+                                            newDate,
+                                            newTime
+                                        });
+                                    } else {
+                                        axios.put(`/api/appointments/${eventId}/reschedule`, {
+                                            appointment_date: newDate,
+                                            start_time: newTime,
+                                            update_mode: 'single'
+                                        }).then(() => {
+                                            router.reload({ only: ['appointments'] });
+                                        }).catch((err) => {
+                                            console.error('Failed to reschedule', err);
+                                            router.reload({ only: ['appointments'] });
+                                        });
+                                    }
                                 }}
                             />
                         </motion.div>

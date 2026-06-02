@@ -224,9 +224,73 @@ class AppointmentController extends Controller
         $validated = $request->validate([
             'appointment_date' => 'required|date',
             'start_time' => 'required',
+            'update_mode' => 'nullable|in:single,future',
         ]);
 
-        $appointment->update($validated);
+        $updateMode = $validated['update_mode'] ?? 'single';
+
+        if ($updateMode === 'future' && $appointment->type === 'group' && $appointment->group_class_id) {
+            DB::beginTransaction();
+            try {
+                $oldDate = $appointment->appointment_date;
+                $oldTime = $appointment->start_time;
+                $oldDayOfWeek = Carbon::parse($oldDate)->dayOfWeek; // 0 (Sun) - 6 (Sat)
+                
+                $newDateObj = Carbon::parse($validated['appointment_date']);
+                $newDayOfWeek = $newDateObj->dayOfWeek;
+                $newTime = $validated['start_time'];
+
+                // Shifting future appointments
+                $futureAppointments = Appointment::where('group_class_id', $appointment->group_class_id)
+                    ->where('appointment_date', '>=', $oldDate->format('Y-m-d'))
+                    ->where('start_time', $oldTime)
+                    ->get()
+                    ->filter(function ($appt) use ($oldDayOfWeek) {
+                        return Carbon::parse($appt->appointment_date)->dayOfWeek === $oldDayOfWeek;
+                    });
+
+                $daysDiff = Carbon::parse($oldDate)->startOfDay()->diffInDays($newDateObj->startOfDay(), false);
+
+                foreach ($futureAppointments as $appt) {
+                    $shiftedDate = Carbon::parse($appt->appointment_date)->addDays($daysDiff);
+                    $appt->update([
+                        'appointment_date' => $shiftedDate->format('Y-m-d'),
+                        'start_time' => $newTime,
+                    ]);
+                }
+
+                // Update the base schedule
+                $groupClass = \App\Models\GroupClass::find($appointment->group_class_id);
+                if ($groupClass) {
+                    // Start times are often stored as H:i:s, $oldTime might be H:i
+                    $schedule = $groupClass->schedules()
+                        ->where('day_of_week', $oldDayOfWeek)
+                        ->where(function($q) use ($oldTime) {
+                            $q->where('start_time', $oldTime)
+                              ->orWhere('start_time', $oldTime . ':00');
+                        })->first();
+
+                    if ($schedule) {
+                        $schedule->update([
+                            'day_of_week' => $newDayOfWeek,
+                            'start_time' => $newTime,
+                        ]);
+                    }
+                }
+
+                DB::commit();
+                return response()->json(['success' => true]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            }
+        }
+
+        // Default single update
+        $appointment->update([
+            'appointment_date' => $validated['appointment_date'],
+            'start_time' => $validated['start_time'],
+        ]);
 
         return response()->json(['success' => true]);
     }

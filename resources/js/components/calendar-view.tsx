@@ -9,7 +9,7 @@ import { useRef, useEffect } from 'react';
 interface CalendarViewProps {
     onEventClick?: (eventId: string) => void;
     onDateSelect?: (startDate: string, startTime: string, durationMinutes?: number) => void;
-    onEventDrop?: (eventId: string, newDate: string, newTime: string) => void;
+    onEventDrop?: (eventId: string, newDate: string, newTime: string, isGroup?: boolean) => void;
 }
 
 export default function CalendarView({ onEventClick, onDateSelect, onEventDrop }: CalendarViewProps) {
@@ -204,7 +204,8 @@ export default function CalendarView({ onEventClick, onDateSelect, onEventDrop }
                     if (onEventDrop) {
                         const newDate = info.event.startStr.split('T')[0];
                         const newTime = info.event.startStr.split('T')[1]?.substring(0, 5) || '08:00';
-                        onEventDrop(info.event.id, newDate, newTime);
+                        const isGroup = info.event.extendedProps.type === 'group';
+                        onEventDrop(info.event.id, newDate, newTime, isGroup);
                     }
                 }}
                 selectMirror={true}

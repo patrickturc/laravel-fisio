@@ -146,7 +146,7 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = 
                     </div>
 
                     <div className="space-y-4 pt-4 border-t border-border">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between mb-2">
                                 <Label className="text-base font-semibold flex items-center gap-2">
                                     <CalendarClock className="size-4" /> Horários Base
                                 </Label>
@@ -154,6 +154,12 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = 
                                     <Plus className="size-3" /> Adicionar
                                 </Button>
                             </div>
+                            
+                            {isEditMode && (
+                                <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-400 p-3 rounded-xl text-xs leading-relaxed mb-4">
+                                    <strong>Atenção:</strong> Alterar os horários aqui dita as regras apenas para <strong>novas aulas</strong> criadas ao clicar em "Gerar Aulas". Para mudar de vez o horário de várias aulas que <strong>já estão na agenda</strong>, vá na Agenda, arraste uma aula e escolha "Esta e as Próximas".
+                                </div>
+                            )}
                             
                             {data.schedules.map((schedule: any, index: number) => (
                                 <div key={index} className="p-4 rounded-xl bg-muted/50 border border-border/50 space-y-4 relative group">
