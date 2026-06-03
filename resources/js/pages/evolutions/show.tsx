@@ -26,6 +26,7 @@ interface Evolution {
     resposta_tratamento: string | null;
     conduta_planejada: string | null;
     orientacoes_domiciliares: string | null;
+    observacoes: string | null;
     patient: { id: string; name: string; type: string };
     professional?: { id: string; name: string } | null;
 }
@@ -82,32 +83,40 @@ export default function EvolutionShow({ evolution, protocols = [] }: { evolution
                     </div>
                 </div>
 
-                <Section title="Subjetivo" color="text-primary">
-                    <Field label="Queixa Principal" value={evolution.queixa_principal} />
-                    <Field label="Relato do Paciente" value={evolution.relato_paciente} />
-                    {evolution.dor_eva != null && <Field label="EVA da Dor" value={`${evolution.dor_eva}/10`} />}
-                    <Field label="Localização" value={evolution.localizacao_dor} />
-                    <Field label="Tipo de Dor" value={evolution.tipo_dor} />
-                </Section>
+                {evolution.observacoes ? (
+                    <Section title="Observações da Aula" color="text-indigo-600">
+                        <Field label="Anotações" value={evolution.observacoes} />
+                    </Section>
+                ) : (
+                    <>
+                        <Section title="Subjetivo" color="text-primary">
+                            <Field label="Queixa Principal" value={evolution.queixa_principal} />
+                            <Field label="Relato do Paciente" value={evolution.relato_paciente} />
+                            {evolution.dor_eva != null && <Field label="EVA da Dor" value={`${evolution.dor_eva}/10`} />}
+                            <Field label="Localização" value={evolution.localizacao_dor} />
+                            <Field label="Tipo de Dor" value={evolution.tipo_dor} />
+                        </Section>
 
-                <Section title="Objetivo" color="text-emerald-600">
-                    <div className="flex flex-wrap gap-4">
-                        {evolution.pressao_arterial && <div className="px-4 py-2 rounded-xl bg-muted/30 border border-border/20"><p className="text-xs text-muted-foreground">PA</p><p className="font-semibold text-sm">{evolution.pressao_arterial}</p></div>}
-                        {evolution.frequencia_cardiaca && <div className="px-4 py-2 rounded-xl bg-muted/30 border border-border/20"><p className="text-xs text-muted-foreground">FC</p><p className="font-semibold text-sm">{evolution.frequencia_cardiaca}</p></div>}
-                        {evolution.saturacao && <div className="px-4 py-2 rounded-xl bg-muted/30 border border-border/20"><p className="text-xs text-muted-foreground">SpO2</p><p className="font-semibold text-sm">{evolution.saturacao}</p></div>}
-                    </div>
-                    <Field label="Condutas Realizadas" value={evolution.condutas_realizadas} />
-                </Section>
+                        <Section title="Objetivo" color="text-emerald-600">
+                            <div className="flex flex-wrap gap-4">
+                                {evolution.pressao_arterial && <div className="px-4 py-2 rounded-xl bg-muted/30 border border-border/20"><p className="text-xs text-muted-foreground">PA</p><p className="font-semibold text-sm">{evolution.pressao_arterial}</p></div>}
+                                {evolution.frequencia_cardiaca && <div className="px-4 py-2 rounded-xl bg-muted/30 border border-border/20"><p className="text-xs text-muted-foreground">FC</p><p className="font-semibold text-sm">{evolution.frequencia_cardiaca}</p></div>}
+                                {evolution.saturacao && <div className="px-4 py-2 rounded-xl bg-muted/30 border border-border/20"><p className="text-xs text-muted-foreground">SpO2</p><p className="font-semibold text-sm">{evolution.saturacao}</p></div>}
+                            </div>
+                            <Field label="Condutas Realizadas" value={evolution.condutas_realizadas} />
+                        </Section>
 
-                <Section title="Avaliação" color="text-amber-600">
-                    <Field label="Análise Profissional" value={evolution.analise_profissional} />
-                    <Field label="Resposta ao Tratamento" value={evolution.resposta_tratamento} />
-                </Section>
+                        <Section title="Avaliação" color="text-amber-600">
+                            <Field label="Análise Profissional" value={evolution.analise_profissional} />
+                            <Field label="Resposta ao Tratamento" value={evolution.resposta_tratamento} />
+                        </Section>
 
-                <Section title="Plano" color="text-indigo-600">
-                    <Field label="Conduta Planejada" value={evolution.conduta_planejada} />
-                    <Field label="Orientações Domiciliares" value={evolution.orientacoes_domiciliares} />
-                </Section>
+                        <Section title="Plano" color="text-indigo-600">
+                            <Field label="Conduta Planejada" value={evolution.conduta_planejada} />
+                            <Field label="Orientações Domiciliares" value={evolution.orientacoes_domiciliares} />
+                        </Section>
+                    </>
+                )}
             </div>
             {modal}
             <EvolutionFormSheet

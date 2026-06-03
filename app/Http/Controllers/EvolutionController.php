@@ -152,17 +152,40 @@ class EvolutionController extends Controller
             $validated['tipo_atendimento'] = 'sessao';
         }
 
+        $linkedAuto = false;
+        if (empty($validated['agendamento_id'])) {
+            $appointment = \App\Models\Appointment::whereHas('patients', function($q) use ($validated) {
+                $q->where('patients.id', $validated['paciente_id']);
+            })
+            ->where('appointment_date', $validated['data_atendimento'])
+            ->where('status', '!=', 'cancelled')
+            ->whereDoesntHave('evolutions', function($q) use ($validated) {
+                $q->where('paciente_id', $validated['paciente_id']);
+            })
+            ->first();
+
+            if ($appointment) {
+                $validated['agendamento_id'] = $appointment->id;
+                $linkedAuto = true;
+            }
+        }
+
         $validated['profissional_id'] = auth()->id();
         $evolution = Evolution::create($validated);
 
         // Mark linked appointment as completed
         if ($evolution->agendamento_id) {
-            Appointment::where('id', $evolution->agendamento_id)
-                ->where('status', 'scheduled')
+            \App\Models\Appointment::where('id', $evolution->agendamento_id)
                 ->update(['status' => 'completed']);
+            // Also update the patient status in the pivot
+            $evolution->appointment?->patients()->updateExistingPivot($evolution->paciente_id, ['status' => 'attended']);
         }
 
-        return back()->with('success', 'Evolução registrada com sucesso!');
+        $msg = $linkedAuto 
+            ? 'Evolução registrada e vinculada automaticamente à aula pendente do dia!' 
+            : 'Evolução registrada com sucesso!';
+
+        return redirect()->back()->with('success', $msg);
     }
 
     public function show(Evolution $evolution)
