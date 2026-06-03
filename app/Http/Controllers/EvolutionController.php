@@ -29,8 +29,61 @@ class EvolutionController extends Controller
 
         $evolutions = $query->paginate(15)->withQueryString();
 
+        // Calculate pending evolutions (past appointments without an evolution)
+        $now = now();
+        $today = $now->toDateString();
+        
+        $recentAppointments = Appointment::with(['patients' => function($q) {
+                $q->wherePivotIn('status', ['scheduled', 'attended']);
+            }, 'groupClass'])
+            ->where('appointment_date', '>=', $now->copy()->subDays(14)->toDateString())
+            ->where('appointment_date', '<=', $today)
+            ->get();
+
+        $pendingEvolutions = [];
+
+        foreach ($recentAppointments as $appointment) {
+            // Only consider past appointments based on start_time + duration
+            $endTimeStr = $appointment->appointment_date->format('Y-m-d') . ' ' . $appointment->start_time;
+            try {
+                $endTime = \Carbon\Carbon::parse($endTimeStr)->addMinutes($appointment->duration_minutes);
+                if (!$endTime->isPast()) {
+                    continue;
+                }
+            } catch (\Exception $e) {
+                continue;
+            }
+
+            foreach ($appointment->patients as $patient) {
+                // Check if evolution exists for this patient + appointment
+                $hasEvolution = Evolution::where('agendamento_id', $appointment->id)
+                    ->where('paciente_id', $patient->id)
+                    ->exists();
+
+                if (!$hasEvolution) {
+                    $pendingEvolutions[] = [
+                        'id' => $appointment->id . '_' . $patient->id,
+                        'appointment_id' => $appointment->id,
+                        'patient_id' => $patient->id,
+                        'patient_name' => $patient->name,
+                        'appointment_date' => $appointment->appointment_date->format('Y-m-d'),
+                        'start_time' => \Carbon\Carbon::parse($appointment->start_time)->format('H:i'),
+                        'title' => $appointment->type === 'group' ? ($appointment->groupClass->name ?? $appointment->title ?? 'Turma de Pilates') : 'Pilates/Individual',
+                    ];
+                }
+            }
+        }
+
+        // Sort pending by date descending
+        usort($pendingEvolutions, function($a, $b) {
+            $dateA = $a['appointment_date'] . ' ' . $a['start_time'];
+            $dateB = $b['appointment_date'] . ' ' . $b['start_time'];
+            return strcmp($dateB, $dateA);
+        });
+
         return Inertia::render('evolutions/index', [
             'evolutions' => $evolutions,
+            'pendingEvolutions' => $pendingEvolutions,
             'filters' => $request->only(['search', 'tipo']),
         ]);
     }
@@ -53,32 +106,46 @@ class EvolutionController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $isSimple = $request->input('evolution_type') === 'simple';
+
+        $rules = [
             'paciente_id' => 'required|uuid|exists:patients,id',
             'agendamento_id' => 'nullable|uuid|exists:appointments,id',
-            'clinical_protocol_id' => 'nullable|uuid|exists:clinical_protocols,id',
             'data_atendimento' => 'required|date',
-            'tipo_atendimento' => 'required|in:avaliacao,reavaliacao,sessao',
-            'queixa_principal' => 'nullable|string',
-            'relato_paciente' => 'nullable|string',
-            'dor_eva' => 'nullable|integer|min:0|max:10',
-            'localizacao_dor' => 'nullable|string',
-            'tipo_dor' => 'nullable|string',
-            'pressao_arterial' => 'nullable|string',
-            'frequencia_cardiaca' => 'nullable|string',
-            'saturacao' => 'nullable|string',
-            'amplitude_movimento' => 'nullable|string',
-            'forca_muscular' => 'nullable|string',
-            'avaliacao_funcional' => 'nullable|string',
-            'avaliacao_postural' => 'nullable|string',
-            'condutas_realizadas' => 'nullable|string',
-            'parametros_conduta' => 'nullable|string',
-            'resposta_tratamento' => 'nullable|string',
-            'evolucao_status' => 'nullable|string',
-            'analise_profissional' => 'nullable|string',
-            'conduta_planejada' => 'nullable|string',
-            'orientacoes_domiciliares' => 'nullable|string',
-        ]);
+        ];
+
+        if ($isSimple) {
+            $rules['observacoes'] = 'required|string';
+            $rules['tipo_atendimento'] = 'nullable|string';
+        } else {
+            $rules['clinical_protocol_id'] = 'nullable|uuid|exists:clinical_protocols,id';
+            $rules['tipo_atendimento'] = 'required|in:avaliacao,reavaliacao,sessao';
+            $rules['queixa_principal'] = 'nullable|string';
+            $rules['relato_paciente'] = 'nullable|string';
+            $rules['dor_eva'] = 'nullable|integer|min:0|max:10';
+            $rules['localizacao_dor'] = 'nullable|string';
+            $rules['tipo_dor'] = 'nullable|string';
+            $rules['pressao_arterial'] = 'nullable|string';
+            $rules['frequencia_cardiaca'] = 'nullable|string';
+            $rules['saturacao'] = 'nullable|string';
+            $rules['amplitude_movimento'] = 'nullable|string';
+            $rules['forca_muscular'] = 'nullable|string';
+            $rules['avaliacao_funcional'] = 'nullable|string';
+            $rules['avaliacao_postural'] = 'nullable|string';
+            $rules['condutas_realizadas'] = 'nullable|string';
+            $rules['parametros_conduta'] = 'nullable|string';
+            $rules['resposta_tratamento'] = 'nullable|string';
+            $rules['evolucao_status'] = 'nullable|string';
+            $rules['analise_profissional'] = 'nullable|string';
+            $rules['conduta_planejada'] = 'nullable|string';
+            $rules['orientacoes_domiciliares'] = 'nullable|string';
+        }
+
+        $validated = $request->validate($rules);
+        
+        if ($isSimple && empty($validated['tipo_atendimento'])) {
+            $validated['tipo_atendimento'] = 'sessao';
+        }
 
         $validated['profissional_id'] = auth()->id();
         $evolution = Evolution::create($validated);

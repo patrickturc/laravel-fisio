@@ -41,7 +41,8 @@ class Evolution extends Model
         'conduta_planejada',
         'orientacoes_domiciliares',
         'proxima_sessao',
-        'assinatura_digital'
+        'assinatura_digital',
+        'observacoes'
     ];
     
     protected function casts(): array

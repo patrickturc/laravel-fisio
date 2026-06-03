@@ -3,8 +3,9 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Activity, Search, FileText, User, Calendar as CalendarIcon, ArrowUpRight } from 'lucide-react';
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Pagination } from '@/components/pagination';
+import { AlertCircle, CheckCircle2, UserMinus } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Evoluções', href: '/evolutions' },
@@ -18,7 +19,17 @@ interface PaginatedEvolutions {
     total: number;
 }
 
-export default function EvolutionsIndex({ evolutions, filters = {} }: { evolutions: PaginatedEvolutions; filters?: any }) {
+interface PendingEvolution {
+    id: string;
+    appointment_id: string;
+    patient_id: string;
+    patient_name: string;
+    appointment_date: string;
+    start_time: string;
+    title: string;
+}
+
+export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], filters = {} }: { evolutions: PaginatedEvolutions; pendingEvolutions?: PendingEvolution[]; filters?: any }) {
     const [search, setSearch] = useState(filters.search || '');
     const [tipoFilter, setTipoFilter] = useState(filters.tipo || '');
 
@@ -44,6 +55,46 @@ export default function EvolutionsIndex({ evolutions, filters = {} }: { evolutio
     }
 
     const hasFilters = filters.search || filters.tipo;
+
+    const [observations, setObservations] = useState<Record<string, string>>({});
+    const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
+
+    function handleSaveSimple(pending: PendingEvolution) {
+        if (!observations[pending.id]?.trim()) return;
+        setIsSubmitting(pending.id);
+        
+        router.post('/evolutions', {
+            evolution_type: 'simple',
+            paciente_id: pending.patient_id,
+            agendamento_id: pending.appointment_id,
+            data_atendimento: pending.appointment_date,
+            observacoes: observations[pending.id],
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setIsSubmitting(null);
+                setObservations(prev => {
+                    const next = { ...prev };
+                    delete next[pending.id];
+                    return next;
+                });
+            },
+            onError: () => setIsSubmitting(null)
+        });
+    }
+
+    function handleMarkMissed(pending: PendingEvolution) {
+        if (confirm(`Marcar ${pending.patient_name} como faltante nesta aula?`)) {
+            setIsSubmitting(pending.id + '_missed');
+            router.post(`/appointments/${pending.appointment_id}/patients/${pending.patient_id}/status`, {
+                status: 'missed'
+            }, {
+                preserveScroll: true,
+                onSuccess: () => setIsSubmitting(null),
+                onError: () => setIsSubmitting(null)
+            });
+        }
+    }
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -95,6 +146,73 @@ export default function EvolutionsIndex({ evolutions, filters = {} }: { evolutio
                     </div>
                 </div>
 
+                {/* Pending Evolutions Section */}
+                <AnimatePresence>
+                    {pendingEvolutions.length > 0 && !hasFilters && (
+                        <motion.div 
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mb-6 space-y-4"
+                        >
+                            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500 mb-2 px-1">
+                                <AlertCircle className="size-5" />
+                                <h2 className="text-lg font-semibold">Evoluções Pendentes</h2>
+                                <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 text-xs font-bold px-2 py-0.5 rounded-full ml-2">
+                                    {pendingEvolutions.length}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {pendingEvolutions.map(pending => (
+                                    <div key={pending.id} className="bg-amber-50/50 dark:bg-amber-950/10 border border-amber-200/50 dark:border-amber-900/50 rounded-2xl p-5 flex flex-col relative overflow-hidden shadow-sm">
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-bl-[100px] -z-10" />
+                                        
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div>
+                                                <h3 className="font-bold text-foreground text-base truncate pr-2" title={pending.patient_name}>
+                                                    {pending.patient_name}
+                                                </h3>
+                                                <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                                                    <span className="font-medium text-amber-700/80 dark:text-amber-400/80">{pending.title}</span>
+                                                    <span>&bull;</span>
+                                                    <span>{new Date(pending.appointment_date + 'T00:00:00').toLocaleDateString('pt-BR')} às {pending.start_time}</span>
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <textarea
+                                            placeholder="Observações da aula..."
+                                            value={observations[pending.id] || ''}
+                                            onChange={e => setObservations({ ...observations, [pending.id]: e.target.value })}
+                                            className="w-full h-24 p-3 border border-amber-200/50 dark:border-amber-800/50 rounded-xl bg-background/50 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all resize-none mb-3"
+                                        />
+
+                                        <div className="flex items-center gap-2 mt-auto">
+                                            <button 
+                                                onClick={() => handleSaveSimple(pending)}
+                                                disabled={isSubmitting === pending.id || !observations[pending.id]?.trim()}
+                                                className="flex-1 flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium h-9 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <CheckCircle2 className="size-4" />
+                                                Salvar
+                                            </button>
+                                            <button 
+                                                onClick={() => handleMarkMissed(pending)}
+                                                disabled={isSubmitting === pending.id + '_missed'}
+                                                className="flex items-center justify-center gap-1.5 bg-background border border-border hover:bg-muted text-muted-foreground text-sm font-medium h-9 px-3 rounded-lg transition-colors disabled:opacity-50"
+                                                title="Marcar como Falta"
+                                            >
+                                                <UserMinus className="size-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {/* List section with Glassmorphism */}
                 <div className="bg-card/60 backdrop-blur-xl border border-border/50 overflow-hidden rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
                     <div className="p-2">
@@ -134,8 +252,14 @@ export default function EvolutionsIndex({ evolutions, filters = {} }: { evolutio
                                             </h3>
 
                                             <p className="text-sm text-muted-foreground line-clamp-2 mt-2 break-words">
-                                                <strong>Subjetivo:</strong> {evo.queixa_principal || evo.relato_paciente || 'Sem relato subjetivo.'} <br/>
-                                                <strong>Objetivo:</strong> {evo.condutas_realizadas || 'Sem conduta detalhada.'}
+                                                {evo.observacoes ? (
+                                                    <span><strong>Obs:</strong> {evo.observacoes}</span>
+                                                ) : (
+                                                    <>
+                                                        <strong>Subjetivo:</strong> {evo.queixa_principal || evo.relato_paciente || 'Sem relato subjetivo.'} <br/>
+                                                        <strong>Objetivo:</strong> {evo.condutas_realizadas || 'Sem conduta detalhada.'}
+                                                    </>
+                                                )}
                                             </p>
                                         </div>
 
