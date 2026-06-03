@@ -38,7 +38,7 @@ interface Props {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
     patientId?: string;
-    patients?: Array<{ id: string; name: string }>;
+    patients?: Array<{ id: string; name: string; type?: string }>;
     protocols?: Array<{ id: string; name: string }>;
     evolution?: Evolution | null; // If provided, we're editing
     appointmentId?: string; // If provided, we're linking to an appointment
@@ -144,7 +144,21 @@ export default function EvolutionFormSheet({ isOpen, onOpenChange, patientId = '
                         {!patientId && patients.length > 0 && !isEdit && (
                             <div className="grid gap-2">
                                 <Label htmlFor="paciente_id">Paciente *</Label>
-                                <select id="paciente_id" value={data.paciente_id} onChange={e => setData('paciente_id', e.target.value)} className="flex h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" required>
+                                <select 
+                                    id="paciente_id" 
+                                    value={data.paciente_id} 
+                                    onChange={e => {
+                                        const val = e.target.value;
+                                        const selectedPatient = patients.find(p => p.id === val);
+                                        setData(prev => ({
+                                            ...prev,
+                                            paciente_id: val,
+                                            evolution_type: selectedPatient?.type === 'pilates' ? 'simple' : 'soap'
+                                        }));
+                                    }} 
+                                    className="flex h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" 
+                                    required
+                                >
                                     <option value="">Selecione o paciente</option>
                                     {patients.map(p => (
                                         <option key={p.id} value={p.id}>{p.name}</option>
