@@ -47,4 +47,9 @@ class Appointment extends Model
     {
         return $this->belongsTo(GroupClass::class);
     }
+
+    public function evolutions()
+    {
+        return $this->hasMany(Evolution::class, 'agendamento_id');
+    }
 }
