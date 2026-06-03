@@ -23,6 +23,7 @@ export default defineConfig({
         }),
         VitePWA({
             outDir: 'public',
+            base: '/',
             buildBase: '/build/',
             scope: '/',
             registerType: 'prompt',

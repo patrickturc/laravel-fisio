@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CalendarDays, Copy, RefreshCw, Unplug } from 'lucide-react';
 import { toast } from 'sonner';
+import { generate, revoke } from '@/routes/profile/calendar-token';
 
 export default function CalendarSync() {
     const { auth } = usePage().props as any;
@@ -25,7 +26,7 @@ export default function CalendarSync() {
 
     const handleGenerate = () => {
         setGenerating(true);
-        router.post(route('profile.calendar-token.generate'), {}, {
+        router.post(generate().url, {}, {
             preserveScroll: true,
             onSuccess: () => {
                 toast.success('Link gerado com sucesso!');
@@ -38,7 +39,7 @@ export default function CalendarSync() {
         if (!confirm('Tem certeza? Isso fará com que o link antigo pare de funcionar nas suas agendas.')) return;
         
         setRevoking(true);
-        router.delete(route('profile.calendar-token.revoke'), {
+        router.delete(revoke().url, {
             preserveScroll: true,
             onSuccess: () => {
                 toast.success('Sincronização desativada.');
