@@ -3,7 +3,15 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-
+        <script>
+            // Previne zoom automático no iPhone ao focar em inputs
+            if (window.CSS && window.CSS.supports && window.CSS.supports('(-webkit-touch-callout: none)')) {
+                var viewport = document.querySelector('meta[name="viewport"]');
+                if (viewport) {
+                    viewport.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1');
+                }
+            }
+        </script>
         {{-- Inline script to set light mode by default --}}
         <script>
             (function() {
