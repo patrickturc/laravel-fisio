@@ -139,7 +139,7 @@ export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], pa
                                 Limpar
                             </button>
                         )}
-                        )}
+
                         <button
                             onClick={() => setIsSheetOpen(true)}
                             className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
