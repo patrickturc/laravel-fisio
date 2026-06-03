@@ -10,6 +10,7 @@ import EvolutionFormSheet from '@/components/EvolutionFormSheet';
 import { AppointmentFormSheet } from '../appointments/appointment-form-sheet';
 import { MembershipFormSheet } from '../memberships/membership-form-sheet';
 import { PatientFormSheet } from './PatientFormSheet';
+import { InlineEdit } from '@/components/inline-edit';
 
 interface Patient {
     id: string;
@@ -141,13 +142,32 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                                 {(patient.nickname || patient.name).charAt(0).toUpperCase()}
                             </div>
                             <div>
-                                <h1 className="text-2xl font-bold tracking-tight">{patient.name}</h1>
+                                <InlineEdit 
+                                    value={patient.name}
+                                    onSave={(val) => router.put(`/patients/${patient.id}`, { name: val }, { preserveScroll: true })}
+                                    className="text-2xl font-bold tracking-tight bg-transparent"
+                                />
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    {patient.nickname && (
-                                        <span className="text-sm text-muted-foreground">"{patient.nickname}"</span>
-                                    )}
-                                    <span className={`inline-block px-3 py-0.5 rounded-full text-xs font-semibold ${patient.type === 'pilates' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
-                                        {patient.type === 'pilates' ? 'Pilates' : 'Fisioterapia'}
+                                    <span className="text-sm text-muted-foreground">
+                                        <InlineEdit 
+                                            value={patient.nickname || ''}
+                                            placeholder="Adicionar apelido..."
+                                            onSave={(val) => router.put(`/patients/${patient.id}`, { nickname: val }, { preserveScroll: true })}
+                                            className="bg-transparent"
+                                            renderDisplay={(val) => <span>{val ? `"${val}"` : 'Adicionar apelido'}</span>}
+                                        />
+                                    </span>
+                                    <span className={`inline-flex px-3 py-0.5 rounded-full text-xs font-semibold ${patient.type === 'pilates' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
+                                        <InlineEdit 
+                                            value={patient.type}
+                                            type="select"
+                                            options={[
+                                                { value: 'pilates', label: 'Pilates' },
+                                                { value: 'physiotherapy', label: 'Fisioterapia' }
+                                            ]}
+                                            onSave={(val) => router.put(`/patients/${patient.id}`, { type: val }, { preserveScroll: true })}
+                                            className="font-semibold text-xs bg-transparent"
+                                        />
                                     </span>
                                     {activeMembership ? (
                                         <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">

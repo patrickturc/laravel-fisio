@@ -99,13 +99,13 @@ class PatientController extends Controller
     public function update(Request $request, Patient $patient)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'sometimes|required|string|max:255',
             'nickname' => 'nullable|string|max:100',
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
             'birthdate' => 'nullable|date',
             'gender' => 'nullable|in:male,female,other',
-            'type' => 'required|in:pilates,physiotherapy',
+            'type' => 'sometimes|required|in:pilates,physiotherapy',
             'cpf' => 'nullable|string|max:14',
             'rg' => 'nullable|string|max:20',
             'profession' => 'nullable|string|max:100',

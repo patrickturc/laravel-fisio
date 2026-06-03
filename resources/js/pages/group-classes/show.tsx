@@ -9,6 +9,7 @@ import { useConfirmModal } from '@/components/confirm-modal';
 import { Pagination } from '@/components/pagination';
 import { useForm } from '@inertiajs/react';
 import { GroupClassFormSheet } from './group-class-form-sheet';
+import { InlineEdit } from '@/components/inline-edit';
 
 export default function GroupClassShow({ groupClass, futureAppointments = [], patients, users = [] }: { groupClass: any, futureAppointments?: any[], patients: any[], users?: any[] }) {
     const breadcrumbs: BreadcrumbItem[] = [
@@ -67,17 +68,36 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], pa
                                 <Users className="size-8" />
                             </div>
                             <div>
-                                <h1 className="text-2xl font-bold tracking-tight">{groupClass.name}</h1>
+                                <InlineEdit 
+                                    value={groupClass.name}
+                                    onSave={(val) => router.put(`/group-classes/${groupClass.id}`, { name: val }, { preserveScroll: true })}
+                                    className="text-2xl font-bold tracking-tight bg-transparent"
+                                />
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                                         groupClass.status === 'active' 
                                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' 
                                             : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                                     }`}>
-                                        {groupClass.status === 'active' ? 'Ativa' : 'Inativa'}
+                                        <InlineEdit 
+                                            value={groupClass.status}
+                                            type="select"
+                                            options={[
+                                                { value: 'active', label: 'Ativa' },
+                                                { value: 'inactive', label: 'Inativa' }
+                                            ]}
+                                            onSave={(val) => router.put(`/group-classes/${groupClass.id}`, { status: val }, { preserveScroll: true })}
+                                            className="font-semibold text-xs"
+                                        />
                                     </span>
                                     <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                        {groupClass.patients?.length || 0} de {groupClass.max_participants} alunos
+                                        <InlineEdit 
+                                            value={String(groupClass.max_participants)}
+                                            type="number"
+                                            onSave={(val) => router.put(`/group-classes/${groupClass.id}`, { max_participants: Number(val) }, { preserveScroll: true })}
+                                            className="w-16 text-xs text-center"
+                                            renderDisplay={(val) => <span>{groupClass.patients?.length || 0} de {val} alunos</span>}
+                                        />
                                     </span>
                                 </div>
                             </div>

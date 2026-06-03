@@ -88,38 +88,41 @@ class GroupClassController extends Controller
     public function update(Request $request, GroupClass $groupClass)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'max_participants' => 'required|integer|min:1',
-            'status' => 'required|in:active,inactive',
-            'patient_ids' => 'nullable|array',
+            'name' => 'sometimes|required|string|max:255',
+            'max_participants' => 'sometimes|required|integer|min:1',
+            'status' => 'sometimes|required|in:active,inactive',
+            'patient_ids' => 'sometimes|nullable|array',
             'patient_ids.*' => 'exists:patients,id',
-            'schedules' => 'nullable|array',
+            'schedules' => 'sometimes|nullable|array',
             'schedules.*.day_of_week' => 'required|integer|min:0|max:6',
             'schedules.*.start_time' => 'required',
             'schedules.*.duration_minutes' => 'required|integer|min:10',
+            'color' => 'sometimes|nullable|string',
         ]);
 
         DB::beginTransaction();
         try {
             $groupClass->update([
                 'user_id' => $request->input('user_id', auth()->id()),
-                'name' => $validated['name'],
-                'color' => $request->input('color', $groupClass->color),
-                'max_participants' => $validated['max_participants'],
-                'status' => $validated['status'],
+                'name' => $request->has('name') ? $validated['name'] : $groupClass->name,
+                'color' => $request->has('color') ? $validated['color'] : $groupClass->color,
+                'max_participants' => $request->has('max_participants') ? $validated['max_participants'] : $groupClass->max_participants,
+                'status' => $request->has('status') ? $validated['status'] : $groupClass->status,
             ]);
 
-            if (isset($validated['schedules'])) {
+            if ($request->has('schedules') && isset($validated['schedules'])) {
                 $groupClass->schedules()->delete();
                 foreach ($validated['schedules'] as $schedule) {
                     $groupClass->schedules()->create($schedule);
                 }
             }
 
-            if (isset($validated['patient_ids'])) {
-                $groupClass->patients()->sync($validated['patient_ids']);
-            } else {
-                $groupClass->patients()->detach();
+            if ($request->has('patient_ids')) {
+                if (isset($validated['patient_ids'])) {
+                    $groupClass->patients()->sync($validated['patient_ids']);
+                } else {
+                    $groupClass->patients()->detach();
+                }
             }
 
             DB::commit();
