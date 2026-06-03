@@ -116,6 +116,14 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                                 className="w-full h-10 pl-9 border border-border rounded-xl bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
                             />
                         </div>
+                        <Link
+                            href="/settings/profile"
+                            className="flex items-center gap-2 h-10 px-3 bg-muted/50 border border-border/50 text-muted-foreground font-medium rounded-xl hover:bg-muted hover:text-foreground transition-colors shadow-sm"
+                            title="Sincronizar Agenda Externa"
+                        >
+                            <CalendarDays className="size-4" />
+                            <span className="hidden sm:inline">Sincronizar</span>
+                        </Link>
                         <button
                             onClick={() => {
                                 setEditingAppointment(null);

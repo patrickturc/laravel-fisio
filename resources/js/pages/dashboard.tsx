@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-import { Users, Calendar, FileText, Clock, Plus, ChevronRight, ChevronLeft, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, CreditCard, BarChart3 } from 'lucide-react';
+import { Users, Calendar, FileText, Clock, Plus, ChevronRight, ChevronLeft, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, CreditCard, BarChart3, CalendarDays } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -242,6 +242,9 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
                                 >
                                     <ChevronRight className="size-4" />
                                 </button>
+                                <Link href="/settings/profile" className="p-2 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground" title="Sincronizar Agenda Externa">
+                                    <CalendarDays className="size-4" />
+                                </Link>
                             </div>
                             <Link href="/appointments/create" className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
                                 <Plus className="size-4" /> Agendar
