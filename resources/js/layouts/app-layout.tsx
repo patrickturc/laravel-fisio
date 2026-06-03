@@ -1,8 +1,18 @@
+import PwaBadge from '@/components/pwa-badge';
 import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout';
-import type { AppLayoutProps } from '@/types';
+import type { BreadcrumbItem } from '@/types';
+import { type ReactNode } from 'react';
 
-export default ({ children, breadcrumbs, ...props }: AppLayoutProps) => (
-    <AppLayoutTemplate breadcrumbs={breadcrumbs} {...props}>
-        {children}
-    </AppLayoutTemplate>
-);
+interface AppLayoutProps {
+    children: ReactNode;
+    breadcrumbs?: BreadcrumbItem[];
+}
+
+export default function AppLayout({ children, breadcrumbs, ...props }: AppLayoutProps) {
+    return (
+        <AppLayoutTemplate breadcrumbs={breadcrumbs} {...props}>
+            {children}
+            <PwaBadge />
+        </AppLayoutTemplate>
+    );
+}
