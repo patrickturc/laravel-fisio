@@ -261,16 +261,16 @@ export default function CalendarView({ onEventClick, onDateSelect, onEventDrop }
                 eventContent={(eventInfo) => {
                     const isGroup = eventInfo.event.extendedProps.type === 'group';
                     return (
-                        <div className="p-1 w-full h-full overflow-hidden flex flex-col gap-0.5">
-                            <div className="font-semibold text-xs flex items-center justify-between">
-                                <span>{eventInfo.timeText}</span>
+                        <div className="p-1 w-full h-full overflow-hidden flex flex-col gap-0.5 leading-tight">
+                            <div className="flex items-start justify-between gap-1">
+                                <span className="font-semibold text-xs truncate" title={eventInfo.event.title}>{eventInfo.event.title}</span>
                                 {isGroup && (
-                                    <span className="text-[9px] bg-white/20 px-1 rounded">
+                                    <span className="text-[9px] font-medium bg-white/20 px-1 rounded shrink-0 mt-0.5">
                                         {eventInfo.event.extendedProps.patient_count || 0}/{eventInfo.event.extendedProps.max_participants || 1}
                                     </span>
                                 )}
                             </div>
-                            <div className="truncate text-xs font-medium">{eventInfo.event.title}</div>
+                            <div className="text-[10px] opacity-80 truncate">{eventInfo.timeText}</div>
                         </div>
                     );
                 }}
