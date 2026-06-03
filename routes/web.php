@@ -10,6 +10,8 @@ Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
 
+Route::get('/feed/calendar/{token}.ics', [\App\Http\Controllers\CalendarFeedController::class, 'feed'])->name('calendar.feed');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
     Route::resource('patients', App\Http\Controllers\PatientController::class);

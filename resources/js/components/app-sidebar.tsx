@@ -1,9 +1,14 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, Users, CalendarRange, Activity, BarChart3, ClipboardList, DollarSign, CreditCard, Settings, ShieldCheck, Tag, RefreshCw } from 'lucide-react';
+import { BookOpen, FolderGit2, LayoutGrid, Users, CalendarRange, Activity, BarChart3, ClipboardList, DollarSign, CreditCard, Settings, ShieldCheck, Tag, RefreshCw, ChevronRight } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
     Sidebar,
     SidebarContent,
@@ -14,6 +19,10 @@ import {
     SidebarMenuItem,
     SidebarGroup,
     SidebarGroupLabel,
+    SidebarMenuAction,
+    SidebarMenuSub,
+    SidebarMenuSubButton,
+    SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useCurrentUrl } from '@/hooks/use-current-url';
@@ -68,23 +77,38 @@ export function AppSidebar() {
                 <NavMain items={mainNavItems} />
 
                 {settingsNavItems.length > 0 && (
-                    <SidebarGroup className="px-2 py-0 mt-4">
-                        <SidebarGroupLabel>Configurações</SidebarGroupLabel>
+                    <SidebarGroup className="mt-auto px-2 py-0">
                         <SidebarMenu>
-                            {settingsNavItems.map((item) => (
-                                <SidebarMenuItem key={item.title}>
-                                    <SidebarMenuButton
-                                        asChild
-                                        isActive={isCurrentUrl(item.href)}
-                                        tooltip={{ children: item.title }}
-                                    >
-                                        <Link href={item.href} prefetch>
-                                            <item.icon />
-                                            <span>{item.title}</span>
-                                        </Link>
+                            <Collapsible
+                                asChild
+                                defaultOpen={settingsNavItems.some(item => isCurrentUrl(item.href))}
+                            >
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton tooltip="Configurações">
+                                        <Settings />
+                                        <span>Configurações</span>
                                     </SidebarMenuButton>
+                                    <CollapsibleTrigger asChild>
+                                        <SidebarMenuAction className="data-[state=open]:rotate-90 transition-transform duration-200">
+                                            <ChevronRight />
+                                            <span className="sr-only">Toggle</span>
+                                        </SidebarMenuAction>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <SidebarMenuSub>
+                                            {settingsNavItems.map((item) => (
+                                                <SidebarMenuSubItem key={item.title}>
+                                                    <SidebarMenuSubButton asChild isActive={isCurrentUrl(item.href)}>
+                                                        <Link href={item.href} prefetch>
+                                                            <span>{item.title}</span>
+                                                        </Link>
+                                                    </SidebarMenuSubButton>
+                                                </SidebarMenuSubItem>
+                                            ))}
+                                        </SidebarMenuSub>
+                                    </CollapsibleContent>
                                 </SidebarMenuItem>
-                            ))}
+                            </Collapsible>
                         </SidebarMenu>
                     </SidebarGroup>
                 )}

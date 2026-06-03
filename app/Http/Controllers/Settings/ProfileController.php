@@ -57,4 +57,28 @@ class ProfileController extends Controller
 
         return redirect('/');
     }
+
+    /**
+     * Generate a new calendar token.
+     */
+    public function generateCalendarToken(Request $request): RedirectResponse
+    {
+        $request->user()->update([
+            'calendar_token' => \Illuminate\Support\Str::random(60),
+        ]);
+
+        return back()->with('status', 'calendar-token-generated');
+    }
+
+    /**
+     * Revoke the calendar token.
+     */
+    public function revokeCalendarToken(Request $request): RedirectResponse
+    {
+        $request->user()->update([
+            'calendar_token' => null,
+        ]);
+
+        return back()->with('status', 'calendar-token-revoked');
+    }
 }
