@@ -44,7 +44,7 @@
         <meta name="apple-mobile-web-app-title" content="Phisio">
         <link rel="icon" href="/icons/favicon-196.png" sizes="196x196" type="image/png">
         <link rel="apple-touch-icon" href="/icons/apple-icon-180.png">
-        <link rel="manifest" href="/manifest.webmanifest">
+        <link rel="manifest" href="/build/manifest.webmanifest">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />

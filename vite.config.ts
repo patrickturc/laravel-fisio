@@ -30,6 +30,7 @@ export default defineConfig({
                 name: 'Phisio',
                 short_name: 'Phisio',
                 description: 'Acompanhe histórico e progresso clínico dos pacientes.',
+                start_url: '/',
                 theme_color: '#ffffff',
                 background_color: '#ffffff',
                 display: 'standalone',
