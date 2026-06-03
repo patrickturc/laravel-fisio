@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Pagination } from '@/components/pagination';
 import { AlertCircle, CheckCircle2, UserMinus } from 'lucide-react';
+import EvolutionFormSheet from '@/components/EvolutionFormSheet';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Evoluções', href: '/evolutions' },
@@ -29,7 +30,8 @@ interface PendingEvolution {
     title: string;
 }
 
-export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], filters = {} }: { evolutions: PaginatedEvolutions; pendingEvolutions?: PendingEvolution[]; filters?: any }) {
+
+export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], patients = [], protocols = [], filters = {} }: { evolutions: PaginatedEvolutions; pendingEvolutions?: PendingEvolution[]; patients?: any[]; protocols?: any[]; filters?: any }) {
     const [search, setSearch] = useState(filters.search || '');
     const [tipoFilter, setTipoFilter] = useState(filters.tipo || '');
 
@@ -58,6 +60,7 @@ export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], fi
 
     const [observations, setObservations] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
+    const [isSheetOpen, setIsSheetOpen] = useState(false);
 
     function handleSaveSimple(pending: PendingEvolution) {
         if (!observations[pending.id]?.trim()) return;
@@ -136,13 +139,14 @@ export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], fi
                                 Limpar
                             </button>
                         )}
-                        <Link
-                            href="/evolutions/create"
+                        )}
+                        <button
+                            onClick={() => setIsSheetOpen(true)}
                             className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
                         >
                             <Activity className="size-4" />
                             <span className="hidden sm:inline">Nova Evolução</span>
-                        </Link>
+                        </button>
                     </div>
                 </div>
 
@@ -293,6 +297,13 @@ export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], fi
                 </div>
 
             </div>
+
+            <EvolutionFormSheet
+                isOpen={isSheetOpen}
+                onOpenChange={setIsSheetOpen}
+                patients={patients}
+                protocols={protocols}
+            />
         </AppLayout>
     );
 }

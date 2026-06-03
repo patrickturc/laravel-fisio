@@ -81,9 +81,14 @@ class EvolutionController extends Controller
             return strcmp($dateB, $dateA);
         });
 
+        $patients = Patient::orderBy('name')->get(['id', 'name', 'type']);
+        $protocols = ClinicalProtocol::orderBy('name')->get(['id', 'name']);
+
         return Inertia::render('evolutions/index', [
             'evolutions' => $evolutions,
             'pendingEvolutions' => $pendingEvolutions,
+            'patients' => $patients,
+            'protocols' => $protocols,
             'filters' => $request->only(['search', 'tipo']),
         ]);
     }
