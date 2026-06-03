@@ -1,0 +1,8 @@
+# UI and Responsiveness Rules
+
+1. **Mobile-First Approach**: Always design and develop new UI components and screens with a mobile-first mindset.
+2. **Tailwind Responsiveness**: Use Tailwind CSS responsive modifiers (`sm:`, `md:`, `lg:`, `xl:`, `2xl:`) aggressively to ensure layouts adapt gracefully to all screen sizes.
+3. **Avoid Fixed Widths**: Prefer relative widths (`w-full`, `max-w-md`, etc.), Flexbox, and CSS Grid over fixed widths (`w-[500px]`) to prevent overflow issues on small devices.
+4. **Touch Targets**: Ensure buttons, links, and inputs have adequate touch targets (minimum `h-10` or `p-2`) for mobile users.
+5. **Horizontal Scrolling**: Prevent horizontal scrolling on mobile by using `overflow-x-hidden` on containers or ensuring content wraps properly (`flex-wrap`, `break-words`).
+6. **Testing**: Always consider how a table, form, or complex UI will look on a mobile screen before submitting the code. Use stacked layouts for forms and scrollable wrappers (`overflow-x-auto`) for data tables on small screens.
