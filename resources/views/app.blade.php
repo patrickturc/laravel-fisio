@@ -39,6 +39,9 @@
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
         <meta name="theme-color" content="#ffffff">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="Phisio">
         <link rel="icon" href="/icons/favicon-196.png" sizes="196x196" type="image/png">
         <link rel="apple-touch-icon" href="/icons/apple-icon-180.png">
         <link rel="manifest" href="/manifest.webmanifest">
