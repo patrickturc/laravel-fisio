@@ -160,6 +160,7 @@ export default function CalendarView({ onEventClick, onDateSelect, onEventDrop }
                     font-weight: 500;
                     box-shadow: none;
                     cursor: pointer;
+                    overflow: hidden;
                     transition: opacity 0.2s, filter 0.2s;
                 }
                 
@@ -260,7 +261,7 @@ export default function CalendarView({ onEventClick, onDateSelect, onEventDrop }
                 eventContent={(eventInfo) => {
                     const isGroup = eventInfo.event.extendedProps.type === 'group';
                     return (
-                        <div className="p-1 w-full overflow-hidden flex flex-col gap-0.5">
+                        <div className="p-1 w-full h-full overflow-hidden flex flex-col gap-0.5">
                             <div className="font-semibold text-xs flex items-center justify-between">
                                 <span>{eventInfo.timeText}</span>
                                 {isGroup && (
