@@ -16,17 +16,10 @@ class CalendarFeedController extends Controller
 
         $today = now()->startOfDay();
 
-        // Get regular appointments
-        $appointments = Appointment::with('patients')
+        // Get all appointments (regular and group classes)
+        $appointments = Appointment::with(['patients', 'groupClass'])
             ->where('user_id', $user->id)
             ->where('appointment_date', '>=', $today->toDateString())
-            ->where('status', '!=', 'cancelled')
-            ->get();
-
-        // Get group classes
-        $groupClasses = GroupClass::with('patients')
-            ->where('user_id', $user->id)
-            ->where('class_date', '>=', $today->toDateString())
             ->where('status', '!=', 'cancelled')
             ->get();
 
@@ -41,34 +34,32 @@ class CalendarFeedController extends Controller
         $nowStamp = gmdate('Ymd\THis\Z');
 
         foreach ($appointments as $app) {
-            $startTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $app->appointment_date . ' ' . $app->start_time, 'America/Sao_Paulo')->utc();
-            $endTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $app->appointment_date . ' ' . $app->end_time, 'America/Sao_Paulo')->utc();
+            // format time to include seconds for carbon parsing if not present
+            $startTimeStr = strlen($app->start_time) === 5 ? $app->start_time . ':00' : $app->start_time;
+            $endTimeStr = strlen($app->end_time ?? '') === 5 ? $app->end_time . ':00' : ($app->end_time ?? '00:00:00');
             
-            $patients = $app->patients->pluck('name')->implode(', ');
-            $summary = $patients ? "Sessão: {$patients}" : "Sessão Agendada";
-            
-            $uid = "appointment-{$app->id}@phisio";
-
-            $ics .= "BEGIN:VEVENT\r\n";
-            $ics .= "UID:{$uid}\r\n";
-            $ics .= "DTSTAMP:{$nowStamp}\r\n";
-            $ics .= "DTSTART:" . $startTime->format('Ymd\THis\Z') . "\r\n";
-            $ics .= "DTEND:" . $endTime->format('Ymd\THis\Z') . "\r\n";
-            $ics .= "SUMMARY:{$summary}\r\n";
-            $ics .= "STATUS:CONFIRMED\r\n";
-            $ics .= "END:VEVENT\r\n";
-        }
-
-        foreach ($groupClasses as $gc) {
-            $startTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $gc->class_date . ' ' . $gc->start_time, 'America/Sao_Paulo')->utc();
-            $endTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $gc->class_date . ' ' . $gc->end_time, 'America/Sao_Paulo')->utc();
-            
-            $summary = "Turma: {$gc->name}";
-            if ($gc->patients->count() > 0) {
-                $summary .= " (" . $gc->patients->count() . " alunos)";
+            // if duration_minutes is used instead of end_time:
+            if (!$app->end_time && $app->duration_minutes) {
+                $startObj = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $app->appointment_date->format('Y-m-d') . ' ' . $startTimeStr, 'America/Sao_Paulo');
+                $endObj = $startObj->copy()->addMinutes($app->duration_minutes);
+                $startTime = $startObj->utc();
+                $endTime = $endObj->utc();
+            } else {
+                $startTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $app->appointment_date->format('Y-m-d') . ' ' . $startTimeStr, 'America/Sao_Paulo')->utc();
+                $endTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $app->appointment_date->format('Y-m-d') . ' ' . $endTimeStr, 'America/Sao_Paulo')->utc();
             }
             
-            $uid = "groupclass-{$gc->id}@phisio";
+            if ($app->type === 'group' && $app->groupClass) {
+                $summary = "Turma: {$app->groupClass->name}";
+                if ($app->patients->count() > 0) {
+                    $summary .= " (" . $app->patients->count() . " alunos)";
+                }
+            } else {
+                $patients = $app->patients->pluck('name')->implode(', ');
+                $summary = $patients ? "Sessão: {$patients}" : "Sessão Agendada";
+            }
+            
+            $uid = "appointment-{$app->id}@phisio";
 
             $ics .= "BEGIN:VEVENT\r\n";
             $ics .= "UID:{$uid}\r\n";
