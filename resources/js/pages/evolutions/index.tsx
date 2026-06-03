@@ -34,14 +34,17 @@ interface PendingEvolution {
 export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], patients = [], protocols = [], filters = {} }: { evolutions: PaginatedEvolutions; pendingEvolutions?: PendingEvolution[]; patients?: any[]; protocols?: any[]; filters?: any }) {
     const [search, setSearch] = useState(filters.search || '');
     const [tipoFilter, setTipoFilter] = useState(filters.tipo || '');
+    const [activeTab, setActiveTab] = useState(filters.tab || 'todas');
 
     function applyFilters(overrides?: any) {
         const params: any = {};
         const s = overrides?.search ?? search;
         const t = overrides?.tipo ?? tipoFilter;
+        const tab = overrides?.tab ?? activeTab;
 
         if (s) params.search = s;
         if (t) params.tipo = t;
+        if (tab && tab !== 'todas') params.tab = tab;
 
         router.get('/evolutions', params, { preserveState: true, replace: true });
     }
@@ -53,14 +56,22 @@ export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], pa
     function clearFilters() {
         setSearch('');
         setTipoFilter('');
+        setActiveTab('todas');
         router.get('/evolutions', {}, { preserveState: true, replace: true });
     }
 
-    const hasFilters = filters.search || filters.tipo;
+    const hasFilters = filters.search || filters.tipo || filters.tab;
 
     const [observations, setObservations] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+    const filteredPendingEvolutions = pendingEvolutions.filter(p => {
+        if (activeTab === 'todas') return true;
+        if (activeTab === 'pilates') return p.patient_type === 'pilates';
+        if (activeTab === 'fisio') return p.patient_type !== 'pilates';
+        return true;
+    });
 
     function handleSaveSimple(pending: PendingEvolution) {
         if (!observations[pending.id]?.trim()) return;
@@ -150,9 +161,37 @@ export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], pa
                     </div>
                 </div>
 
+                {/* Tabs */}
+                <div className="flex border-b border-border/50">
+                    <button
+                        onClick={() => { setActiveTab('todas'); applyFilters({ tab: 'todas' }); }}
+                        className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                            activeTab === 'todas' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                        }`}
+                    >
+                        Todas
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab('pilates'); applyFilters({ tab: 'pilates' }); }}
+                        className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                            activeTab === 'pilates' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                        }`}
+                    >
+                        Pilates
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab('fisio'); applyFilters({ tab: 'fisio' }); }}
+                        className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                            activeTab === 'fisio' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                        }`}
+                    >
+                        Fisioterapia
+                    </button>
+                </div>
+
                 {/* Pending Evolutions Section */}
                 <AnimatePresence>
-                    {pendingEvolutions.length > 0 && !hasFilters && (
+                    {filteredPendingEvolutions.length > 0 && !hasFilters && (
                         <motion.div 
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
@@ -163,12 +202,12 @@ export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], pa
                                 <AlertCircle className="size-5" />
                                 <h2 className="text-lg font-semibold">Evoluções Pendentes</h2>
                                 <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 text-xs font-bold px-2 py-0.5 rounded-full ml-2">
-                                    {pendingEvolutions.length}
+                                    {filteredPendingEvolutions.length}
                                 </span>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {pendingEvolutions.map(pending => (
+                                {filteredPendingEvolutions.map(pending => (
                                     <div key={pending.id} className="bg-amber-50/50 dark:bg-amber-950/10 border border-amber-200/50 dark:border-amber-900/50 rounded-2xl p-5 flex flex-col relative overflow-hidden shadow-sm">
                                         <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-bl-[100px] -z-10" />
                                         

@@ -27,6 +27,14 @@ class EvolutionController extends Controller
             $query->where('tipo_atendimento', $request->tipo);
         }
 
+        if ($request->filled('tab')) {
+            if ($request->tab === 'pilates') {
+                $query->whereNotNull('observacoes');
+            } elseif ($request->tab === 'fisio') {
+                $query->whereNull('observacoes');
+            }
+        }
+
         $evolutions = $query->paginate(15)->withQueryString();
 
         // Calculate pending evolutions (past appointments without an evolution)
@@ -66,6 +74,7 @@ class EvolutionController extends Controller
                         'appointment_id' => $appointment->id,
                         'patient_id' => $patient->id,
                         'patient_name' => $patient->name,
+                        'patient_type' => $patient->type,
                         'appointment_date' => $appointment->appointment_date->format('Y-m-d'),
                         'start_time' => \Carbon\Carbon::parse($appointment->start_time)->format('H:i'),
                         'title' => $appointment->type === 'group' ? ($appointment->groupClass->name ?? $appointment->title ?? 'Turma de Pilates') : 'Pilates/Individual',
@@ -89,7 +98,7 @@ class EvolutionController extends Controller
             'pendingEvolutions' => $pendingEvolutions,
             'patients' => $patients,
             'protocols' => $protocols,
-            'filters' => $request->only(['search', 'tipo']),
+            'filters' => $request->only(['search', 'tipo', 'tab']),
         ]);
     }
 
