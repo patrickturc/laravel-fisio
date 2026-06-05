@@ -33,24 +33,16 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                         return (
                             <Collapsible key={item.title} asChild defaultOpen={isActive}>
                                 <SidebarMenuItem>
-                                    <SidebarMenuButton
-                                        asChild
-                                        isActive={isActive}
-                                        tooltip={{ children: item.title }}
-                                    >
-                                        <Link href={item.href} prefetch>
+                                    <CollapsibleTrigger asChild>
+                                        <SidebarMenuButton
+                                            isActive={isActive}
+                                            tooltip={{ children: item.title }}
+                                            className="group"
+                                        >
                                             {item.icon && <item.icon />}
                                             <span>{item.title}</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                    
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuAction
-                                            className="data-[state=open]:rotate-90 transition-transform duration-200"
-                                        >
-                                            <ChevronRight />
-                                            <span className="sr-only">Toggle</span>
-                                        </SidebarMenuAction>
+                                            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]:rotate-90" />
+                                        </SidebarMenuButton>
                                     </CollapsibleTrigger>
                                     
                                     <CollapsibleContent>

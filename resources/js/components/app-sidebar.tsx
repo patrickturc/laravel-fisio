@@ -84,15 +84,12 @@ export function AppSidebar() {
                                 defaultOpen={settingsNavItems.some(item => isCurrentUrl(item.href))}
                             >
                                 <SidebarMenuItem>
-                                    <SidebarMenuButton tooltip="Configurações">
-                                        <Settings />
-                                        <span>Configurações</span>
-                                    </SidebarMenuButton>
                                     <CollapsibleTrigger asChild>
-                                        <SidebarMenuAction className="data-[state=open]:rotate-90 transition-transform duration-200">
-                                            <ChevronRight />
-                                            <span className="sr-only">Toggle</span>
-                                        </SidebarMenuAction>
+                                        <SidebarMenuButton tooltip="Configurações" className="group">
+                                            <Settings />
+                                            <span>Configurações</span>
+                                            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]:rotate-90" />
+                                        </SidebarMenuButton>
                                     </CollapsibleTrigger>
                                     <CollapsibleContent>
                                         <SidebarMenuSub>

@@ -118,14 +118,15 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: index * 0.03 }}
                                             key={patient.id}
-                                            className="border-b border-border/30 hover:bg-muted/30 transition-colors group"
+                                            onClick={() => router.visit(`/patients/${patient.id}`)}
+                                            className="border-b border-border/30 hover:bg-muted/30 transition-colors group cursor-pointer"
                                         >
                                             <td className="px-6 py-4 font-medium text-foreground flex items-center gap-3">
                                                 <div className="size-10 rounded-xl bg-gradient-to-br from-primary/10 to-emerald-500/10 flex items-center justify-center text-primary font-bold shadow-inner">
                                                     {(patient.nickname || patient.name || '?').charAt(0).toUpperCase()}
                                                 </div>
                                                 <div>
-                                                    <Link href={`/patients/${patient.id}`} className="hover:text-primary transition-colors">
+                                                    <Link href={`/patients/${patient.id}`} onClick={(e) => e.stopPropagation()} className="hover:text-primary transition-colors">
                                                         {patient.name}
                                                     </Link>
                                                     {patient.nickname && (
@@ -160,7 +161,8 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
                                                         <FileText className="size-4" />
                                                     </Link>
                                                     <button
-                                                        onClick={() => {
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
                                                             setEditingPatient(patient);
                                                             setIsSheetOpen(true);
                                                         }}

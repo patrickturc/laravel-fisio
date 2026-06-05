@@ -99,7 +99,7 @@ class AppointmentController extends Controller
             return back()->withErrors(['patient_ids' => "Os seguintes pacientes não possuem um plano ativo de Pilates ou Aula Teste: $names."])->withInput();
         }
 
-        $userId = auth()->id();
+        $userId = $request->user_id ?? auth()->id();
         $isRecurring = $request->boolean('is_recurring');
         $endDate = $isRecurring ? \Carbon\Carbon::parse($validated['recurrence_end_date']) : \Carbon\Carbon::parse($validated['appointment_date']);
         $currentDate = \Carbon\Carbon::parse($validated['appointment_date']);
@@ -140,7 +140,7 @@ class AppointmentController extends Controller
                         'start_time' => $validated['start_time'],
                         'duration_minutes' => $validated['duration_minutes'],
                         'notes' => $validated['notes'],
-                        'user_id' => $request->input('user_id', auth()->id()),
+                        'user_id' => $userId,
                     ]);
 
                     foreach ($validated['patient_ids'] as $patientId) {
@@ -371,10 +371,12 @@ class AppointmentController extends Controller
             return back()->withErrors(['patient_ids' => "Os seguintes pacientes não possuem um plano ativo de Pilates ou Aula Teste: $names."])->withInput();
         }
 
+        $userId = $request->user_id ?? auth()->id();
+
         // Check for schedule conflict
         $conflict = Appointment::where('appointment_date', $validated['appointment_date'])
             ->where('id', '!=', $appointment->id)
-            ->where('user_id', auth()->id())
+            ->where('user_id', $userId)
             ->where(function ($query) use ($validated) {
                 $start = $validated['start_time'];
                 $end = date('H:i', strtotime($start) + ($validated['duration_minutes'] * 60));
@@ -399,7 +401,7 @@ class AppointmentController extends Controller
                 'start_time' => $validated['start_time'],
                 'duration_minutes' => $validated['duration_minutes'],
                 'notes' => $validated['notes'],
-                'user_id' => $request->input('user_id', auth()->id()),
+                'user_id' => $userId,
             ]);
 
             // Sync patients. Keep status of existing ones, set 'scheduled' for new ones.
