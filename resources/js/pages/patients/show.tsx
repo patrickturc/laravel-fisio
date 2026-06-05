@@ -67,7 +67,7 @@ interface TimelineItem {
     data: any;
 }
 
-type Tab = 'info' | 'memberships' | 'timeline';
+type Tab = 'info' | 'memberships' | 'evolutions' | 'appointments';
 
 export default function PatientShow({ patient, protocols = [], commercialPlans = [] }: { patient: Patient, protocols?: Array<{ id: string; name: string }>, commercialPlans?: any[] }) {
     const breadcrumbs: BreadcrumbItem[] = [
@@ -92,20 +92,8 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
         if (confirmed) router.delete(`/patients/${patient.id}`);
     }
 
-    const timeline: TimelineItem[] = [
-        ...patient.appointments.map(a => ({
-            id: `app-${a.id}`,
-            date: a.appointment_date,
-            type: 'appointment' as const,
-            data: a,
-        })),
-        ...patient.evolutions.map(e => ({
-            id: `evo-${e.id}`,
-            date: e.data_atendimento,
-            type: 'evolution' as const,
-            data: e,
-        })),
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const evolutionsList = [...patient.evolutions].sort((a, b) => new Date(b.data_atendimento).getTime() - new Date(a.data_atendimento).getTime());
+    const appointmentsList = [...patient.appointments].sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime());
 
     const statusLabel: Record<string, string> = { scheduled: 'Agendado', completed: 'Realizado', cancelled: 'Cancelado' };
     const statusColor: Record<string, string> = { scheduled: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' };
@@ -123,7 +111,8 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
     const tabs: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
         { key: 'info', label: 'Informações Pessoais', icon: <User className="size-4" /> },
         { key: 'memberships', label: 'Matrículas', icon: <Tag className="size-4" />, count: patient.memberships?.length },
-        { key: 'timeline', label: 'Prontuário', icon: <Clock className="size-4" />, count: timeline.length },
+        { key: 'evolutions', label: 'Prontuário', icon: <Activity className="size-4" />, count: evolutionsList.length },
+        { key: 'appointments', label: 'Agendamentos', icon: <Calendar className="size-4" />, count: appointmentsList.length },
     ];
 
     return (
@@ -353,75 +342,113 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                     </motion.div>
                 )}
 
-                {/* ── Tab: Prontuário (Timeline) ── */}
-                {activeTab === 'timeline' && (
+                {/* ── Tab: Prontuário (Evoluções) ── */}
+                {activeTab === 'evolutions' && (
                     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
                         <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm">
-                            <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
-                                <Clock className="size-5 text-primary" /> Prontuário Completo
-                                <span className="text-sm font-normal text-muted-foreground ml-2">({timeline.length} registros)</span>
-                            </h2>
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-lg font-bold flex items-center gap-2">
+                                    <Activity className="size-5 text-primary" /> Prontuário
+                                    <span className="text-sm font-normal text-muted-foreground ml-2">({evolutionsList.length} registros)</span>
+                                </h2>
+                                <button onClick={() => { setEditingEvolution(null); setIsEvolutionSheetOpen(true); }} className="flex items-center gap-2 h-9 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors text-sm shadow-sm">
+                                    <Plus className="size-4" /> Nova Evolução
+                                </button>
+                            </div>
 
-                            {timeline.length === 0 ? (
-                                <p className="text-sm text-muted-foreground py-8 text-center">Nenhum registro encontrado.</p>
+                            {evolutionsList.length === 0 ? (
+                                <div className="text-center py-12 bg-muted/30 rounded-xl border border-dashed border-border">
+                                    <Activity className="size-10 text-muted-foreground/30 mx-auto mb-3" />
+                                    <p className="text-sm text-muted-foreground font-medium">Nenhuma evolução registrada.</p>
+                                    <p className="text-xs text-muted-foreground mt-1">O histórico clínico do paciente aparecerá aqui.</p>
+                                </div>
                             ) : (
                                 <div className="relative">
                                     <div className="absolute left-[18px] top-2 bottom-2 w-0.5 bg-border/50" />
                                     <div className="space-y-1">
-                                        {timeline.map((item, i) => (
+                                        {evolutionsList.map((evo, i) => (
                                             <motion.div
                                                 initial={{ opacity: 0, x: -10 }}
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: i * 0.03 }}
-                                                key={item.id}
+                                                key={evo.id}
                                                 className="relative flex gap-4 pl-10 py-3 hover:bg-muted/20 rounded-xl transition-colors group"
                                             >
-                                                <div className={`absolute left-2.5 top-5 size-3 rounded-full border-2 border-background ${
-                                                    item.type === 'appointment' ? 'bg-emerald-500' : 'bg-indigo-500'
-                                                }`} />
+                                                <div className="absolute left-2.5 top-5 size-3 rounded-full border-2 border-background bg-indigo-500" />
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 flex-wrap mb-1">
                                                         <span className="text-xs font-medium text-muted-foreground">
-                                                            {new Date(item.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                                                            {new Date(evo.data_atendimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                                                         </span>
-                                                        {item.type === 'appointment' ? (
-                                                            <>
-                                                                <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Agendamento</span>
-                                                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${statusColor[item.data.status]}`}>{statusLabel[item.data.status]}</span>
-                                                                {item.data.start_time && (
-                                                                    <span className="text-xs text-muted-foreground">{item.data.start_time.slice(0,5)} • {item.data.duration_minutes}min</span>
-                                                                )}
-                                                            </>
-                                                        ) : (
-                                                            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
-                                                                {tipoLabel[item.data.tipo_atendimento] || item.data.tipo_atendimento}
-                                                            </span>
+                                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+                                                            {tipoLabel[evo.tipo_atendimento] || evo.tipo_atendimento}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-muted-foreground line-clamp-2">
+                                                        {evo.queixa_principal || evo.condutas_realizadas || 'Sem detalhes'}
+                                                    </p>
+                                                </div>
+                                                <div className="flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-center items-end">
+                                                    <Link href={`/evolutions/${evo.id}`} className="text-xs font-medium text-primary hover:underline">Ver →</Link>
+                                                    <button onClick={() => { setEditingEvolution(evo); setIsEvolutionSheetOpen(true); }} className="text-xs font-medium text-muted-foreground hover:text-foreground">Editar</button>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* ── Tab: Agendamentos ── */}
+                {activeTab === 'appointments' && (
+                    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                        <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-lg font-bold flex items-center gap-2">
+                                    <Calendar className="size-5 text-primary" /> Histórico de Agendamentos
+                                    <span className="text-sm font-normal text-muted-foreground ml-2">({appointmentsList.length} registros)</span>
+                                </h2>
+                                <button onClick={() => setIsAppointmentSheetOpen(true)} className="flex items-center gap-2 h-9 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors text-sm shadow-sm">
+                                    <Plus className="size-4" /> Novo Agendamento
+                                </button>
+                            </div>
+
+                            {appointmentsList.length === 0 ? (
+                                <div className="text-center py-12 bg-muted/30 rounded-xl border border-dashed border-border">
+                                    <Calendar className="size-10 text-muted-foreground/30 mx-auto mb-3" />
+                                    <p className="text-sm text-muted-foreground font-medium">Nenhum agendamento encontrado.</p>
+                                </div>
+                            ) : (
+                                <div className="relative">
+                                    <div className="absolute left-[18px] top-2 bottom-2 w-0.5 bg-border/50" />
+                                    <div className="space-y-1">
+                                        {appointmentsList.map((app, i) => (
+                                            <motion.div
+                                                initial={{ opacity: 0, x: -10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: i * 0.03 }}
+                                                key={app.id}
+                                                className="relative flex gap-4 pl-10 py-3 hover:bg-muted/20 rounded-xl transition-colors group"
+                                            >
+                                                <div className="absolute left-2.5 top-5 size-3 rounded-full border-2 border-background bg-emerald-500" />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                        <span className="text-xs font-medium text-muted-foreground">
+                                                            {new Date(app.appointment_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                                                        </span>
+                                                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${statusColor[app.status]}`}>{statusLabel[app.status]}</span>
+                                                        {app.start_time && (
+                                                            <span className="text-xs text-muted-foreground">{app.start_time.slice(0,5)} • {app.duration_minutes}min</span>
                                                         )}
                                                     </div>
-                                                    {item.type === 'appointment' && item.data.notes && (
-                                                        <p className="text-sm text-muted-foreground line-clamp-1">{item.data.notes}</p>
-                                                    )}
-                                                    {item.type === 'evolution' && (
-                                                        <p className="text-sm text-muted-foreground line-clamp-1">
-                                                            {item.data.queixa_principal || item.data.condutas_realizadas || 'Sem detalhes'}
-                                                        </p>
+                                                    {app.notes && (
+                                                        <p className="text-sm text-muted-foreground line-clamp-1">{app.notes}</p>
                                                     )}
                                                 </div>
                                                 <div className="flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-center items-end">
-                                                    <Link
-                                                        href={item.type === 'appointment' ? `/appointments/${item.data.id}` : `/evolutions/${item.data.id}`}
-                                                        className="text-xs font-medium text-primary hover:underline"
-                                                    >
-                                                        Ver →
-                                                    </Link>
-                                                    {item.type === 'evolution' && (
-                                                        <button 
-                                                            onClick={() => { setEditingEvolution(item.data); setIsEvolutionSheetOpen(true); }} 
-                                                            className="text-xs font-medium text-muted-foreground hover:text-foreground"
-                                                        >
-                                                            Editar
-                                                        </button>
-                                                    )}
+                                                    <Link href={`/appointments/${app.id}`} className="text-xs font-medium text-primary hover:underline">Ver →</Link>
                                                 </div>
                                             </motion.div>
                                         ))}

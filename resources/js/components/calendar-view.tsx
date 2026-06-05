@@ -10,15 +10,22 @@ interface CalendarViewProps {
     onEventClick?: (eventId: string) => void;
     onDateSelect?: (startDate: string, startTime: string, durationMinutes?: number) => void;
     onEventDrop?: (eventId: string, newDate: string, newTime: string, isGroup?: boolean) => void;
+    refreshTrigger?: any;
 }
 
-export default function CalendarView({ onEventClick, onDateSelect, onEventDrop }: CalendarViewProps) {
+export default function CalendarView({ onEventClick, onDateSelect, onEventDrop, refreshTrigger }: CalendarViewProps) {
     const calendarRef = useRef<FullCalendar>(null);
 
     useEffect(() => {
         // Tailwind styling adjustments dynamically applied if necessary
         // Mostly handled via CSS overrides in global CSS, but here's an anchor
     }, []);
+
+    useEffect(() => {
+        if (calendarRef.current && refreshTrigger !== undefined) {
+            calendarRef.current.getApi().refetchEvents();
+        }
+    }, [refreshTrigger]);
 
     const handleEventClick = (clickInfo: any) => {
         const eventId = clickInfo.event.id;

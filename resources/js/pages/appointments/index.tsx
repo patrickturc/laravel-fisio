@@ -216,6 +216,7 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                             className="flex-1 min-h-[600px] w-full"
                         >
                             <CalendarView 
+                                refreshTrigger={appointments}
                                 onEventClick={(eventId) => {
                                     axios.get(`/api/appointments/${eventId}`)
                                         .then(res => {
