@@ -448,11 +448,24 @@ class AppointmentController extends Controller
                 // For group classes: delete all future of the same group class
                 $query->where('group_class_id', $appointment->group_class_id);
             } else {
-                // For individual: only delete this one (individual doesn't have batch siblings)
-                $query->where('id', $appointment->id);
+                // For individual: match the same start_time, type, and patient
+                $patientIds = $appointment->patients()->pluck('patients.id')->toArray();
+                $query->where('type', 'individual')
+                    ->where('start_time', $appointment->start_time)
+                    ->whereHas('patients', function($q) use ($patientIds) {
+                        $q->whereIn('patients.id', $patientIds);
+                    });
             }
             
             $toDelete = $query->get();
+            
+            // Filter by day of week for individual appointments to be safe
+            if (!$appointment->group_class_id) {
+                $dayOfWeek = \Carbon\Carbon::parse($appointment->appointment_date)->dayOfWeek;
+                $toDelete = $toDelete->filter(function($app) use ($dayOfWeek) {
+                    return \Carbon\Carbon::parse($app->appointment_date)->dayOfWeek === $dayOfWeek;
+                });
+            }
             $count = $toDelete->count();
             
             foreach ($toDelete as $app) {

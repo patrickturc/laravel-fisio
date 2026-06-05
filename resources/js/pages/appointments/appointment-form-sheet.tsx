@@ -113,19 +113,8 @@ export function AppointmentFormSheet({
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     function handleDelete() {
-        // For group class appointments, show the modal with options
-        if (editingAppointment?.group_class_id || editingAppointment?.type === 'group') {
-            setShowDeleteModal(true);
-            return;
-        }
-        // For individual, just confirm normally
-        if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-            router.delete(`/appointments/${editingAppointment?.id}`, {
-                preserveScroll: true,
-                preserveState: true,
-                onSuccess: () => setIsOpen(false)
-            });
-        }
+        // Show modal for all appointments to give the option to delete future ones
+        setShowDeleteModal(true);
     }
 
     function executeDelete(mode: 'single' | 'future') {
@@ -353,9 +342,9 @@ export function AppointmentFormSheet({
         {showDeleteModal && (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={() => setShowDeleteModal(false)}>
                 <div className="bg-card border border-border rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
-                    <h3 className="text-lg font-bold mb-2">Excluir Agendamentos da Turma</h3>
+                    <h3 className="text-lg font-bold mb-2">Excluir Agendamentos {editingAppointment?.type === 'group' ? 'da Turma' : 'Recorrentes'}</h3>
                     <p className="text-sm text-muted-foreground mb-6">
-                        Você está prestes a excluir um agendamento de uma turma. Deseja excluir apenas esta aula ou todas as próximas aulas pendentes desta turma a partir de hoje?
+                        Você está prestes a excluir um agendamento. Deseja excluir apenas esta aula ou todas as próximas aulas pendentes a partir de hoje?
                     </p>
                     <div className="flex flex-col gap-3">
                         <Button 
