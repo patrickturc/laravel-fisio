@@ -104,7 +104,7 @@ export function AppointmentFormSheet({
         };
 
         if (isEditMode) {
-            put(`/appointments/${editingAppointment.id}`, options);
+            put(`/appointments/${editingAppointment?.id}`, options);
         } else {
             post('/appointments', options);
         }
@@ -120,7 +120,7 @@ export function AppointmentFormSheet({
         }
         // For individual, just confirm normally
         if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-            router.delete(`/appointments/${editingAppointment.id}`, {
+            router.delete(`/appointments/${editingAppointment?.id}`, {
                 preserveScroll: true,
                 preserveState: true,
                 onSuccess: () => setIsOpen(false)
@@ -129,7 +129,7 @@ export function AppointmentFormSheet({
     }
 
     function executeDelete(mode: 'single' | 'future') {
-        router.delete(`/appointments/${editingAppointment.id}?delete_mode=${mode}`, {
+        router.delete(`/appointments/${editingAppointment?.id}?delete_mode=${mode}`, {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
