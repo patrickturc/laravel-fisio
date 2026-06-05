@@ -59,7 +59,7 @@ export default function CalendarView({ onEventClick, onDateSelect, onEventDrop, 
     };
 
     return (
-        <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-3 sm:p-6 shadow-sm overflow-hidden calendar-container w-full min-h-[600px]">
+        <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-3 sm:p-6 shadow-sm calendar-container w-full h-[calc(100vh-200px)] min-h-[500px] flex flex-col">
             <style>{`
                 /* Google Calendar Style Overrides for FullCalendar */
                 .calendar-container .fc {
@@ -221,8 +221,9 @@ export default function CalendarView({ onEventClick, onDateSelect, onEventDrop, 
                 allDaySlot={false}
                 slotMinTime="06:00:00"
                 slotMaxTime="22:00:00"
-                expandRows={false}
-                height="auto"
+                expandRows={true}
+                height="100%"
+                stickyHeaderDates={true}
                 eventClick={handleEventClick}
                 select={handleDateSelect}
                 windowResize={(arg) => {

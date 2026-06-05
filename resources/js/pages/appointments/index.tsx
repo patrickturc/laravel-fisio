@@ -213,7 +213,7 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.2 }}
-                            className="flex-1 min-h-[600px] w-full"
+                            className="flex-1 w-full"
                         >
                             <CalendarView 
                                 refreshTrigger={appointments}
