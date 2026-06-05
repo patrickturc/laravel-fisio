@@ -261,62 +261,67 @@ export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], pa
                     <div className="p-2">
                         {evolutions.data.length > 0 ? (
                             <div className="divide-y divide-border/30">
-                                {evolutions.data.map((evo: any, index: number) => (
-                                    <motion.div
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: index * 0.05 }}
-                                        key={evo.id}
-                                        className="p-4 md:p-6 hover:bg-muted/30 transition-colors group flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl"
-                                    >
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-3 mb-2 flex-wrap">
-                                                <div className="flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-md">
-                                                    <CalendarIcon className="size-3.5" />
-                                                    {new Date(evo.data_atendimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
-                                                </div>
-                                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${
-                                                    evo.tipo_atendimento === 'avaliacao' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' :
-                                                    evo.tipo_atendimento === 'reavaliacao' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                                                    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                                }`}>
-                                                    {evo.tipo_atendimento === 'avaliacao' ? 'Avaliação' : evo.tipo_atendimento === 'reavaliacao' ? 'Reavaliação' : 'Evolução'}
-                                                </span>
-                                                {evo.dor_eva !== null && (
-                                                    <span className="text-xs font-medium text-destructive bg-destructive/10 px-2 py-1 rounded-md border border-destructive/20">
-                                                        Dor EVA: {evo.dor_eva}
+                                {evolutions.data.map((patient: any, index: number) => {
+                                    const latestEvo = patient.evolutions?.[0];
+                                    if (!latestEvo) return null;
+
+                                    return (
+                                        <motion.div
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: index * 0.05 }}
+                                            key={patient.id}
+                                            className="p-4 md:p-6 hover:bg-muted/30 transition-colors group flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl"
+                                        >
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-3 mb-2 flex-wrap">
+                                                    <div className="flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-md">
+                                                        <CalendarIcon className="size-3.5" />
+                                                        {new Date(latestEvo.data_atendimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                                                    </div>
+                                                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${
+                                                        latestEvo.tipo_atendimento === 'avaliacao' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' :
+                                                        latestEvo.tipo_atendimento === 'reavaliacao' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                                                        'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                                    }`}>
+                                                        {latestEvo.tipo_atendimento === 'avaliacao' ? 'Avaliação' : latestEvo.tipo_atendimento === 'reavaliacao' ? 'Reavaliação' : 'Evolução'}
                                                     </span>
-                                                )}
+                                                    {latestEvo.dor_eva !== null && (
+                                                        <span className="text-xs font-medium text-destructive bg-destructive/10 px-2 py-1 rounded-md border border-destructive/20">
+                                                            Dor EVA: {latestEvo.dor_eva}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <h3 className="text-lg font-bold text-foreground flex items-center gap-2 mb-1">
+                                                    <User className="size-4 text-muted-foreground" />
+                                                    <span className="truncate">{patient.name}</span>
+                                                </h3>
+
+                                                <p className="text-sm text-muted-foreground line-clamp-2 mt-2 break-words">
+                                                    {latestEvo.observacoes ? (
+                                                        <span><strong>Resumo:</strong> {latestEvo.observacoes}</span>
+                                                    ) : (
+                                                        <>
+                                                            <strong>Subjetivo:</strong> {latestEvo.queixa_principal || latestEvo.relato_paciente || 'Sem relato subjetivo.'} <br/>
+                                                            <strong>Objetivo:</strong> {latestEvo.condutas_realizadas || 'Sem conduta detalhada.'}
+                                                        </>
+                                                    )}
+                                                </p>
                                             </div>
 
-                                            <h3 className="text-lg font-bold text-foreground flex items-center gap-2 mb-1">
-                                                <User className="size-4 text-muted-foreground" />
-                                                <span className="truncate">{evo.patient?.name || 'Paciente não encontrado'}</span>
-                                            </h3>
-
-                                            <p className="text-sm text-muted-foreground line-clamp-2 mt-2 break-words">
-                                                {evo.observacoes ? (
-                                                    <span><strong>Obs:</strong> {evo.observacoes}</span>
-                                                ) : (
-                                                    <>
-                                                        <strong>Subjetivo:</strong> {evo.queixa_principal || evo.relato_paciente || 'Sem relato subjetivo.'} <br/>
-                                                        <strong>Objetivo:</strong> {evo.condutas_realizadas || 'Sem conduta detalhada.'}
-                                                    </>
-                                                )}
-                                            </p>
-                                        </div>
-
-                                        <div className="flex-shrink-0 flex items-center md:flex-col justify-between md:justify-center gap-3">
-                                            <Link
-                                                href={`/evolutions/${evo.id}`}
-                                                className="flex items-center gap-1.5 px-4 py-2 bg-background border border-border/80 rounded-xl text-sm font-medium hover:border-primary hover:text-primary transition-all shadow-sm group-hover:shadow"
-                                            >
-                                                Ver Detalhes
-                                                <ArrowUpRight className="size-4" />
-                                            </Link>
-                                        </div>
-                                    </motion.div>
-                                ))}
+                                            <div className="flex-shrink-0 flex items-center justify-between md:justify-center gap-3">
+                                                <Link
+                                                    href={`/patients/${patient.id}?tab=evolutions`}
+                                                    className="flex items-center gap-1.5 px-4 py-2 bg-background border border-border/80 rounded-xl text-sm font-medium hover:border-primary hover:text-primary transition-all shadow-sm group-hover:shadow"
+                                                >
+                                                    Ver Prontuário
+                                                    <ArrowUpRight className="size-4" />
+                                                </Link>
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
                             </div>
                         ) : (
                             <div className="py-24 flex flex-col items-center justify-center text-center">

@@ -14,26 +14,30 @@ class EvolutionController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Evolution::with(['patient'])
-            ->orderBy('data_atendimento', 'desc');
+        $query = Patient::whereHas('evolutions')
+            ->with(['evolutions' => function ($q) {
+                $q->orderBy('data_atendimento', 'desc')->take(1);
+            }]);
 
         if ($request->filled('search')) {
-            $query->whereHas('patient', function ($q) use ($request) {
-                $q->where('name', 'ilike', '%' . $request->search . '%');
-            });
+            $query->where('name', 'ilike', '%' . $request->search . '%');
         }
 
         if ($request->filled('tipo')) {
-            $query->where('tipo_atendimento', $request->tipo);
+            $query->whereHas('evolutions', function ($q) use ($request) {
+                $q->where('tipo_atendimento', $request->tipo);
+            });
         }
 
         if ($request->filled('tab')) {
             if ($request->tab === 'pilates') {
-                $query->whereNotNull('observacoes');
+                $query->where('type', 'pilates');
             } elseif ($request->tab === 'fisio') {
-                $query->whereNull('observacoes');
+                $query->where('type', 'physiotherapy');
             }
         }
+
+        $query->orderByRaw('(SELECT MAX(data_atendimento) FROM evolutions WHERE evolutions.paciente_id = patients.id) DESC');
 
         $evolutions = $query->paginate(15)->withQueryString();
 

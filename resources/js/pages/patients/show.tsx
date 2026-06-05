@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { ArrowLeft, Phone, MapPin, Edit, Trash2, Calendar, FileText, Cake, Clock, Activity, Mail, User, Shield, Heart, Briefcase, Plus, Tag } from 'lucide-react';
@@ -49,6 +49,7 @@ interface Patient {
         tipo_atendimento: string;
         queixa_principal: string | null;
         condutas_realizadas: string | null;
+        observacoes?: string | null;
     }>;
     memberships?: Array<{
         id: string;
@@ -75,7 +76,11 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
         { title: patient.nickname || patient.name, href: `/patients/${patient.id}` },
     ];
 
-    const [activeTab, setActiveTab] = useState<Tab>('info');
+    const { url } = usePage();
+    const queryParams = new URLSearchParams(url.split('?')[1]);
+    const initialTab = (queryParams.get('tab') as Tab) || 'info';
+
+    const [activeTab, setActiveTab] = useState<Tab>(initialTab);
     const [isEvolutionSheetOpen, setIsEvolutionSheetOpen] = useState(false);
     const [editingEvolution, setEditingEvolution] = useState<any>(null);
     const [isAppointmentSheetOpen, setIsAppointmentSheetOpen] = useState(false);
@@ -385,7 +390,7 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                                                         </span>
                                                     </div>
                                                     <p className="text-sm text-muted-foreground line-clamp-2">
-                                                        {evo.queixa_principal || evo.condutas_realizadas || 'Sem detalhes'}
+                                                        {evo.observacoes || evo.queixa_principal || evo.condutas_realizadas || 'Sem detalhes'}
                                                     </p>
                                                 </div>
                                                 <div className="flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-center items-end">
