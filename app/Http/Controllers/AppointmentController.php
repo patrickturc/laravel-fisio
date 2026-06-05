@@ -435,8 +435,36 @@ class AppointmentController extends Controller
         return back()->with('success', 'Status atualizado com sucesso.');
     }
 
-    public function destroy(Appointment $appointment)
+    public function destroy(Request $request, Appointment $appointment)
     {
+        $deleteMode = $request->query('delete_mode', 'single');
+        
+        if ($deleteMode === 'future') {
+            // Delete this and all future scheduled appointments
+            $query = Appointment::where('appointment_date', '>=', $appointment->appointment_date)
+                ->where('status', 'scheduled');
+            
+            if ($appointment->group_class_id) {
+                // For group classes: delete all future of the same group class
+                $query->where('group_class_id', $appointment->group_class_id);
+            } else {
+                // For individual: only delete this one (individual doesn't have batch siblings)
+                $query->where('id', $appointment->id);
+            }
+            
+            $toDelete = $query->get();
+            $count = $toDelete->count();
+            
+            foreach ($toDelete as $app) {
+                $app->patients()->detach();
+                $app->delete();
+            }
+            
+            return redirect()->route('appointments.index')
+                ->with('success', "✅ {$count} agendamentos excluídos!");
+        }
+        
+        // Single delete
         $appointment->patients()->detach();
         $appointment->delete();
 
