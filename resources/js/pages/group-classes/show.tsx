@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { useConfirmModal } from '@/components/confirm-modal';
 import { Pagination } from '@/components/pagination';
-import { useForm } from '@inertiajs/react';
 import { GroupClassFormSheet } from './group-class-form-sheet';
 import { InlineEdit } from '@/components/inline-edit';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function GroupClassShow({ groupClass, futureAppointments = [], patients, users = [] }: { groupClass: any, futureAppointments?: any[], patients: any[], users?: any[] }) {
     const breadcrumbs: BreadcrumbItem[] = [
@@ -18,22 +19,30 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], pa
     ];
 
     const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
-    const { confirm, modal } = useConfirmModal();
-
-    const { post, processing: generating } = useForm({
-        weeks: 4,
-        start_date: new Date().toISOString().split('T')[0]
+    const [showGenerateModal, setShowGenerateModal] = useState(false);
+    const [generateEndDate, setGenerateEndDate] = useState(() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() + 1);
+        return d.toISOString().split('T')[0];
     });
+    const [generateReschedule, setGenerateReschedule] = useState(false);
+    const { confirm, modal } = useConfirmModal();
+    const [isGenerating, setIsGenerating] = useState(false);
 
-    async function handleGenerateAppointments() {
-        const confirmed = await confirm({
-            title: 'Gerar Aulas (Agendamentos)',
-            message: `Isso irá gerar os agendamentos reais na sua agenda para as próximas 4 semanas (1 mês), com base nos horários da turma. Deseja continuar?`,
-            confirmLabel: 'Gerar Aulas',
+    function handleGenerateAppointments() {
+        setIsGenerating(true);
+        router.post(`/group-classes/${groupClass.id}/generate-appointments`, {
+            end_date: generateEndDate,
+            reschedule: generateReschedule,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowGenerateModal(false);
+                setIsGenerating(false);
+                setGenerateReschedule(false);
+            },
+            onError: () => setIsGenerating(false),
         });
-        if (confirmed) {
-            post(`/group-classes/${groupClass.id}/generate-appointments`);
-        }
     }
 
     async function handleDelete() {
@@ -210,8 +219,8 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], pa
                                         Sessões agendadas no calendário para esta turma.
                                     </p>
                                 </div>
-                                <Button className="gap-2 rounded-xl" onClick={handleGenerateAppointments} disabled={generating}>
-                                    <PlayCircle className="size-4" /> {generating ? 'Gerando...' : 'Gerar Aulas'}
+                                <Button className="gap-2 rounded-xl" onClick={() => setShowGenerateModal(true)}>
+                                    <PlayCircle className="size-4" /> Gerar Aulas
                                 </Button>
                             </div>
 
@@ -260,8 +269,8 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], pa
                                     <p className="text-sm text-muted-foreground max-w-sm mb-6">
                                         As sessões reais dessa turma ainda não foram criadas na sua agenda.
                                     </p>
-                                    <Button className="gap-2 rounded-xl shadow-sm" onClick={handleGenerateAppointments} disabled={generating}>
-                                        <PlayCircle className="size-4" /> {generating ? 'Gerando...' : 'Gerar Próximas Aulas'}
+                                    <Button className="gap-2 rounded-xl shadow-sm" onClick={() => setShowGenerateModal(true)}>
+                                        <PlayCircle className="size-4" /> Gerar Próximas Aulas
                                     </Button>
                                 </div>
                             )}
@@ -270,6 +279,57 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], pa
                 </div>
             </div>
             {modal}
+            
+            {/* Generate Appointments Modal */}
+            {showGenerateModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={() => setShowGenerateModal(false)}>
+                    <div className="bg-card border border-border rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold mb-1">Gerar Aulas na Agenda</h3>
+                        <p className="text-sm text-muted-foreground mb-5">
+                            Defina até qual data deseja gerar os agendamentos para esta turma.
+                        </p>
+                        
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Gerar aulas até:</Label>
+                                <Input 
+                                    type="date" 
+                                    value={generateEndDate}
+                                    onChange={e => setGenerateEndDate(e.target.value)}
+                                    min={new Date().toISOString().split('T')[0]}
+                                />
+                            </div>
+                            
+                            {futureAppointments.length > 0 && (
+                                <label className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 cursor-pointer">
+                                    <input 
+                                        type="checkbox"
+                                        checked={generateReschedule}
+                                        onChange={e => setGenerateReschedule(e.target.checked)}
+                                        className="mt-0.5 size-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                                    />
+                                    <div>
+                                        <p className="text-sm font-semibold text-amber-800 dark:text-amber-400">Reagendar aulas existentes</p>
+                                        <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-0.5">
+                                            Remove todos os agendamentos futuros pendentes desta turma e gera novos com os horários atuais.
+                                        </p>
+                                    </div>
+                                </label>
+                            )}
+                        </div>
+                        
+                        <div className="flex gap-3 justify-end mt-6">
+                            <Button variant="ghost" onClick={() => setShowGenerateModal(false)}>
+                                Cancelar
+                            </Button>
+                            <Button onClick={handleGenerateAppointments} disabled={isGenerating}>
+                                <PlayCircle className="size-4 mr-2" />
+                                {isGenerating ? 'Gerando...' : 'Gerar Aulas'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
             
             <GroupClassFormSheet 
                 isOpen={isEditSheetOpen} 

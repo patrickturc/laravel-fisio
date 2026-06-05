@@ -142,23 +142,33 @@ class GroupClassController extends Controller
     public function generateAppointments(Request $request, GroupClass $groupClass)
     {
         $validated = $request->validate([
-            'weeks' => 'required|integer|min:1|max:52',
-            'start_date' => 'required|date',
+            'end_date' => 'required|date|after:today',
+            'reschedule' => 'nullable|boolean',
         ]);
 
         $groupClass->load(['schedules', 'patients']);
         
-        $startDate = Carbon::parse($validated['start_date']);
-        $endDate = $startDate->copy()->addWeeks($validated['weeks']);
+        $startDate = Carbon::today();
+        $endDate = Carbon::parse($validated['end_date']);
+        $reschedule = $validated['reschedule'] ?? false;
         
         $schedules = $groupClass->schedules;
         $patientIds = $groupClass->patients->pluck('id')->toArray();
         $userId = auth()->id();
         
         $createdCount = 0;
+        $deletedCount = 0;
 
         DB::beginTransaction();
         try {
+            // If reschedule mode, delete all future scheduled (non-completed) appointments for this class
+            if ($reschedule) {
+                $deletedCount = Appointment::where('group_class_id', $groupClass->id)
+                    ->where('appointment_date', '>=', $startDate->format('Y-m-d'))
+                    ->where('status', 'scheduled')
+                    ->delete();
+            }
+
             foreach ($schedules as $schedule) {
                 $currentDate = $startDate->copy();
                 
@@ -197,10 +207,49 @@ class GroupClassController extends Controller
                 }
             }
             DB::commit();
-            return back()->with('success', "Foram gerados $createdCount agendamentos com sucesso!");
+            
+            $msg = "✅ {$createdCount} aulas geradas com sucesso!";
+            if ($reschedule && $deletedCount > 0) {
+                $msg = "✅ {$deletedCount} aulas antigas removidas e {$createdCount} novas aulas geradas!";
+            }
+            
+            return back()->with('success', $msg);
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Erro ao gerar agendamentos: ' . $e->getMessage());
         }
+    }
+
+    public function updateFutureAppointments(Request $request, GroupClass $groupClass)
+    {
+        $groupClass->load('schedules');
+        
+        $today = Carbon::today()->format('Y-m-d');
+        
+        $updated = Appointment::where('group_class_id', $groupClass->id)
+            ->where('appointment_date', '>=', $today)
+            ->where('status', 'scheduled')
+            ->get();
+        
+        $count = 0;
+        foreach ($updated as $appointment) {
+            // Find the matching schedule for this appointment's day of week
+            $appointmentDay = Carbon::parse($appointment->appointment_date)->dayOfWeek;
+            $matchingSchedule = $groupClass->schedules->first(function ($s) use ($appointmentDay) {
+                return $s->day_of_week === $appointmentDay;
+            });
+            
+            if ($matchingSchedule) {
+                $appointment->update([
+                    'start_time' => $matchingSchedule->start_time,
+                    'duration_minutes' => $matchingSchedule->duration_minutes,
+                    'title' => $groupClass->name,
+                    'max_participants' => $groupClass->max_participants,
+                ]);
+                $count++;
+            }
+        }
+        
+        return back()->with('success', "✅ {$count} agendamentos futuros atualizados com o novo horário!");
     }
 }

@@ -25,6 +25,7 @@ interface PendingEvolution {
     appointment_id: string;
     patient_id: string;
     patient_name: string;
+    patient_type: string;
     appointment_date: string;
     start_time: string;
     title: string;

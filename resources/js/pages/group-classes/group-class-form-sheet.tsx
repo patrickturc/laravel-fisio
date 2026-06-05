@@ -6,6 +6,7 @@ import { useForm } from '@inertiajs/react';
 import { FormEvent, useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Plus, Trash2, CalendarClock, Palette } from 'lucide-react';
+import { router } from '@inertiajs/react';
 import {
     Select,
     SelectContent,
@@ -24,6 +25,7 @@ interface GroupClassFormSheetProps {
 
 export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = [], users = [] }: GroupClassFormSheetProps) {
     const isEditMode = !!groupClass;
+    const [showUpdateFutureModal, setShowUpdateFutureModal] = useState(false);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         name: groupClass?.name || '',
@@ -84,7 +86,23 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = 
         
         if (isEditMode) {
             put(`/group-classes/${groupClass.id}`, {
-                onSuccess: () => setIsOpen(false)
+                onSuccess: () => {
+                    setIsOpen(false);
+                    // Check if schedules were changed
+                    const schedulesChanged = JSON.stringify(groupClass.schedules?.map((s: any) => ({
+                        day_of_week: s.day_of_week,
+                        start_time: s.start_time?.substring(0, 5),
+                        duration_minutes: s.duration_minutes,
+                    }))) !== JSON.stringify(data.schedules.map((s: any) => ({
+                        day_of_week: s.day_of_week,
+                        start_time: s.start_time?.substring(0, 5),
+                        duration_minutes: s.duration_minutes,
+                    })));
+                    
+                    if (schedulesChanged) {
+                        setShowUpdateFutureModal(true);
+                    }
+                }
             });
         } else {
             post('/group-classes', {
@@ -94,6 +112,7 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = 
     }
 
     return (
+        <>
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto border-l-border/50">
                 <SheetHeader className="mb-6">
@@ -211,8 +230,8 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = 
                             </div>
                             
                             {isEditMode && (
-                                <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-400 p-3 rounded-xl text-xs leading-relaxed mb-4">
-                                    <strong>Atenção:</strong> Alterar os horários aqui dita as regras apenas para <strong>novas aulas</strong> criadas ao clicar em "Gerar Aulas". Para mudar de vez o horário de várias aulas que <strong>já estão na agenda</strong>, vá na Agenda, arraste uma aula e escolha "Esta e as Próximas".
+                                <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-800 dark:text-blue-400 p-3 rounded-xl text-xs leading-relaxed mb-4">
+                                    <strong>💡 Dica:</strong> Ao salvar alterações nos horários, você será perguntado se deseja atualizar automaticamente todos os agendamentos futuros na agenda.
                                 </div>
                             )}
                             
@@ -283,5 +302,43 @@ export function GroupClassFormSheet({ isOpen, setIsOpen, groupClass, patients = 
                 </form>
             </SheetContent>
         </Sheet>
+        {isEditMode && (
+            <UpdateFutureModal 
+                groupClassId={groupClass.id} 
+                open={showUpdateFutureModal} 
+                onClose={() => setShowUpdateFutureModal(false)} 
+            />
+        )}
+    </>
+    );
+}
+
+function UpdateFutureModal({ groupClassId, open, onClose }: { groupClassId: string; open: boolean; onClose: () => void }) {
+    if (!open) return null;
+    
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={onClose}>
+            <div className="bg-card border border-border rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-bold mb-2">Atualizar Agendamentos Futuros?</h3>
+                <p className="text-sm text-muted-foreground mb-6">
+                    Você alterou os horários desta turma. Deseja atualizar todos os agendamentos futuros que já estão na agenda para refletir o novo horário?
+                </p>
+                <div className="flex gap-3 justify-end">
+                    <Button variant="ghost" onClick={onClose}>
+                        Não, manter como está
+                    </Button>
+                    <Button 
+                        onClick={() => {
+                            router.post(`/group-classes/${groupClassId}/update-future-appointments`, {}, {
+                                preserveScroll: true,
+                                onSuccess: () => onClose(),
+                            });
+                        }}
+                    >
+                        Sim, atualizar todos
+                    </Button>
+                </div>
+            </div>
+        </div>
     );
 }

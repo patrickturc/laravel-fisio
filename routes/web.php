@@ -33,6 +33,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('clinical-protocols', App\Http\Controllers\ClinicalProtocolController::class);
     Route::resource('commercial-plans', App\Http\Controllers\CommercialPlanController::class);
     Route::post('group-classes/{group_class}/generate-appointments', [App\Http\Controllers\GroupClassController::class, 'generateAppointments'])->name('group-classes.generate');
+    Route::post('group-classes/{group_class}/update-future-appointments', [App\Http\Controllers\GroupClassController::class, 'updateFutureAppointments'])->name('group-classes.update-future');
     Route::resource('group-classes', App\Http\Controllers\GroupClassController::class);
 });
 
