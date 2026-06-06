@@ -49,11 +49,9 @@ class AppointmentController extends Controller
 
     public function create(Request $request)
     {
-        $patients = Patient::orderBy('name')->get(['id', 'name']);
-
-        return Inertia::render('appointments/create', [
-            'patients' => $patients,
-            'selectedPatientId' => $request->query('patient_id'),
+        return redirect()->route('appointments.index', [
+            'create' => 'true',
+            'patient_id' => $request->query('patient_id')
         ]);
     }
 

@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { UserPlus, Search, Edit, FileText, Filter } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Pagination } from '@/components/pagination';
 import { PatientFormSheet, type Patient } from './PatientFormSheet';
@@ -24,6 +24,16 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
     const [typeFilter, setTypeFilter] = useState(filters.type || '');
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('create') === 'true') {
+            setIsSheetOpen(true);
+            const url = new URL(window.location.href);
+            url.searchParams.delete('create');
+            window.history.replaceState({}, '', url);
+        }
+    }, []);
 
     function applyFilters() {
         router.get('/patients', {

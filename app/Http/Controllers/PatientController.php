@@ -35,7 +35,7 @@ class PatientController extends Controller
 
     public function create()
     {
-        return Inertia::render('patients/create');
+        return redirect()->route('patients.index', ['create' => 'true']);
     }
 
     public function store(Request $request)

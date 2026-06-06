@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { CalendarPlus, Search, Clock, Calendar as CalendarIcon, User, Users, List, CalendarDays } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Pagination } from '@/components/pagination';
 import CalendarView from '@/components/calendar-view';
@@ -37,6 +37,21 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
 
     const [groupClassSheetOpen, setGroupClassSheetOpen] = useState(false);
     const [isGroupClassSheetOpen, setIsGroupClassSheetOpen] = useState(false);
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('create') === 'true') {
+            setEditingAppointment(null);
+            setInitialDate(new Date().toISOString().split('T')[0]);
+            setInitialTime('08:00');
+            setInitialDuration(undefined);
+            setSheetOpen(true);
+            
+            const url = new URL(window.location.href);
+            url.searchParams.delete('create');
+            window.history.replaceState({}, '', url);
+        }
+    }, []);
 
     // Reschedule Prompt State
     const [reschedulePrompt, setReschedulePrompt] = useState<{
