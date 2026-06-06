@@ -13,6 +13,8 @@ interface CalendarViewProps {
     refreshTrigger?: any;
 }
 
+let isCalendarRestoring = false;
+
 export default function CalendarView({ onEventClick, onDateSelect, onEventDrop, refreshTrigger }: CalendarViewProps) {
     const calendarRef = useRef<FullCalendar>(null);
 
@@ -99,6 +101,26 @@ export default function CalendarView({ onEventClick, onDateSelect, onEventDrop, 
                     box-shadow: none !important;
                 }
                 
+                .calendar-container .fc-button-primary {
+                    border-color: var(--fc-button-border-color) !important;
+                    background-color: var(--fc-button-bg-color) !important;
+                    color: var(--fc-button-text-color) !important;
+                }
+                
+                .calendar-container .fc-button-primary:hover {
+                    background-color: var(--fc-button-hover-bg-color) !important;
+                }
+                
+                .calendar-container .fc-button-primary:not(:disabled):active,
+                .calendar-container .fc-button-primary:not(:disabled).fc-button-active {
+                    background-color: var(--fc-button-active-bg-color) !important;
+                    color: var(--fc-button-active-text-color) !important;
+                }
+                
+                .calendar-container .fc-today-button {
+                    margin-left: 1rem !important;
+                }
+
                 .calendar-container .fc-button-primary:focus {
                     box-shadow: none !important;
                 }
@@ -235,6 +257,7 @@ export default function CalendarView({ onEventClick, onDateSelect, onEventDrop, 
                     }
                 }}
                 datesSet={(arg) => {
+                    isCalendarRestoring = true;
                     setTimeout(() => {
                         const timegridBody = document.querySelector('.fc-timegrid-body');
                         if (timegridBody) {
@@ -248,13 +271,19 @@ export default function CalendarView({ onEventClick, onDateSelect, onEventDrop, 
                                 if (!scroller.hasAttribute('data-scroll-listener')) {
                                     scroller.setAttribute('data-scroll-listener', 'true');
                                     scroller.addEventListener('scroll', (e) => {
+                                        if (isCalendarRestoring) return;
                                         const target = e.target as HTMLElement;
                                         localStorage.setItem('calendarScrollTop', target.scrollTop.toString());
                                     }, { passive: true });
                                 }
                             }
                         }
-                    }, 100);
+                        
+                        setTimeout(() => {
+                            isCalendarRestoring = false;
+                        }, 100);
+                        
+                    }, 50);
                 }}
                 nowIndicator={true}
                 slotDuration="00:30:00"
