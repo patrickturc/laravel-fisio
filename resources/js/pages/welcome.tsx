@@ -1,5 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { dashboard, login, register } from '@/routes';
+import { dashboard, login } from '@/routes';
 import { Activity, Users, Calendar, FileText, Shield, Smartphone, Zap, ChevronRight, Heart } from 'lucide-react';
 
 export default function Welcome({ canRegister = true }: { canRegister?: boolean }) {
@@ -91,11 +91,6 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                                 <Link href={login()} className="px-5 py-2 text-sm font-medium rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50 transition-colors">
                                     Login
                                 </Link>
-                                {canRegister && (
-                                    <Link href={register()} className="px-5 py-2 text-sm font-semibold rounded-full bg-neutral-900 text-white hover:bg-neutral-800 transition-colors shadow-sm">
-                                        Criar Conta
-                                    </Link>
-                                )}
                             </>
                         )}
                     </nav>
@@ -126,11 +121,6 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                         <Link href={login()} className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-primary text-white font-semibold text-base hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5">
                             Começar Agora
                         </Link>
-                        {canRegister && (
-                            <Link href={register()} className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white text-neutral-900 font-semibold text-base border border-neutral-200 hover:bg-neutral-50 transition-all shadow-sm">
-                                Criar Conta Grátis
-                            </Link>
-                        )}
                     </div>
 
                     <div className="mt-16 sm:mt-24 w-full w-[90vw] sm:max-w-5xl mx-auto relative rounded-3xl overflow-hidden shadow-2xl shadow-primary/20 border border-white/20 bg-neutral-900/50 group">
@@ -230,9 +220,6 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                                     O Phisio foi criado com base na rotina real de profissionais de saúde. Sem funcionalidades desnecessárias, sem complexidade. Apenas o que você precisa para atender melhor.
                                 </p>
                                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                    <Link href={register()} className="px-8 py-3.5 rounded-full bg-white text-primary font-semibold text-base hover:bg-white/90 transition-all shadow-lg hover:-translate-y-0.5">
-                                        Criar Conta Grátis <ChevronRight className="size-4 inline ml-1" />
-                                    </Link>
                                 </div>
                             </div>
                         </div>

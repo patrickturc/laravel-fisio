@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
-import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
@@ -101,14 +100,6 @@ export default function Login({
                             </Button>
                         </div>
 
-                        {canRegister && (
-                            <div className="text-center text-sm text-muted-foreground mt-4">
-                                Ainda não tem uma conta?{' '}
-                                <TextLink href={register()} tabIndex={5} className="font-semibold text-primary hover:text-primary/80">
-                                    Cadastre-se
-                                </TextLink>
-                            </div>
-                        )}
                     </>
                 )}
             </Form>
