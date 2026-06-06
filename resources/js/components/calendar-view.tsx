@@ -234,6 +234,28 @@ export default function CalendarView({ onEventClick, onDateSelect, onEventDrop, 
                         api.changeView('timeGridWeek');
                     }
                 }}
+                datesSet={(arg) => {
+                    setTimeout(() => {
+                        const timegridBody = document.querySelector('.fc-timegrid-body');
+                        if (timegridBody) {
+                            const scroller = timegridBody.closest('.fc-scroller') as HTMLElement;
+                            if (scroller) {
+                                const savedScroll = localStorage.getItem('calendarScrollTop');
+                                if (savedScroll !== null) {
+                                    scroller.scrollTop = parseInt(savedScroll, 10);
+                                }
+                                
+                                if (!scroller.hasAttribute('data-scroll-listener')) {
+                                    scroller.setAttribute('data-scroll-listener', 'true');
+                                    scroller.addEventListener('scroll', (e) => {
+                                        const target = e.target as HTMLElement;
+                                        localStorage.setItem('calendarScrollTop', target.scrollTop.toString());
+                                    }, { passive: true });
+                                }
+                            }
+                        }
+                    }, 100);
+                }}
                 nowIndicator={true}
                 slotDuration="00:30:00"
                 slotLabelInterval="01:00"
