@@ -3,11 +3,15 @@
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
-Route::get('/', function () {
+Route::get('/', function (\Illuminate\Http\Request $request) {
     if (auth()->check()) {
         return redirect()->route('dashboard');
     }
-    return redirect()->route('login');
+    return \Inertia\Inertia::render('auth/login', [
+        'canResetPassword' => Features::enabled(Features::resetPasswords()),
+        'canRegister' => Features::enabled(Features::registration()),
+        'status' => $request->session()->get('status'),
+    ]);
 })->name('home');
 
 Route::get('/feed/calendar/{token}.ics', [\App\Http\Controllers\CalendarFeedController::class, 'feed'])->name('calendar.feed');
