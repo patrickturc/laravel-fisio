@@ -110,6 +110,15 @@ class GroupClassController extends Controller
                 'status' => $request->has('status') ? $validated['status'] : $groupClass->status,
             ]);
 
+            // Sync the name and max_participants to all future scheduled appointments automatically
+            Appointment::where('group_class_id', $groupClass->id)
+                ->where('appointment_date', '>=', now()->format('Y-m-d'))
+                ->where('status', 'scheduled')
+                ->update([
+                    'title' => $groupClass->name,
+                    'max_participants' => $groupClass->max_participants,
+                ]);
+
             if ($request->has('schedules') && isset($validated['schedules'])) {
                 $groupClass->schedules()->delete();
                 foreach ($validated['schedules'] as $schedule) {
