@@ -10,6 +10,73 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Perfis de Acesso', href: '/settings/roles' },
 ];
 
+// Translations for module group names
+const moduleLabels: Record<string, string> = {
+    dashboard: 'Painel Inicial',
+    patients: 'Pacientes',
+    appointments: 'Agenda',
+    evolutions: 'Evoluções',
+    treatment_plans: 'Protocolos Clínicos',
+    memberships: 'Matrículas',
+    financial: 'Financeiro',
+    reports: 'Relatórios',
+    settings: 'Configurações',
+};
+
+// Translations for individual permission names
+const permissionLabels: Record<string, string> = {
+    'dashboard.view': 'Visualizar Painel',
+
+    'patients.manage.view': 'Visualizar Pacientes',
+    'patients.manage.create': 'Cadastrar Pacientes',
+    'patients.manage.edit': 'Editar Pacientes',
+    'patients.manage.delete': 'Excluir Pacientes',
+
+    'appointments.manage.view': 'Visualizar Agenda',
+    'appointments.manage.create': 'Criar Agendamentos',
+    'appointments.manage.edit': 'Editar Agendamentos',
+    'appointments.manage.delete': 'Excluir Agendamentos',
+
+    'evolutions.manage.view': 'Visualizar Evoluções',
+    'evolutions.manage.create': 'Registrar Evoluções',
+    'evolutions.manage.edit': 'Editar Evoluções',
+    'evolutions.manage.delete': 'Excluir Evoluções',
+
+    'treatment_plans.manage.view': 'Visualizar Protocolos',
+    'treatment_plans.manage.create': 'Criar Protocolos',
+    'treatment_plans.manage.edit': 'Editar Protocolos',
+    'treatment_plans.manage.delete': 'Excluir Protocolos',
+
+    'memberships.manage.view': 'Visualizar Matrículas',
+    'memberships.manage.create': 'Criar Matrículas',
+    'memberships.manage.edit': 'Editar Matrículas',
+    'memberships.manage.delete': 'Excluir Matrículas',
+
+    'financial.transactions.view': 'Visualizar Transações',
+    'financial.transactions.create': 'Registrar Transações',
+    'financial.transactions.edit': 'Editar Transações',
+    'financial.transactions.delete': 'Excluir Transações',
+
+    'reports.manage.view': 'Visualizar Relatórios',
+
+    'settings.users.view': 'Visualizar Usuários',
+    'settings.users.create': 'Cadastrar Usuários',
+    'settings.users.edit': 'Editar Usuários',
+    'settings.users.delete': 'Excluir Usuários',
+    'settings.roles.view': 'Visualizar Perfis de Acesso',
+    'settings.roles.create': 'Criar Perfis de Acesso',
+    'settings.roles.edit': 'Editar Perfis de Acesso',
+    'settings.roles.delete': 'Excluir Perfis de Acesso',
+};
+
+function getModuleLabel(key: string): string {
+    return moduleLabels[key] || key.replace(/_/g, ' ');
+}
+
+function getPermissionLabel(name: string): string {
+    return permissionLabels[name] || name.split('.').slice(1).join(' ');
+}
+
 export default function RolesIndex({ roles, groupedPermissions }: { roles: any[], groupedPermissions: any }) {
     const { confirm, modal } = useConfirmModal();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,7 +89,10 @@ export default function RolesIndex({ roles, groupedPermissions }: { roles: any[]
 
     function openCreate() {
         setEditingRole(null);
-        reset();
+        setData({
+            name: '',
+            permissions: [],
+        });
         clearErrors();
         setIsModalOpen(true);
     }
@@ -69,6 +139,17 @@ export default function RolesIndex({ roles, groupedPermissions }: { roles: any[]
         }
     }
 
+    function toggleModule(modulePerms: any[]) {
+        const allNames = modulePerms.map((p: any) => p.name);
+        const allSelected = allNames.every(n => data.permissions.includes(n));
+        if (allSelected) {
+            setData('permissions', data.permissions.filter(p => !allNames.includes(p)));
+        } else {
+            const merged = [...new Set([...data.permissions, ...allNames])];
+            setData('permissions', merged);
+        }
+    }
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Perfis de Acesso - Configurações" />
@@ -111,7 +192,7 @@ export default function RolesIndex({ roles, groupedPermissions }: { roles: any[]
                                     </td>
                                     <td className="px-5 py-3.5 text-muted-foreground">
                                         {role.name === 'Administrador' ? (
-                                            <span className="text-emerald-600 font-medium">Acesso Total (All)</span>
+                                            <span className="text-emerald-600 font-medium">Acesso Total</span>
                                         ) : (
                                             <span>{role.permissions?.length || 0} permissões</span>
                                         )}
@@ -162,35 +243,56 @@ export default function RolesIndex({ roles, groupedPermissions }: { roles: any[]
                                 <h3 className="text-sm font-medium border-b border-border/50 pb-2">Permissões de Acesso</h3>
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[50vh] overflow-y-auto p-1">
-                                    {Object.entries(groupedPermissions).map(([module, perms]: [string, any]) => (
-                                        <div key={module} className="bg-muted/30 border border-border/50 rounded-xl p-4">
-                                            <h4 className="text-sm font-semibold capitalize mb-3 text-primary">{module.replace('_', ' ')}</h4>
-                                            <div className="space-y-2">
-                                                {perms.map((p: any) => (
-                                                    <label key={p.name} className="flex items-center gap-2 cursor-pointer group">
-                                                        <div className="relative flex items-center">
-                                                            <input
-                                                                type="checkbox"
-                                                                className="peer sr-only"
-                                                                checked={data.permissions.includes(p.name)}
-                                                                onChange={() => togglePermission(p.name)}
-                                                            />
-                                                            <div className="w-4 h-4 rounded border border-border bg-background peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-colors">
-                                                                {data.permissions.includes(p.name) && (
-                                                                    <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                                    </svg>
-                                                                )}
+                                    {Object.entries(groupedPermissions).map(([module, perms]: [string, any]) => {
+                                        const allNames = perms.map((p: any) => p.name);
+                                        const allSelected = allNames.every((n: string) => data.permissions.includes(n));
+                                        const someSelected = allNames.some((n: string) => data.permissions.includes(n));
+
+                                        return (
+                                            <div key={module} className="bg-muted/30 border border-border/50 rounded-xl p-4">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <h4 className="text-sm font-semibold text-primary">{getModuleLabel(module)}</h4>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleModule(perms)}
+                                                        className={`text-xs font-medium px-2 py-0.5 rounded-md transition-colors ${
+                                                            allSelected
+                                                                ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                                                                : someSelected
+                                                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200'
+                                                                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                                        }`}
+                                                    >
+                                                        {allSelected ? 'Desmarcar todos' : 'Marcar todos'}
+                                                    </button>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {perms.map((p: any) => (
+                                                        <label key={p.name} className="flex items-center gap-2 cursor-pointer group">
+                                                            <div className="relative flex items-center">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="peer sr-only"
+                                                                    checked={data.permissions.includes(p.name)}
+                                                                    onChange={() => togglePermission(p.name)}
+                                                                />
+                                                                <div className="w-4 h-4 rounded border border-border bg-background peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-colors">
+                                                                    {data.permissions.includes(p.name) && (
+                                                                        <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                                        </svg>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                        <span className="text-sm text-foreground group-hover:text-primary transition-colors">
-                                                            {p.name.split('.').slice(1).join(' ')}
-                                                        </span>
-                                                    </label>
-                                                ))}
+                                                            <span className="text-sm text-foreground group-hover:text-primary transition-colors">
+                                                                {getPermissionLabel(p.name)}
+                                                            </span>
+                                                        </label>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                                 {errors.permissions && <p className="text-xs text-red-500">{errors.permissions}</p>}
                             </div>
