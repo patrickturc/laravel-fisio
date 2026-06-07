@@ -111,7 +111,7 @@ export function AppSidebar() {
                 )}
             </SidebarContent>
 
-            <SidebarFooter>
+            <SidebarFooter className="pb-8 md:pb-2">
                 <NavUser />
             </SidebarFooter>
         </Sidebar>
