@@ -43,7 +43,13 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
     const openCreateSheet = () => {
         setIsEditing(false);
         setEditingId(null);
-        reset();
+        setData({
+            name: '',
+            price: '',
+            duration_months: '',
+            description: '',
+            category: 'fisioterapia',
+        });
         clearErrors();
         setSheetOpen(true);
     };

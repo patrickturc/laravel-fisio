@@ -35,7 +35,12 @@ export default function ClinicalProtocolsIndex({ protocols, filters = {} }: { pr
 
     function openCreate() {
         setMode('create');
-        reset();
+        setData({
+            name: '',
+            description: '',
+            total_sessions: 10,
+            notes: '',
+        });
         clearErrors();
         setEditingId(null);
         setSheetOpen(true);
