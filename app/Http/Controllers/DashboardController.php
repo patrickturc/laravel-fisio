@@ -13,7 +13,17 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $selectedDate = $request->query('date', now()->toDateString());
+        $requestedDate = $request->query('date');
+
+        if (!$requestedDate) {
+            $today = now()->toDateString();
+            $nextAppointment = Appointment::where('appointment_date', '>=', $today)
+                ->orderBy('appointment_date', 'asc')
+                ->first();
+            $selectedDate = $nextAppointment ? $nextAppointment->appointment_date->format('Y-m-d') : $today;
+        } else {
+            $selectedDate = $requestedDate;
+        }
         $carbon = Carbon::parse($selectedDate);
 
         // Build the week (Mon-Sun) around the selected date
