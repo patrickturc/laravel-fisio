@@ -301,7 +301,7 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
                                                 </p>
                                                 <p className="text-xs text-muted-foreground capitalize">
                                                     {app.type === 'group' 
-                                                        ? `${app.patients?.length || 0} participante(s)` 
+                                                        ? (app.patients?.length ? app.patients.map(p => p.nickname || p.name.split(' ')[0]).join(', ') : 'Nenhum participante')
                                                         : (app.patients?.[0]?.type === 'pilates' ? 'Pilates' : 'Fisioterapia')}
                                                 </p>
                                             </div>
