@@ -52,7 +52,7 @@ class DashboardController extends Controller
         $today = now();
         $nextWeek = now()->addDays(7);
         
-        $upcomingBirthdays = Patient::whereNotNull('birthdate')->get()->filter(function ($patient) use ($today, $nextWeek) {
+        $upcomingBirthdays = Patient::whereNotNull('birthdate')->get(['id', 'name', 'birthdate'])->filter(function ($patient) use ($today, $nextWeek) {
             $birthdayThisYear = $patient->birthdate->copy()->year($today->year);
             if ($birthdayThisYear->isBefore($today->startOfDay())) {
                 $birthdayThisYear->addYear();
