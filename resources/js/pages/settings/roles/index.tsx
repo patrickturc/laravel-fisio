@@ -15,11 +15,15 @@ const moduleLabels: Record<string, string> = {
     dashboard: 'Painel Inicial',
     patients: 'Pacientes',
     appointments: 'Agenda',
+    group_classes: 'Turmas',
     evolutions: 'Evoluções',
     treatment_plans: 'Protocolos Clínicos',
     memberships: 'Matrículas',
+    commercial_plans: 'Planos Comerciais',
     financial: 'Financeiro',
+    recurring_expenses: 'Gastos Recorrentes',
     reports: 'Relatórios',
+    calendar: 'Sincronização de Agenda',
     settings: 'Configurações',
 };
 
@@ -37,6 +41,11 @@ const permissionLabels: Record<string, string> = {
     'appointments.manage.edit': 'Editar Agendamentos',
     'appointments.manage.delete': 'Excluir Agendamentos',
 
+    'group_classes.manage.view': 'Visualizar Turmas',
+    'group_classes.manage.create': 'Criar Turmas',
+    'group_classes.manage.edit': 'Editar Turmas',
+    'group_classes.manage.delete': 'Excluir Turmas',
+
     'evolutions.manage.view': 'Visualizar Evoluções',
     'evolutions.manage.create': 'Registrar Evoluções',
     'evolutions.manage.edit': 'Editar Evoluções',
@@ -52,12 +61,24 @@ const permissionLabels: Record<string, string> = {
     'memberships.manage.edit': 'Editar Matrículas',
     'memberships.manage.delete': 'Excluir Matrículas',
 
+    'commercial_plans.manage.view': 'Visualizar Planos',
+    'commercial_plans.manage.create': 'Criar Planos',
+    'commercial_plans.manage.edit': 'Editar Planos',
+    'commercial_plans.manage.delete': 'Excluir Planos',
+
     'financial.transactions.view': 'Visualizar Transações',
     'financial.transactions.create': 'Registrar Transações',
     'financial.transactions.edit': 'Editar Transações',
     'financial.transactions.delete': 'Excluir Transações',
 
+    'recurring_expenses.manage.view': 'Visualizar Gastos Recorrentes',
+    'recurring_expenses.manage.create': 'Registrar Gastos Recorrentes',
+    'recurring_expenses.manage.edit': 'Editar Gastos Recorrentes',
+    'recurring_expenses.manage.delete': 'Excluir Gastos Recorrentes',
+
     'reports.manage.view': 'Visualizar Relatórios',
+
+    'calendar.sync.manage': 'Gerenciar Sincronização',
 
     'settings.users.view': 'Visualizar Usuários',
     'settings.users.create': 'Cadastrar Usuários',

@@ -35,13 +35,19 @@ class AclSeeder extends Seeder
             'appointments.manage.edit',
             'appointments.manage.delete',
 
+            // Group Classes
+            'group_classes.manage.view',
+            'group_classes.manage.create',
+            'group_classes.manage.edit',
+            'group_classes.manage.delete',
+
             // Evolutions
             'evolutions.manage.view',
             'evolutions.manage.create',
             'evolutions.manage.edit',
             'evolutions.manage.delete',
 
-            // Treatment Plans
+            // Treatment Plans / Clinical Protocols
             'treatment_plans.manage.view',
             'treatment_plans.manage.create',
             'treatment_plans.manage.edit',
@@ -53,14 +59,29 @@ class AclSeeder extends Seeder
             'memberships.manage.edit',
             'memberships.manage.delete',
 
+            // Commercial Plans
+            'commercial_plans.manage.view',
+            'commercial_plans.manage.create',
+            'commercial_plans.manage.edit',
+            'commercial_plans.manage.delete',
+
             // Financial
             'financial.transactions.view',
             'financial.transactions.create',
             'financial.transactions.edit',
             'financial.transactions.delete',
 
+            // Recurring Expenses
+            'recurring_expenses.manage.view',
+            'recurring_expenses.manage.create',
+            'recurring_expenses.manage.edit',
+            'recurring_expenses.manage.delete',
+
             // Reports
             'reports.manage.view',
+
+            // Calendar Sync
+            'calendar.sync.manage',
 
             // Settings
             'settings.users.view',
@@ -90,7 +111,10 @@ class AclSeeder extends Seeder
             'appointments.manage.view',
             'appointments.manage.create',
             'appointments.manage.edit',
+            'group_classes.manage.view',
             'memberships.manage.view',
+            'memberships.manage.create',
+            'commercial_plans.manage.view',
             'financial.transactions.view',
             'financial.transactions.create', // Can receive payments
         ]);
@@ -100,12 +124,14 @@ class AclSeeder extends Seeder
             'dashboard.view',
             'patients.manage.view',
             'appointments.manage.view',
+            'group_classes.manage.view',
             'evolutions.manage.view',
             'evolutions.manage.create',
             'evolutions.manage.edit',
             'treatment_plans.manage.view',
             'treatment_plans.manage.create',
             'treatment_plans.manage.edit',
+            'calendar.sync.manage',
         ]);
 
         // Assign 'Administrador' role to the admin user
