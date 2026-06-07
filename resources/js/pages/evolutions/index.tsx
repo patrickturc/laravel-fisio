@@ -313,10 +313,10 @@ export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], pa
 
                                             <div className="flex-shrink-0 flex items-center justify-between md:justify-center gap-3">
                                                 <Link
-                                                    href={`/patients/${patient.id}?tab=evolutions`}
+                                                    href={`/evolutions/patient/${patient.id}`}
                                                     className="flex items-center gap-1.5 px-4 py-2 bg-background border border-border/80 rounded-xl text-sm font-medium hover:border-primary hover:text-primary transition-all shadow-sm group-hover:shadow"
                                                 >
-                                                    Ver Prontuário
+                                                    Ver Evoluções
                                                     <ArrowUpRight className="size-4" />
                                                 </Link>
                                             </div>

@@ -212,6 +212,23 @@ class EvolutionController extends Controller
         ]);
     }
 
+    public function patientEvolutions(Patient $patient)
+    {
+        $evolutions = Evolution::with('professional')
+            ->where('paciente_id', $patient->id)
+            ->orderBy('data_atendimento', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $protocols = \App\Models\ClinicalProtocol::orderBy('name')->get(['id', 'name']);
+
+        return Inertia::render('evolutions/patient-evolutions', [
+            'patient' => $patient,
+            'evolutions' => $evolutions,
+            'protocols' => $protocols,
+        ]);
+    }
+
     public function edit(Evolution $evolution)
     {
         $patients = Patient::orderBy('name')->get(['id', 'name', 'type']);
