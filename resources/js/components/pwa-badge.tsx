@@ -30,33 +30,7 @@ export default function PwaBadge() {
         };
     }, []);
 
-    useEffect(() => {
-        const handleBeforeInstallPrompt = (e: any) => {
-            // Prevent the mini-infobar from appearing on mobile
-            e.preventDefault();
-            // Stash the event so it can be triggered later.
-            setDeferredPrompt(e);
-        };
-
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-        return () => {
-            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        };
-    }, []);
-
-    const handleInstallClick = async () => {
-        if (!deferredPrompt) return;
-        // Show the install prompt
-        deferredPrompt.prompt();
-        // Wait for the user to respond to the prompt
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-            setDeferredPrompt(null);
-        }
-    };
-
-    if (!isOffline && !needRefresh && !deferredPrompt) {
+    if (!isOffline && !needRefresh) {
         return null;
     }
 
@@ -79,24 +53,6 @@ export default function PwaBadge() {
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => setNeedRefresh(false)}>
                             Depois
-                        </Button>
-                    </div>
-                </div>
-            )}
-
-            {deferredPrompt && !isOffline && !needRefresh && (
-                <div className="flex flex-col gap-2 bg-primary/10 border border-primary/20 px-4 py-3 rounded-lg shadow-xl text-sm animate-in slide-in-from-bottom-2 backdrop-blur-md">
-                    <div className="font-medium text-primary flex items-center gap-2">
-                        <Download className="size-4" />
-                        Instalar App
-                    </div>
-                    <div className="text-muted-foreground mb-1">Instale o Phisio no seu dispositivo para acesso rápido.</div>
-                    <div className="flex gap-2">
-                        <Button size="sm" onClick={handleInstallClick}>
-                            Instalar
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setDeferredPrompt(null)}>
-                            Agora não
                         </Button>
                     </div>
                 </div>
