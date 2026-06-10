@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AppointmentController extends Controller
 {
@@ -27,9 +28,11 @@ class AppointmentController extends Controller
         }
 
         if ($request->filled('search')) {
-            $query->whereHas('patients', function ($q) use ($request) {
-                $q->where('name', 'ilike', '%' . $request->search . '%');
-            })->orWhere('title', 'ilike', '%' . $request->search . '%');
+            $query->where(function ($q) use ($request) {
+                $q->whereHas('patients', function ($sub) use ($request) {
+                    $sub->where('name', 'ilike', '%' . $request->search . '%');
+                })->orWhere('title', 'ilike', '%' . $request->search . '%');
+            });
         }
 
         $appointments = $query->paginate(15)->withQueryString();

@@ -64,7 +64,7 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
     const performReschedule = (mode: 'single' | 'future') => {
         if (!reschedulePrompt.eventId) return;
         
-        axios.put(`/api/appointments/${reschedulePrompt.eventId}/reschedule`, {
+        axios.post(`/appointments/${reschedulePrompt.eventId}/reschedule`, {
             appointment_date: reschedulePrompt.newDate,
             start_time: reschedulePrompt.newTime,
             update_mode: mode
@@ -255,7 +255,7 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                                             newTime
                                         });
                                     } else {
-                                        axios.put(`/api/appointments/${eventId}/reschedule`, {
+                                        axios.post(`/appointments/${eventId}/reschedule`, {
                                             appointment_date: newDate,
                                             start_time: newTime,
                                             update_mode: 'single'

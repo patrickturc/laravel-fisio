@@ -165,8 +165,12 @@ class GroupClassController extends Controller
         $patientIds = $groupClass->patients->pluck('id')->toArray();
         $userId = auth()->id();
         
+        // Respect the class capacity: never enroll more students than max_participants.
+        $patientIds = array_slice($patientIds, 0, $groupClass->max_participants);
+
         $createdCount = 0;
         $deletedCount = 0;
+        $conflictCount = 0;
 
         DB::beginTransaction();
         try {
@@ -180,20 +184,32 @@ class GroupClassController extends Controller
 
             foreach ($schedules as $schedule) {
                 $currentDate = $startDate->copy();
-                
+
                 while ($currentDate->dayOfWeek !== $schedule->day_of_week) {
                     $currentDate->addDay();
                 }
-                
+
                 while ($currentDate->lessThanOrEqualTo($endDate)) {
                     $dateString = $currentDate->format('Y-m-d');
-                    
+
                     $exists = Appointment::where('group_class_id', $groupClass->id)
                         ->where('appointment_date', $dateString)
                         ->where('start_time', $schedule->start_time)
                         ->exists();
-                        
-                    if (!$exists) {
+
+                    // Skip if the instructor already has an overlapping appointment
+                    // (another class or individual session) at this time.
+                    $end = date('H:i', strtotime($schedule->start_time) + ($schedule->duration_minutes * 60));
+                    $conflict = Appointment::where('appointment_date', $dateString)
+                        ->where('user_id', $userId)
+                        ->where('group_class_id', '!=', $groupClass->id)
+                        ->where('start_time', '<', $end)
+                        ->whereRaw("start_time::time + (duration_minutes || ' minutes')::interval > ?::time", [$schedule->start_time])
+                        ->exists();
+
+                    if (!$exists && $conflict) {
+                        $conflictCount++;
+                    } elseif (!$exists) {
                         $appointment = Appointment::create([
                             'user_id' => $userId,
                             'group_class_id' => $groupClass->id,
@@ -204,24 +220,27 @@ class GroupClassController extends Controller
                             'start_time' => $schedule->start_time,
                             'duration_minutes' => $schedule->duration_minutes,
                         ]);
-                        
+
                         foreach ($patientIds as $patientId) {
                             $appointment->patients()->attach($patientId, ['status' => 'scheduled']);
                         }
-                        
+
                         $createdCount++;
                     }
-                    
+
                     $currentDate->addWeek();
                 }
             }
             DB::commit();
-            
+
             $msg = "✅ {$createdCount} aulas geradas com sucesso!";
             if ($reschedule && $deletedCount > 0) {
                 $msg = "✅ {$deletedCount} aulas antigas removidas e {$createdCount} novas aulas geradas!";
             }
-            
+            if ($conflictCount > 0) {
+                $msg .= " Atenção: {$conflictCount} aula(s) ignorada(s) por conflito de horário do profissional.";
+            }
+
             return back()->with('success', $msg);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -242,11 +261,18 @@ class GroupClassController extends Controller
         
         $count = 0;
         foreach ($updated as $appointment) {
-            // Find the matching schedule for this appointment's day of week
+            // Find the matching schedule for this appointment's day of week.
             $appointmentDay = Carbon::parse($appointment->appointment_date)->dayOfWeek;
-            $matchingSchedule = $groupClass->schedules->first(function ($s) use ($appointmentDay) {
+            $sameDay = $groupClass->schedules->filter(function ($s) use ($appointmentDay) {
                 return $s->day_of_week === $appointmentDay;
             });
+
+            // When a day has more than one session, disambiguate by the appointment's
+            // current start_time so each session keeps its own slot (instead of all
+            // collapsing onto the first schedule).
+            $matchingSchedule = $sameDay->first(function ($s) use ($appointment) {
+                return substr((string) $s->start_time, 0, 5) === substr((string) $appointment->start_time, 0, 5);
+            }) ?? $sameDay->first();
             
             if ($matchingSchedule) {
                 $appointment->update([
