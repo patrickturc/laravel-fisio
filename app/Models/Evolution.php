@@ -4,14 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Evolution extends Model
 {
-    use HasUuids;
+    use HasUuids, SoftDeletes;
 
     protected $table = 'evolutions';
 
-    public $timestamps = false;
+    /**
+     * Medical records require an audit trail; keep created_at/updated_at so
+     * every edit to a prontuário is timestamped.
+     */
+    public $timestamps = true;
 
     protected $fillable = [
         'paciente_id',
@@ -42,9 +47,9 @@ class Evolution extends Model
         'orientacoes_domiciliares',
         'proxima_sessao',
         'assinatura_digital',
-        'observacoes'
+        'observacoes',
     ];
-    
+
     protected function casts(): array
     {
         return [
@@ -57,17 +62,17 @@ class Evolution extends Model
     {
         return $this->belongsTo(Patient::class, 'paciente_id');
     }
-    
+
     public function appointment()
     {
         return $this->belongsTo(Appointment::class, 'agendamento_id');
     }
-    
+
     public function professional()
     {
         return $this->belongsTo(User::class, 'profissional_id');
     }
-    
+
     public function photos()
     {
         return $this->hasMany(EvolutionPhoto::class, 'evolucao_id');

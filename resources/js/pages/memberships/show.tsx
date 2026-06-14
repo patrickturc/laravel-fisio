@@ -56,7 +56,11 @@ export default function MembershipShow({ membership }: { membership: any }) {
                     </div>
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={() => router.post(`/memberships/${membership.id}/renew`)}
+                            onClick={() => confirm.open({
+                                title: 'Renovar Matrícula',
+                                message: 'Isso criará uma nova matrícula a partir do fim da atual e gerará uma nova cobrança. Deseja continuar?',
+                                onConfirm: () => router.post(`/memberships/${membership.id}/renew`),
+                            })}
                             className="flex items-center gap-2 h-10 px-4 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
                         >
                             <CalendarIcon className="size-4" />
@@ -133,6 +137,34 @@ export default function MembershipShow({ membership }: { membership: any }) {
                         <div className="mt-1">{getStatusBadge(membership.status)}</div>
                     </motion.div>
                 </div>
+
+                {membership.sessions_total != null && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.35 }}
+                        className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl shadow-sm p-6"
+                    >
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm text-muted-foreground">Sessões utilizadas</span>
+                            <span className="text-sm font-semibold text-foreground">
+                                {membership.sessions_used} de {membership.sessions_total}
+                                {membership.sessions_remaining === 0 && (
+                                    <span className="ml-2 text-red-500 font-bold">• Esgotado</span>
+                                )}
+                            </span>
+                        </div>
+                        <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
+                            <div
+                                className={`h-full rounded-full transition-all ${membership.sessions_remaining === 0 ? 'bg-red-500' : 'bg-primary'}`}
+                                style={{ width: `${Math.min(100, (membership.sessions_used / membership.sessions_total) * 100)}%` }}
+                            />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                            {membership.sessions_remaining} sessão(ões) restante(s) na vigência.
+                        </p>
+                    </motion.div>
+                )}
 
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}

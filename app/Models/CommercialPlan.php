@@ -14,6 +14,7 @@ class CommercialPlan extends Model
         'category',
         'price',
         'duration_months',
+        'sessions_total',
         'description',
     ];
 
@@ -22,6 +23,7 @@ class CommercialPlan extends Model
         return [
             'price' => 'decimal:2',
             'duration_months' => 'integer',
+            'sessions_total' => 'integer',
         ];
     }
 }

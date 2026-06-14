@@ -11,6 +11,7 @@ class CommercialPlanController extends Controller
     public function index()
     {
         $plans = CommercialPlan::orderBy('name')->get();
+
         return Inertia::render('commercial-plans/index', ['plans' => $plans]);
     }
 
@@ -26,6 +27,7 @@ class CommercialPlanController extends Controller
             'category' => 'required|in:fisioterapia,pilates,teste',
             'price' => 'required|numeric|min:0',
             'duration_months' => 'nullable|integer|min:1',
+            'sessions_total' => 'nullable|integer|min:1',
             'description' => 'nullable|string|max:1000',
         ]);
 
@@ -46,6 +48,7 @@ class CommercialPlanController extends Controller
             'category' => 'required|in:fisioterapia,pilates,teste',
             'price' => 'required|numeric|min:0',
             'duration_months' => 'nullable|integer|min:1',
+            'sessions_total' => 'nullable|integer|min:1',
             'description' => 'nullable|string|max:1000',
         ]);
 
@@ -57,6 +60,7 @@ class CommercialPlanController extends Controller
     public function destroy(CommercialPlan $commercialPlan)
     {
         $commercialPlan->delete();
+
         return redirect()->route('commercial-plans.index')->with('success', 'Plano comercial excluído.');
     }
 }

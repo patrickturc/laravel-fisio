@@ -3,13 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
-use App\Models\Patient;
+use App\Models\ClinicalProtocol;
+use App\Models\GroupClass;
 use App\Models\Membership;
+use App\Models\Patient;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class AppointmentController extends Controller
 {
@@ -30,15 +32,15 @@ class AppointmentController extends Controller
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->whereHas('patients', function ($sub) use ($request) {
-                    $sub->where('name', 'ilike', '%' . $request->search . '%');
-                })->orWhere('title', 'ilike', '%' . $request->search . '%');
+                    $sub->where('name', 'ilike', '%'.$request->search.'%');
+                })->orWhere('title', 'ilike', '%'.$request->search.'%');
             });
         }
 
         $appointments = $query->paginate(15)->withQueryString();
 
         $patients = Patient::orderBy('name')->get(['id', 'name']);
-        $groupClasses = \App\Models\GroupClass::orderBy('name')->get(['id', 'name', 'color', 'max_participants']);
+        $groupClasses = GroupClass::orderBy('name')->get(['id', 'name', 'color', 'max_participants']);
         $users = User::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('appointments/index', [
@@ -54,7 +56,7 @@ class AppointmentController extends Controller
     {
         return redirect()->route('appointments.index', [
             'create' => 'true',
-            'patient_id' => $request->query('patient_id')
+            'patient_id' => $request->query('patient_id'),
         ]);
     }
 
@@ -81,30 +83,36 @@ class AppointmentController extends Controller
 
         // Validate memberships
         $invalidPatients = [];
+        $exhaustedPatients = [];
         foreach ($validated['patient_ids'] as $patientId) {
             $patient = Patient::find($patientId);
-            $hasActivePlan = Membership::where('patient_id', $patientId)
+            $activeMembership = Membership::where('patient_id', $patientId)
                 ->where('status', 'active')
                 ->where('end_date', '>=', now()->startOfDay())
                 ->whereHas('commercialPlan', function ($q) {
                     $q->whereIn('category', ['pilates', 'teste']);
-                })->exists();
+                })
+                ->with('commercialPlan')
+                ->first();
 
-            if (!$hasActivePlan && $validated['type'] === 'group') {
+            if (! $activeMembership && $validated['type'] === 'group') {
                 $invalidPatients[] = $patient->name;
+            } elseif ($activeMembership && $activeMembership->sessions_remaining === 0) {
+                $exhaustedPatients[] = $patient->name;
             }
         }
 
         if (count($invalidPatients) > 0) {
             $names = implode(', ', $invalidPatients);
+
             return back()->withErrors(['patient_ids' => "Os seguintes pacientes não possuem um plano ativo de Pilates ou Aula Teste: $names."])->withInput();
         }
 
         $userId = $request->user_id ?? auth()->id();
         $isRecurring = $request->boolean('is_recurring');
-        $endDate = $isRecurring ? \Carbon\Carbon::parse($validated['recurrence_end_date']) : \Carbon\Carbon::parse($validated['appointment_date']);
-        $currentDate = \Carbon\Carbon::parse($validated['appointment_date']);
-        
+        $endDate = $isRecurring ? Carbon::parse($validated['recurrence_end_date']) : Carbon::parse($validated['appointment_date']);
+        $currentDate = Carbon::parse($validated['appointment_date']);
+
         $createdCount = 0;
         $conflictCount = 0;
 
@@ -116,18 +124,20 @@ class AppointmentController extends Controller
                 // Check for schedule conflict (same user_id overlapping times)
                 $conflict = Appointment::where('appointment_date', $dateString)
                     ->where('user_id', $userId)
+                    ->where('status', '!=', 'cancelled')
                     ->where(function ($query) use ($validated) {
                         $start = $validated['start_time'];
                         $end = date('H:i', strtotime($start) + ($validated['duration_minutes'] * 60));
                         $query->where(function ($q) use ($start, $end) {
                             $q->where('start_time', '<', $end)
-                              ->whereRaw("start_time::time + (duration_minutes || ' minutes')::interval > ?::time", [$start]);
+                                ->whereRaw("start_time::time + (duration_minutes || ' minutes')::interval > ?::time", [$start]);
                         });
                     })->exists();
 
                 if ($conflict) {
-                    if ($createdCount === 0 && !$isRecurring) {
+                    if ($createdCount === 0 && ! $isRecurring) {
                         DB::rollBack();
+
                         return back()->withErrors(['start_time' => 'Já existe um agendamento neste horário.'])->withInput();
                     }
                     $conflictCount++;
@@ -152,7 +162,9 @@ class AppointmentController extends Controller
                 }
 
                 $currentDate->addWeek();
-                if (!$isRecurring) break;
+                if (! $isRecurring) {
+                    break;
+                }
             }
             DB::commit();
         } catch (\Exception $e) {
@@ -160,7 +172,7 @@ class AppointmentController extends Controller
             throw $e;
         }
 
-        $message = "Agendamento criado com sucesso!";
+        $message = 'Agendamento criado com sucesso!';
         if ($isRecurring) {
             $message = "Foram criados $createdCount agendamentos.";
             if ($conflictCount > 0) {
@@ -168,7 +180,14 @@ class AppointmentController extends Controller
             }
         }
 
-        return redirect()->route('appointments.index')->with('success', $message);
+        $redirect = redirect()->route('appointments.index')->with('success', $message);
+
+        if (count($exhaustedPatients) > 0) {
+            $names = implode(', ', $exhaustedPatients);
+            $redirect->with('warning', "⚠️ Sem sessões restantes no plano: $names. A sessão foi agendada mesmo assim.");
+        }
+
+        return $redirect;
     }
 
     public function events(Request $request)
@@ -186,21 +205,21 @@ class AppointmentController extends Controller
         $appointments = $query->get();
 
         $events = $appointments->map(function ($app) {
-            $start_datetime = $app->appointment_date->format('Y-m-d') . 'T' . $app->start_time;
+            $start_datetime = $app->appointment_date->format('Y-m-d').'T'.$app->start_time;
             $end_datetime = date('Y-m-d\TH:i:s', strtotime($start_datetime) + ($app->duration_minutes * 60));
-            
+
             // Use the group class color if available, otherwise default purple for group / blue for individual
             if ($app->type === 'group' && $app->groupClass) {
                 $bgColor = $app->groupClass->color ?: '#8b5cf6';
             } else {
                 $bgColor = $app->type === 'group' ? '#8b5cf6' : '#3b82f6';
             }
-            
+
             $title = $app->title;
-            if (!$title && $app->patients->count() > 0) {
+            if (! $title && $app->patients->count() > 0) {
                 $title = $app->patients->first()->name;
                 if ($app->patients->count() > 1) {
-                    $title .= ' + ' . ($app->patients->count() - 1);
+                    $title .= ' + '.($app->patients->count() - 1);
                 }
             }
 
@@ -213,9 +232,10 @@ class AppointmentController extends Controller
                 'borderColor' => 'transparent',
                 'extendedProps' => [
                     'type' => $app->type,
+                    'status' => $app->status,
                     'patient_count' => $app->patients->count(),
-                    'max_participants' => $app->max_participants
-                ]
+                    'max_participants' => $app->max_participants,
+                ],
             ];
         });
 
@@ -225,6 +245,7 @@ class AppointmentController extends Controller
     public function details(Appointment $appointment)
     {
         $appointment->load('patients');
+
         return response()->json($appointment);
     }
 
@@ -244,7 +265,7 @@ class AppointmentController extends Controller
                 $oldDate = $appointment->appointment_date;
                 $oldTime = $appointment->start_time;
                 $oldDayOfWeek = Carbon::parse($oldDate)->dayOfWeek; // 0 (Sun) - 6 (Sat)
-                
+
                 $newDateObj = Carbon::parse($validated['appointment_date']);
                 $newDayOfWeek = $newDateObj->dayOfWeek;
                 $newTime = $validated['start_time'];
@@ -269,14 +290,14 @@ class AppointmentController extends Controller
                 }
 
                 // Update the base schedule
-                $groupClass = \App\Models\GroupClass::find($appointment->group_class_id);
+                $groupClass = GroupClass::find($appointment->group_class_id);
                 if ($groupClass) {
                     // Start times are often stored as H:i:s, $oldTime might be H:i
                     $schedule = $groupClass->schedules()
                         ->where('day_of_week', $oldDayOfWeek)
-                        ->where(function($q) use ($oldTime) {
+                        ->where(function ($q) use ($oldTime) {
                             $q->where('start_time', $oldTime)
-                              ->orWhere('start_time', $oldTime . ':00');
+                                ->orWhere('start_time', $oldTime.':00');
                         })->first();
 
                     if ($schedule) {
@@ -288,9 +309,11 @@ class AppointmentController extends Controller
                 }
 
                 DB::commit();
+
                 return response()->json(['success' => true]);
             } catch (\Exception $e) {
                 DB::rollBack();
+
                 return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
             }
         }
@@ -307,10 +330,10 @@ class AppointmentController extends Controller
     public function show(Appointment $appointment)
     {
         $appointment->load('patients');
-        $protocols = \App\Models\ClinicalProtocol::orderBy('name')->get(['id', 'name']);
+        $protocols = ClinicalProtocol::orderBy('name')->get(['id', 'name']);
         $patients = Patient::orderBy('name')->get(['id', 'name']);
         $users = User::orderBy('name')->get(['id', 'name']);
-        $groupClasses = \App\Models\GroupClass::orderBy('name')->get(['id', 'name', 'color', 'max_participants']);
+        $groupClasses = GroupClass::orderBy('name')->get(['id', 'name', 'color', 'max_participants']);
 
         return Inertia::render('appointments/show', [
             'appointment' => $appointment,
@@ -362,13 +385,14 @@ class AppointmentController extends Controller
                     $q->whereIn('category', ['pilates', 'teste']);
                 })->exists();
 
-            if (!$hasActivePlan && $validated['type'] === 'group') {
+            if (! $hasActivePlan && $validated['type'] === 'group') {
                 $invalidPatients[] = $patient->name;
             }
         }
 
         if (count($invalidPatients) > 0) {
             $names = implode(', ', $invalidPatients);
+
             return back()->withErrors(['patient_ids' => "Os seguintes pacientes não possuem um plano ativo de Pilates ou Aula Teste: $names."])->withInput();
         }
 
@@ -378,12 +402,13 @@ class AppointmentController extends Controller
         $conflict = Appointment::where('appointment_date', $validated['appointment_date'])
             ->where('id', '!=', $appointment->id)
             ->where('user_id', $userId)
+            ->where('status', '!=', 'cancelled')
             ->where(function ($query) use ($validated) {
                 $start = $validated['start_time'];
                 $end = date('H:i', strtotime($start) + ($validated['duration_minutes'] * 60));
                 $query->where(function ($q) use ($start, $end) {
                     $q->where('start_time', '<', $end)
-                      ->whereRaw("start_time::time + (duration_minutes || ' minutes')::interval > ?::time", [$start]);
+                        ->whereRaw("start_time::time + (duration_minutes || ' minutes')::interval > ?::time", [$start]);
                 });
             })->exists();
 
@@ -426,25 +451,56 @@ class AppointmentController extends Controller
     public function updateStatus(Request $request, Appointment $appointment, $patientId)
     {
         $validated = $request->validate([
-            'status' => 'required|in:scheduled,attended,missed,cancelled'
+            'status' => 'required|in:scheduled,attended,missed,cancelled',
         ]);
 
+        if (! $appointment->patients()->whereKey($patientId)->exists()) {
+            return back()->withErrors(['status' => 'Paciente não pertence a este agendamento.']);
+        }
+
         $appointment->patients()->updateExistingPivot($patientId, [
-            'status' => $validated['status']
+            'status' => $validated['status'],
         ]);
 
         return back()->with('success', 'Status atualizado com sucesso.');
     }
 
+    /**
+     * Update the session-level status (scheduled | completed | cancelled) and
+     * cascade a sensible per-patient attendance change.
+     */
+    public function updateAppointmentStatus(Request $request, Appointment $appointment)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:scheduled,completed,cancelled',
+        ]);
+
+        DB::transaction(function () use ($appointment, $validated) {
+            $appointment->update(['status' => $validated['status']]);
+
+            // Patients still "scheduled" inherit the session outcome; explicit
+            // attended/missed/cancelled marks set per patient are preserved.
+            if ($validated['status'] === 'completed') {
+                $appointment->patients()->wherePivot('status', 'scheduled')
+                    ->each(fn ($patient) => $appointment->patients()->updateExistingPivot($patient->id, ['status' => 'attended']));
+            } elseif ($validated['status'] === 'cancelled') {
+                $appointment->patients()->wherePivot('status', 'scheduled')
+                    ->each(fn ($patient) => $appointment->patients()->updateExistingPivot($patient->id, ['status' => 'cancelled']));
+            }
+        });
+
+        return back()->with('success', 'Status da sessão atualizado.');
+    }
+
     public function destroy(Request $request, Appointment $appointment)
     {
         $deleteMode = $request->query('delete_mode', 'single');
-        
+
         if ($deleteMode === 'future') {
             // Delete this and all future scheduled appointments
             $query = Appointment::where('appointment_date', '>=', $appointment->appointment_date)
                 ->where('status', 'scheduled');
-            
+
             if ($appointment->group_class_id) {
                 // For group classes: delete all future of the same group class
                 $query->where('group_class_id', $appointment->group_class_id);
@@ -453,31 +509,31 @@ class AppointmentController extends Controller
                 $patientIds = $appointment->patients()->pluck('patients.id')->toArray();
                 $query->where('type', 'individual')
                     ->where('start_time', $appointment->start_time)
-                    ->whereHas('patients', function($q) use ($patientIds) {
+                    ->whereHas('patients', function ($q) use ($patientIds) {
                         $q->whereIn('patients.id', $patientIds);
                     });
             }
-            
+
             $toDelete = $query->get();
-            
+
             // Filter by day of week for individual appointments to be safe
-            if (!$appointment->group_class_id) {
-                $dayOfWeek = \Carbon\Carbon::parse($appointment->appointment_date)->dayOfWeek;
-                $toDelete = $toDelete->filter(function($app) use ($dayOfWeek) {
-                    return \Carbon\Carbon::parse($app->appointment_date)->dayOfWeek === $dayOfWeek;
+            if (! $appointment->group_class_id) {
+                $dayOfWeek = Carbon::parse($appointment->appointment_date)->dayOfWeek;
+                $toDelete = $toDelete->filter(function ($app) use ($dayOfWeek) {
+                    return Carbon::parse($app->appointment_date)->dayOfWeek === $dayOfWeek;
                 });
             }
             $count = $toDelete->count();
-            
+
             foreach ($toDelete as $app) {
                 $app->patients()->detach();
                 $app->delete();
             }
-            
+
             return redirect()->route('appointments.index')
                 ->with('success', "✅ {$count} agendamentos excluídos!");
         }
-        
+
         // Single delete
         $appointment->patients()->detach();
         $appointment->delete();

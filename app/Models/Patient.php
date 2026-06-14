@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Notifications\Notifiable;
 
 class Patient extends Model
 {
-    use HasUuids;
+    use HasUuids, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -31,7 +33,7 @@ class Patient extends Model
         'neighborhood',
         'city',
         'state',
-        'user_id'
+        'user_id',
     ];
 
     protected function casts(): array
@@ -45,14 +47,14 @@ class Patient extends Model
     {
         return $this->belongsTo(User::class);
     }
-    
+
     public function appointments()
     {
         return $this->belongsToMany(Appointment::class)
-                    ->withPivot('status')
-                    ->withTimestamps();
+            ->withPivot('status')
+            ->withTimestamps();
     }
-    
+
     public function evolutions()
     {
         return $this->hasMany(Evolution::class, 'paciente_id');

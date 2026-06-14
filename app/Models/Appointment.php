@@ -19,10 +19,11 @@ class Appointment extends Model
         'notes',
         'title',
         'type',
+        'status',
         'max_participants',
-        'group_class_id'
+        'group_class_id',
     ];
-    
+
     protected function casts(): array
     {
         return [
@@ -34,10 +35,10 @@ class Appointment extends Model
     public function patients()
     {
         return $this->belongsToMany(Patient::class)
-                    ->withPivot('status')
-                    ->withTimestamps();
+            ->withPivot('status', 'reminder_sent_at')
+            ->withTimestamps();
     }
-    
+
     public function user()
     {
         return $this->belongsTo(User::class);

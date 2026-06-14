@@ -3,20 +3,25 @@
 namespace App\Notifications;
 
 use App\Models\Appointment;
+use App\Models\Patient;
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Carbon\Carbon;
 
 class AppointmentReminder extends Notification implements ShouldQueue
 {
     use Queueable;
 
     public function __construct(
-        public Appointment $appointment
+        public Appointment $appointment,
+        public Patient $patient,
     ) {}
 
+    /**
+     * @return list<string>
+     */
     public function via(object $notifiable): array
     {
         return ['mail'];
@@ -25,18 +30,16 @@ class AppointmentReminder extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $date = Carbon::parse($this->appointment->appointment_date)->format('d/m/Y');
-        $time = substr($this->appointment->start_time, 0, 5);
-        $patientName = $this->appointment->patient->name ?? 'Paciente';
+        $time = substr((string) $this->appointment->start_time, 0, 5);
 
         return (new MailMessage)
-            ->subject("Lembrete: Sessão amanhã às {$time}")
-            ->greeting("Olá!")
-            ->line("Lembramos que você tem uma sessão agendada para amanhã:")
-            ->line("**Paciente:** {$patientName}")
+            ->subject("Lembrete: sua sessão amanhã às {$time}")
+            ->greeting("Olá, {$this->patient->name}!")
+            ->line('Lembramos que você tem uma sessão agendada para amanhã:')
             ->line("**Data:** {$date}")
             ->line("**Horário:** {$time}")
             ->line("**Duração:** {$this->appointment->duration_minutes} minutos")
-            ->action('Ver Agendamento', url("/appointments/{$this->appointment->id}"))
+            ->line('Se precisar remarcar ou cancelar, entre em contato com a clínica.')
             ->line('Até lá!');
     }
 }

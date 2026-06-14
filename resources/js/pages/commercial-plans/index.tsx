@@ -17,6 +17,7 @@ interface CommercialPlan {
     name: string;
     price: string;
     duration_months: number | null;
+    sessions_total: number | null;
     description: string | null;
     category: 'fisioterapia' | 'pilates' | 'teste';
 }
@@ -36,6 +37,7 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
         name: '',
         price: '',
         duration_months: '',
+        sessions_total: '',
         description: '',
         category: 'fisioterapia',
     });
@@ -47,6 +49,7 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
             name: '',
             price: '',
             duration_months: '',
+            sessions_total: '',
             description: '',
             category: 'fisioterapia',
         });
@@ -61,6 +64,7 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
             name: plan.name,
             price: plan.price,
             duration_months: plan.duration_months?.toString() || '',
+            sessions_total: plan.sessions_total?.toString() || '',
             description: plan.description || '',
             category: plan.category || 'fisioterapia',
         });
@@ -115,6 +119,7 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                                     <th className="px-6 py-4 font-medium">Nome do Plano</th>
                                     <th className="px-6 py-4 font-medium">Valor Base</th>
                                     <th className="px-6 py-4 font-medium hidden sm:table-cell">Duração Padrão</th>
+                                    <th className="px-6 py-4 font-medium hidden sm:table-cell">Sessões</th>
                                     <th className="px-6 py-4 font-medium text-right">Ações</th>
                                 </tr>
                             </thead>
@@ -147,6 +152,9 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                                         <td className="px-6 py-4 text-muted-foreground hidden sm:table-cell">
                                             {plan.duration_months ? `${plan.duration_months} ${plan.duration_months === 1 ? 'mês' : 'meses'}` : 'Não definida'}
                                         </td>
+                                        <td className="px-6 py-4 text-muted-foreground hidden sm:table-cell">
+                                            {plan.sessions_total ? `${plan.sessions_total} sessões` : 'Ilimitado'}
+                                        </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                                 <button
@@ -173,7 +181,7 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                                 ))}
                                 {plans.length === 0 && (
                                     <tr>
-                                        <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
+                                        <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                                             Nenhum plano comercial cadastrado. Clique em "Novo Plano" para começar.
                                         </td>
                                     </tr>
@@ -247,6 +255,21 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                                 className="bg-background"
                             />
                             <InputError message={errors.duration_months} />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="sessions_total">Sessões Incluídas</Label>
+                            <Input
+                                id="sessions_total"
+                                type="number"
+                                min="1"
+                                value={data.sessions_total}
+                                onChange={e => setData('sessions_total', e.target.value)}
+                                placeholder="Deixe em branco para ilimitado"
+                                className="bg-background"
+                            />
+                            <p className="text-xs text-muted-foreground">Total de sessões/aulas que o aluno pode usar durante a vigência. Em branco = ilimitado.</p>
+                            <InputError message={errors.sessions_total} />
                         </div>
 
                         <div className="grid gap-2">

@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Membership extends Model
 {
-    use HasUuids;
+    use HasUuids, SoftDeletes;
 
     protected $fillable = [
         'patient_id',
@@ -45,5 +47,43 @@ class Membership extends Model
     public function financialTransactions()
     {
         return $this->hasMany(FinancialTransaction::class);
+    }
+
+    /**
+     * Total sessions included by the plan (null = unlimited).
+     */
+    public function getSessionsTotalAttribute(): ?int
+    {
+        return $this->commercialPlan?->sessions_total;
+    }
+
+    /**
+     * Attended sessions for this patient within the membership period.
+     */
+    public function getSessionsUsedAttribute(): int
+    {
+        return DB::table('appointment_patient')
+            ->join('appointments', 'appointments.id', '=', 'appointment_patient.appointment_id')
+            ->where('appointment_patient.patient_id', $this->patient_id)
+            ->where('appointment_patient.status', 'attended')
+            ->whereBetween('appointments.appointment_date', [
+                $this->start_date->toDateString(),
+                $this->end_date->toDateString(),
+            ])
+            ->count();
+    }
+
+    /**
+     * Remaining sessions (null = unlimited).
+     */
+    public function getSessionsRemainingAttribute(): ?int
+    {
+        $total = $this->sessions_total;
+
+        if ($total === null) {
+            return null;
+        }
+
+        return max(0, $total - $this->sessions_used);
     }
 }

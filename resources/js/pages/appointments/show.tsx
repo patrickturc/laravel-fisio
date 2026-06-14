@@ -198,7 +198,7 @@ export default function AppointmentShow({ appointment, protocols = [] }: { appoi
                 {appointment.status === 'scheduled' && appointment.type === 'group' && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                         <Button
-                            onClick={() => router.put(`/appointments/${appointment.id}`, { status: 'completed' })}
+                            onClick={() => router.patch(`/appointments/${appointment.id}/status`, { status: 'completed' }, { preserveScroll: true })}
                             className="flex items-center justify-center gap-3 w-full p-5 bg-gradient-to-r from-primary to-emerald-500 text-white font-semibold rounded-2xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 h-auto"
                         >
                             <Check className="size-5" />

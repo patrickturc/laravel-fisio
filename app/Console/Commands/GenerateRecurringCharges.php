@@ -6,89 +6,99 @@ use App\Models\FinancialTransaction;
 use App\Models\Membership;
 use App\Models\RecurringExpense;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class GenerateRecurringCharges extends Command
 {
     protected $signature = 'charges:generate';
+
     protected $description = 'Generate recurring expense transactions and membership monthly charges';
 
-    public function handle()
+    public function handle(): int
     {
-        $today = Carbon::today();
+        $today = Carbon::today(config('app.timezone'));
         $currentDay = $today->day;
-        $currentMonth = $today->month;
-        $currentYear = $today->year;
+        $daysInMonth = $today->daysInMonth;
 
         $generated = 0;
 
-        // 1. Recurring Expenses
-        $recurringExpenses = RecurringExpense::where('is_active', true)
-            ->where('day_of_month', $currentDay)
-            ->where(function ($q) use ($currentMonth, $currentYear) {
-                $q->whereNull('last_generated_at')
-                  ->orWhere(function ($q2) use ($currentMonth, $currentYear) {
-                      $q2->where(function ($q3) use ($currentMonth, $currentYear) {
-                          $q3->whereMonth('last_generated_at', '!=', $currentMonth)
-                              ->orWhereYear('last_generated_at', '!=', $currentYear);
-                      });
-                  });
-            })
-            ->get();
+        // 1. Recurring Expenses — catch up any whose billing day has passed this
+        //    period and that haven't been generated yet for the current cycle.
+        $recurringExpenses = RecurringExpense::where('is_active', true)->get();
 
         foreach ($recurringExpenses as $expense) {
-            FinancialTransaction::create([
-                'type' => 'expense',
-                'amount' => $expense->amount,
-                'date' => $today->toDateString(),
-                'due_date' => $today->toDateString(),
-                'description' => $expense->description,
-                'category' => $expense->category,
-                'status' => 'pending',
-                'recurring_expense_id' => $expense->id,
-            ]);
+            $billingDay = min((int) $expense->day_of_month, $daysInMonth);
 
-            $expense->update(['last_generated_at' => $today]);
+            if ($billingDay > $currentDay) {
+                continue;
+            }
+
+            if (! $this->recurrenceIsDue($expense->last_generated_at, $expense->recurrence ?? 'monthly', $today)) {
+                continue;
+            }
+
+            DB::transaction(function () use ($expense, $today) {
+                FinancialTransaction::create([
+                    'type' => 'expense',
+                    'amount' => $expense->amount,
+                    'date' => $today->toDateString(),
+                    'due_date' => $today->toDateString(),
+                    'description' => $expense->description,
+                    'category' => $expense->category,
+                    'status' => 'pending',
+                    'recurring_expense_id' => $expense->id,
+                ]);
+
+                $expense->update(['last_generated_at' => $today]);
+            });
+
             $generated++;
         }
 
         $this->info("Generated {$generated} recurring expense transactions.");
 
-        // 2. Membership Monthly Charges
+        // 2. Membership Monthly Charges — monthly cadence keyed on billing_day,
+        //    clamped to the last day of short months, with catch-up.
         $membershipGenerated = 0;
 
         $memberships = Membership::where('status', 'active')
             ->whereNotNull('billing_day')
-            ->where('billing_day', $currentDay)
-            ->where(function ($q) use ($currentMonth, $currentYear) {
-                $q->whereNull('last_billed_at')
-                  ->orWhere(function ($q2) use ($currentMonth, $currentYear) {
-                      $q2->where(function ($q3) use ($currentMonth, $currentYear) {
-                          $q3->whereMonth('last_billed_at', '!=', $currentMonth)
-                              ->orWhereYear('last_billed_at', '!=', $currentYear);
-                      });
-                  });
-            })
+            ->where('start_date', '<=', $today->toDateString())
             ->with(['patient', 'commercialPlan'])
             ->get();
 
         foreach ($memberships as $membership) {
+            $billingDay = min((int) $membership->billing_day, $daysInMonth);
+
+            if ($billingDay > $currentDay) {
+                continue;
+            }
+
+            if ($this->alreadyBilledThisMonth($membership->last_billed_at, $today)) {
+                continue;
+            }
+
             $planName = $membership->commercialPlan?->name ?? $membership->plan_name ?? 'Plano';
             $patientName = $membership->patient?->name ?? 'Aluno';
 
-            FinancialTransaction::create([
-                'type' => 'income',
-                'amount' => $membership->price,
-                'date' => $today->toDateString(),
-                'due_date' => $today->toDateString(),
-                'description' => "Mensalidade: {$planName} — {$patientName}",
-                'category' => 'Mensalidade',
-                'status' => 'pending',
-                'patient_id' => $membership->patient_id,
-                'membership_id' => $membership->id,
-            ]);
+            DB::transaction(function () use ($membership, $today, $planName, $patientName) {
+                FinancialTransaction::create([
+                    'type' => 'income',
+                    'amount' => $membership->price,
+                    'date' => $today->toDateString(),
+                    'due_date' => $today->toDateString(),
+                    'description' => "Mensalidade: {$planName} — {$patientName}",
+                    'category' => 'Mensalidade',
+                    'status' => 'pending',
+                    'patient_id' => $membership->patient_id,
+                    'membership_id' => $membership->id,
+                ]);
 
-            $membership->update(['last_billed_at' => $today]);
+                $membership->update(['last_billed_at' => $today]);
+            });
+
             $membershipGenerated++;
         }
 
@@ -101,6 +111,32 @@ class GenerateRecurringCharges extends Command
 
         $this->info("Expired {$expired} memberships past end date.");
 
-        return Command::SUCCESS;
+        return self::SUCCESS;
+    }
+
+    /**
+     * Whether a recurring expense is due for a new charge in the current cycle.
+     */
+    private function recurrenceIsDue(?CarbonInterface $lastGenerated, string $recurrence, CarbonInterface $today): bool
+    {
+        if ($lastGenerated === null) {
+            return true;
+        }
+
+        $monthStart = $today->copy()->startOfMonth();
+
+        return match ($recurrence) {
+            'quarterly' => $lastGenerated->copy()->addMonthsNoOverflow(3)->startOfMonth()->lte($monthStart),
+            'yearly' => $lastGenerated->copy()->addYearNoOverflow()->startOfMonth()->lte($monthStart),
+            default => $lastGenerated->format('Y-m') !== $today->format('Y-m'),
+        };
+    }
+
+    /**
+     * Whether a membership has already been billed within the current month.
+     */
+    private function alreadyBilledThisMonth(?CarbonInterface $lastBilled, CarbonInterface $today): bool
+    {
+        return $lastBilled !== null && $lastBilled->format('Y-m') === $today->format('Y-m');
     }
 }

@@ -11,11 +11,12 @@ export default function AppSidebarLayout({
     children,
     breadcrumbs = [],
 }: AppLayoutProps) {
-    const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props as any;
+    const { flash } = usePage<{ flash?: { success?: string; error?: string; warning?: string } }>().props as any;
 
     useEffect(() => {
         if (flash?.success) toast.success(flash.success);
         if (flash?.error) toast.error(flash.error);
+        if (flash?.warning) toast.warning(flash.warning);
     }, [flash]);
 
     return (

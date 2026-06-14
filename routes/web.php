@@ -1,47 +1,178 @@
 <?php
 
+use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\CalendarFeedController;
+use App\Http\Controllers\ClinicalProtocolController;
+use App\Http\Controllers\CommercialPlanController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EvolutionController;
+use App\Http\Controllers\FinancialTransactionController;
+use App\Http\Controllers\GroupClassController;
+use App\Http\Controllers\MembershipController;
+use App\Http\Controllers\PatientController;
+use App\Http\Controllers\RecurringExpenseController;
+use App\Http\Controllers\ReportController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
-Route::get('/', function (\Illuminate\Http\Request $request) {
+Route::get('/', function (Request $request) {
     if (auth()->check()) {
         return redirect()->route('dashboard');
     }
-    return \Inertia\Inertia::render('auth/login', [
+
+    return Inertia::render('auth/login', [
         'canResetPassword' => Features::enabled(Features::resetPasswords()),
         'canRegister' => Features::enabled(Features::registration()),
         'status' => $request->session()->get('status'),
     ]);
 })->name('home');
 
-Route::get('/feed/calendar/{token}.ics', [\App\Http\Controllers\CalendarFeedController::class, 'feed'])->name('calendar.feed');
+Route::get('/feed/calendar/{token}.ics', [CalendarFeedController::class, 'feed'])
+    ->middleware('throttle:30,1')
+    ->name('calendar.feed');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
-    Route::resource('patients', App\Http\Controllers\PatientController::class);
-    Route::get('api/appointments/events', [App\Http\Controllers\AppointmentController::class, 'events'])->name('appointments.events');
-    Route::get('api/appointments/{appointment}', [App\Http\Controllers\AppointmentController::class, 'details'])->name('appointments.details');
-    Route::post('appointments/{appointment}/patients/{patientId}/status', [App\Http\Controllers\AppointmentController::class, 'updateStatus'])->name('appointments.update-status');
-    Route::post('appointments/{appointment}/reschedule', [App\Http\Controllers\AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
-    Route::resource('appointments', App\Http\Controllers\AppointmentController::class);
-    Route::get('evolutions/patient/{patient}', [App\Http\Controllers\EvolutionController::class, 'patientEvolutions'])->name('evolutions.patient');
-    Route::resource('evolutions', App\Http\Controllers\EvolutionController::class)->except(['create', 'edit']);
-    Route::post('memberships/{membership}/renew', [App\Http\Controllers\MembershipController::class, 'renew'])->name('memberships.renew');
-    Route::resource('memberships', App\Http\Controllers\MembershipController::class);
-    Route::get('financial/receivables', [App\Http\Controllers\FinancialTransactionController::class, 'receivables'])->name('financial.receivables');
-    Route::post('financial/{financial}/mark-paid', [App\Http\Controllers\FinancialTransactionController::class, 'markAsPaid'])->name('financial.mark-paid');
-    Route::post('financial/{financial}/mark-pending', [App\Http\Controllers\FinancialTransactionController::class, 'markAsPending'])->name('financial.mark-pending');
-    Route::resource('financial', App\Http\Controllers\FinancialTransactionController::class)->parameters(['financial' => 'financial']);
-    Route::post('recurring-expenses/{recurringExpense}/toggle-active', [App\Http\Controllers\RecurringExpenseController::class, 'toggleActive'])->name('recurring-expenses.toggle-active');
-    Route::resource('recurring-expenses', App\Http\Controllers\RecurringExpenseController::class);
-    Route::get('reports', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
-    Route::get('reports/pdf', [App\Http\Controllers\ReportController::class, 'pdf'])->name('reports.pdf');
-    Route::get('evolutions/{evolution}/pdf', [App\Http\Controllers\EvolutionController::class, 'pdf'])->name('evolutions.pdf');
-    Route::resource('clinical-protocols', App\Http\Controllers\ClinicalProtocolController::class);
-    Route::resource('commercial-plans', App\Http\Controllers\CommercialPlanController::class);
-    Route::post('group-classes/{group_class}/generate-appointments', [App\Http\Controllers\GroupClassController::class, 'generateAppointments'])->name('group-classes.generate');
-    Route::post('group-classes/{group_class}/update-future-appointments', [App\Http\Controllers\GroupClassController::class, 'updateFutureAppointments'])->name('group-classes.update-future');
-    Route::resource('group-classes', App\Http\Controllers\GroupClassController::class);
+/**
+ * Register the seven standard resource routes, each guarded by the matching
+ * granular permission. View covers index/show, create covers create/store,
+ * edit covers edit/update and delete covers destroy.
+ *
+ * @param  string  $name  Route resource name (e.g. "patients")
+ * @param  class-string  $controller
+ * @param  string  $permission  Permission prefix (e.g. "patients.manage")
+ * @param  list<string>  $except  Resource methods to skip
+ */
+$resourceWithPermissions = function (string $name, string $controller, string $permission, array $except = []): void {
+    $param = Str::singular(str_replace('-', '_', $name));
+    $skip = fn (string $action): bool => in_array($action, $except, true);
+    $perm = fn (string $ability): string => "permission:{$permission}.{$ability}";
+
+    if (! $skip('index')) {
+        Route::get($name, [$controller, 'index'])->name("{$name}.index")->middleware($perm('view'));
+    }
+    if (! $skip('create')) {
+        Route::get("{$name}/create", [$controller, 'create'])->name("{$name}.create")->middleware($perm('create'));
+    }
+    if (! $skip('store')) {
+        Route::post($name, [$controller, 'store'])->name("{$name}.store")->middleware($perm('create'));
+    }
+    if (! $skip('show')) {
+        Route::get("{$name}/{{$param}}", [$controller, 'show'])->name("{$name}.show")->middleware($perm('view'));
+    }
+    if (! $skip('edit')) {
+        Route::get("{$name}/{{$param}}/edit", [$controller, 'edit'])->name("{$name}.edit")->middleware($perm('edit'));
+    }
+    if (! $skip('update')) {
+        Route::match(['put', 'patch'], "{$name}/{{$param}}", [$controller, 'update'])->name("{$name}.update")->middleware($perm('edit'));
+    }
+    if (! $skip('destroy')) {
+        Route::delete("{$name}/{{$param}}", [$controller, 'destroy'])->name("{$name}.destroy")->middleware($perm('delete'));
+    }
+};
+
+Route::middleware(['auth', 'verified'])->group(function () use ($resourceWithPermissions) {
+    Route::get('dashboard', [DashboardController::class, 'index'])
+        ->middleware('permission:dashboard.view')
+        ->name('dashboard');
+
+    // Patients
+    $resourceWithPermissions('patients', PatientController::class, 'patients.manage');
+
+    // Appointments
+    Route::get('api/appointments/events', [AppointmentController::class, 'events'])
+        ->middleware('permission:appointments.manage.view')
+        ->name('appointments.events');
+    Route::get('api/appointments/{appointment}', [AppointmentController::class, 'details'])
+        ->middleware('permission:appointments.manage.view')
+        ->name('appointments.details');
+    Route::post('appointments/{appointment}/patients/{patientId}/status', [AppointmentController::class, 'updateStatus'])
+        ->middleware('permission:appointments.manage.edit')
+        ->name('appointments.update-status');
+    Route::patch('appointments/{appointment}/status', [AppointmentController::class, 'updateAppointmentStatus'])
+        ->middleware('permission:appointments.manage.edit')
+        ->name('appointments.update-session-status');
+    Route::post('appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])
+        ->middleware('permission:appointments.manage.edit')
+        ->name('appointments.reschedule');
+    $resourceWithPermissions('appointments', AppointmentController::class, 'appointments.manage');
+
+    // Evolutions
+    Route::get('evolutions/patient/{patient}', [EvolutionController::class, 'patientEvolutions'])
+        ->middleware('permission:evolutions.manage.view')
+        ->name('evolutions.patient');
+    Route::get('evolutions/{evolution}/pdf', [EvolutionController::class, 'pdf'])
+        ->middleware('permission:evolutions.manage.view')
+        ->name('evolutions.pdf');
+    $resourceWithPermissions('evolutions', EvolutionController::class, 'evolutions.manage', ['create', 'edit']);
+
+    // Memberships
+    Route::post('memberships/{membership}/renew', [MembershipController::class, 'renew'])
+        ->middleware('permission:memberships.manage.create')
+        ->name('memberships.renew');
+    $resourceWithPermissions('memberships', MembershipController::class, 'memberships.manage');
+
+    // Financial
+    Route::get('financial/receivables', [FinancialTransactionController::class, 'receivables'])
+        ->middleware('permission:financial.transactions.view')
+        ->name('financial.receivables');
+    Route::post('financial/{financial}/mark-paid', [FinancialTransactionController::class, 'markAsPaid'])
+        ->middleware('permission:financial.transactions.edit')
+        ->name('financial.mark-paid');
+    Route::post('financial/{financial}/mark-pending', [FinancialTransactionController::class, 'markAsPending'])
+        ->middleware('permission:financial.transactions.edit')
+        ->name('financial.mark-pending');
+    Route::get('financial', [FinancialTransactionController::class, 'index'])
+        ->middleware('permission:financial.transactions.view')
+        ->name('financial.index');
+    Route::get('financial/create', [FinancialTransactionController::class, 'create'])
+        ->middleware('permission:financial.transactions.create')
+        ->name('financial.create');
+    Route::post('financial', [FinancialTransactionController::class, 'store'])
+        ->middleware('permission:financial.transactions.create')
+        ->name('financial.store');
+    Route::get('financial/{financial}', [FinancialTransactionController::class, 'show'])
+        ->middleware('permission:financial.transactions.view')
+        ->name('financial.show');
+    Route::get('financial/{financial}/edit', [FinancialTransactionController::class, 'edit'])
+        ->middleware('permission:financial.transactions.edit')
+        ->name('financial.edit');
+    Route::match(['put', 'patch'], 'financial/{financial}', [FinancialTransactionController::class, 'update'])
+        ->middleware('permission:financial.transactions.edit')
+        ->name('financial.update');
+    Route::delete('financial/{financial}', [FinancialTransactionController::class, 'destroy'])
+        ->middleware('permission:financial.transactions.delete')
+        ->name('financial.destroy');
+
+    // Recurring Expenses
+    Route::post('recurring-expenses/{recurringExpense}/toggle-active', [RecurringExpenseController::class, 'toggleActive'])
+        ->middleware('permission:recurring_expenses.manage.edit')
+        ->name('recurring-expenses.toggle-active');
+    $resourceWithPermissions('recurring-expenses', RecurringExpenseController::class, 'recurring_expenses.manage');
+
+    // Reports
+    Route::get('reports', [ReportController::class, 'index'])
+        ->middleware('permission:reports.manage.view')
+        ->name('reports.index');
+    Route::get('reports/pdf', [ReportController::class, 'pdf'])
+        ->middleware('permission:reports.manage.view')
+        ->name('reports.pdf');
+
+    // Clinical Protocols (treatment plans)
+    $resourceWithPermissions('clinical-protocols', ClinicalProtocolController::class, 'treatment_plans.manage');
+
+    // Commercial Plans
+    $resourceWithPermissions('commercial-plans', CommercialPlanController::class, 'commercial_plans.manage');
+
+    // Group Classes
+    Route::post('group-classes/{group_class}/generate-appointments', [GroupClassController::class, 'generateAppointments'])
+        ->middleware('permission:group_classes.manage.edit')
+        ->name('group-classes.generate');
+    Route::post('group-classes/{group_class}/update-future-appointments', [GroupClassController::class, 'updateFutureAppointments'])
+        ->middleware('permission:group_classes.manage.edit')
+        ->name('group-classes.update-future');
+    $resourceWithPermissions('group-classes', GroupClassController::class, 'group_classes.manage');
 });
 
 require __DIR__.'/settings.php';
