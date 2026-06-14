@@ -438,7 +438,7 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                                                 )}
                                             </td>
                                             <td className="px-5 py-3.5">
-                                                <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center justify-end gap-1">
                                                     {t.status === 'pending' && (
                                                         <button onClick={() => router.post(`/financial/${t.id}/mark-paid`, {}, { preserveState: true })} className="p-2.5 text-muted-foreground hover:text-emerald-600 rounded-lg hover:bg-emerald-500/10 transition-colors" title="Marcar como Pago">
                                                             <CheckCircle className="size-4" />
