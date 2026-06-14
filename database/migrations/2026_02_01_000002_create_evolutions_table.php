@@ -13,11 +13,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('evolutions', function (Blueprint $table) {
-            $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
+            $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+            $table->uuid('id')->default($isSqlite ? null : DB::raw('gen_random_uuid()'))->primary();
             $table->uuid('paciente_id')->index('idx_evolutions_patient');
             $table->uuid('agendamento_id')->nullable()->index('idx_evolutions_appointment');
             $table->foreignId('profissional_id');
-            $table->timestampTz('data_atendimento')->default(DB::raw("timezone('utc'::text, now())"))->index('idx_evolutions_date');
+            $table->timestampTz('data_atendimento')->default($isSqlite ? DB::raw('CURRENT_TIMESTAMP') : DB::raw("timezone('utc'::text, now())"))->index('idx_evolutions_date');
             $table->text('tipo_atendimento')->nullable()->default('evolucao');
             $table->integer('dor_eva')->nullable();
             $table->text('localizacao_dor')->nullable();
@@ -41,8 +42,8 @@ return new class extends Migration
             $table->text('orientacoes_domiciliares')->nullable();
             $table->date('proxima_sessao')->nullable();
             $table->text('assinatura_digital')->nullable();
-            $table->timestampTz('created_at')->default(DB::raw("timezone('utc'::text, now())"));
-            $table->timestampTz('updated_at')->default(DB::raw("timezone('utc'::text, now())"));
+            $table->timestampTz('created_at')->default($isSqlite ? DB::raw('CURRENT_TIMESTAMP') : DB::raw("timezone('utc'::text, now())"));
+            $table->timestampTz('updated_at')->default($isSqlite ? DB::raw('CURRENT_TIMESTAMP') : DB::raw("timezone('utc'::text, now())"));
         });
     }
 
