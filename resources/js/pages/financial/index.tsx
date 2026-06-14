@@ -471,21 +471,21 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                                                 )}
                                             </td>
                                             <td className="px-5 py-3.5">
-                                                <div className="flex items-center justify-end gap-1">
+                                                <div className="flex items-center justify-end gap-1.5 flex-wrap">
                                                     {t.status === 'pending' ? (
-                                                        <button onClick={() => handleMarkPaid(t)} className="p-2.5 text-muted-foreground hover:text-emerald-600 rounded-lg hover:bg-emerald-500/10 transition-colors" title={t.type === 'income' ? 'Confirmar recebimento' : 'Confirmar pagamento'}>
-                                                            <CheckCircle className="size-4" />
+                                                        <button onClick={() => handleMarkPaid(t)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 transition-colors">
+                                                            Pago
                                                         </button>
                                                     ) : (
-                                                        <button onClick={() => handleRevert(t)} className="p-2.5 text-muted-foreground hover:text-amber-600 rounded-lg hover:bg-amber-500/10 transition-colors" title="Estornar (voltar para pendente)">
-                                                            <RotateCcw className="size-4" />
+                                                        <button onClick={() => handleRevert(t)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 transition-colors">
+                                                            Cancelar Pgmto
                                                         </button>
                                                     )}
-                                                    <button onClick={() => openEditSheet(t)} className="p-2.5 text-muted-foreground hover:text-primary rounded-lg hover:bg-primary/10 transition-colors" title="Editar">
-                                                        <Edit className="size-4" />
+                                                    <button onClick={() => openEditSheet(t)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                                        Editar
                                                     </button>
-                                                    <button onClick={() => handleDelete(t)} className="p-2.5 text-muted-foreground hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors" title="Excluir">
-                                                        <Trash2 className="size-4" />
+                                                    <button onClick={() => handleDelete(t)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors">
+                                                        Excluir
                                                     </button>
                                                 </div>
                                             </td>
