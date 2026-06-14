@@ -28,7 +28,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('evolutions', App\Http\Controllers\EvolutionController::class)->except(['create', 'edit']);
     Route::post('memberships/{membership}/renew', [App\Http\Controllers\MembershipController::class, 'renew'])->name('memberships.renew');
     Route::resource('memberships', App\Http\Controllers\MembershipController::class);
+    Route::get('financial/receivables', [App\Http\Controllers\FinancialTransactionController::class, 'receivables'])->name('financial.receivables');
     Route::post('financial/{financial}/mark-paid', [App\Http\Controllers\FinancialTransactionController::class, 'markAsPaid'])->name('financial.mark-paid');
+    Route::post('financial/{financial}/mark-pending', [App\Http\Controllers\FinancialTransactionController::class, 'markAsPending'])->name('financial.mark-pending');
     Route::resource('financial', App\Http\Controllers\FinancialTransactionController::class)->parameters(['financial' => 'financial']);
     Route::post('recurring-expenses/{recurringExpense}/toggle-active', [App\Http\Controllers\RecurringExpenseController::class, 'toggleActive'])->name('recurring-expenses.toggle-active');
     Route::resource('recurring-expenses', App\Http\Controllers\RecurringExpenseController::class);

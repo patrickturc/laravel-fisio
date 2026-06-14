@@ -97,9 +97,10 @@ export function useConfirmModal() {
         title?: string;
         message?: string;
         confirmLabel?: string;
+        variant?: 'danger' | 'warning';
     }>({ open: false });
 
-    function confirm(options?: { title?: string; message?: string; confirmLabel?: string }): Promise<boolean> {
+    function confirm(options?: { title?: string; message?: string; confirmLabel?: string; variant?: 'danger' | 'warning' }): Promise<boolean> {
         return new Promise((resolve) => {
             setState({ open: true, resolve, ...options });
         });
@@ -121,6 +122,7 @@ export function useConfirmModal() {
             title={state.title}
             message={state.message}
             confirmLabel={state.confirmLabel}
+            variant={state.variant}
             onConfirm={handleConfirm}
             onCancel={handleCancel}
         />

@@ -21,6 +21,8 @@ class FinancialTransaction extends Model
         'patient_id',
         'membership_id',
         'recurring_expense_id',
+        'created_by',
+        'paid_by',
     ];
 
     protected function casts(): array
@@ -53,5 +55,34 @@ class FinancialTransaction extends Model
     public function recurringExpense()
     {
         return $this->belongsTo(RecurringExpense::class);
+    }
+
+    public function logs()
+    {
+        return $this->hasMany(FinancialTransactionLog::class)->latest();
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function payer()
+    {
+        return $this->belongsTo(User::class, 'paid_by');
+    }
+
+    /**
+     * Record an audit entry for this transaction.
+     */
+    public function logAction(string $action, ?string $fromStatus = null, ?string $toStatus = null, ?string $note = null): void
+    {
+        $this->logs()->create([
+            'action' => $action,
+            'from_status' => $fromStatus,
+            'to_status' => $toStatus,
+            'note' => $note,
+            'user_id' => auth()->id(),
+        ]);
     }
 }

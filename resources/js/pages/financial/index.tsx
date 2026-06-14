@@ -1,7 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Plus, Search, TrendingUp, TrendingDown, DollarSign, Wallet, User, Edit, Trash2, ChevronLeft, ChevronRight, AlertTriangle, ArrowUpRight, ArrowDownRight, CheckCircle, RefreshCw, Save, AlignLeft, Calendar as CalendarIcon, Tag } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, DollarSign, Wallet, User, Edit, Trash2, ChevronLeft, ChevronRight, AlertTriangle, ArrowUpRight, ArrowDownRight, CheckCircle, RefreshCw, RotateCcw, Save, AlignLeft, Calendar as CalendarIcon, Tag, Receipt } from 'lucide-react';
 import { useState, useMemo, FormEvent } from 'react';
 import { Pagination } from '@/components/pagination';
 import { useConfirmModal } from '@/components/confirm-modal';
@@ -154,6 +154,27 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
         if (confirmed) router.delete(`/financial/${t.id}`, { preserveState: true });
     }
 
+    async function handleMarkPaid(t: any) {
+        const verb = t.type === 'income' ? 'recebido' : 'pago';
+        const confirmed = await confirm({
+            title: t.type === 'income' ? 'Confirmar recebimento' : 'Confirmar pagamento',
+            message: `Confirma que "${t.description}" (${formatCurrency(t.amount)}) foi ${verb}?`,
+            confirmLabel: 'Confirmar',
+            variant: 'warning',
+        });
+        if (confirmed) router.post(`/financial/${t.id}/mark-paid`, {}, { preserveState: true, preserveScroll: true });
+    }
+
+    async function handleRevert(t: any) {
+        const confirmed = await confirm({
+            title: 'Estornar pagamento',
+            message: `Desfazer a baixa de "${t.description}" (${formatCurrency(t.amount)})? Ela voltará para pendente.`,
+            confirmLabel: 'Estornar',
+            variant: 'warning',
+        });
+        if (confirmed) router.post(`/financial/${t.id}/mark-pending`, {}, { preserveState: true, preserveScroll: true });
+    }
+
     const formatCurrency = (val: string | number) =>
         Number(val).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -190,6 +211,13 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                                 <ChevronRight className="size-4" />
                             </button>
                         </div>
+                        <Link
+                            href="/financial/receivables"
+                            className="flex items-center gap-2 h-10 px-4 border border-border text-foreground font-medium rounded-xl hover:bg-muted/50 transition-colors shadow-sm"
+                        >
+                            <Receipt className="size-4" />
+                            <span className="hidden sm:inline">A Receber</span>
+                        </Link>
                         <Link
                             href="/recurring-expenses"
                             className="flex items-center gap-2 h-10 px-4 border border-border text-foreground font-medium rounded-xl hover:bg-muted/50 transition-colors shadow-sm"
@@ -355,7 +383,7 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                     </form>
                     <select
                         value={typeFilter}
-                        onChange={e => { setTypeFilter(e.target.value); setTimeout(applyFilters, 0); }}
+                        onChange={e => { const val = e.target.value; setTypeFilter(val); navigate({ type: val || undefined }); }}
                         className="h-10 px-3 border border-border rounded-xl bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
                     >
                         <option value="">Todas</option>
@@ -364,7 +392,7 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                     </select>
                     <select
                         value={statusFilter}
-                        onChange={e => { setStatusFilter(e.target.value); setTimeout(applyFilters, 0); }}
+                        onChange={e => { const val = e.target.value; setStatusFilter(val); navigate({ status: val || undefined }); }}
                         className="h-10 px-3 border border-border rounded-xl bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
                     >
                         <option value="">Todos Status</option>
@@ -406,6 +434,11 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                                                                 <User className="size-3" /> {t.patient.name}
                                                             </div>
                                                         )}
+                                                        {t.status === 'paid' && t.paid_at && (
+                                                            <div className="flex items-center gap-1 text-xs text-emerald-600/80 mt-0.5">
+                                                                <CheckCircle className="size-3" /> Baixado em {new Date(t.paid_at).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </td>
@@ -439,9 +472,13 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                                             </td>
                                             <td className="px-5 py-3.5">
                                                 <div className="flex items-center justify-end gap-1">
-                                                    {t.status === 'pending' && (
-                                                        <button onClick={() => router.post(`/financial/${t.id}/mark-paid`, {}, { preserveState: true })} className="p-2.5 text-muted-foreground hover:text-emerald-600 rounded-lg hover:bg-emerald-500/10 transition-colors" title="Marcar como Pago">
+                                                    {t.status === 'pending' ? (
+                                                        <button onClick={() => handleMarkPaid(t)} className="p-2.5 text-muted-foreground hover:text-emerald-600 rounded-lg hover:bg-emerald-500/10 transition-colors" title={t.type === 'income' ? 'Confirmar recebimento' : 'Confirmar pagamento'}>
                                                             <CheckCircle className="size-4" />
+                                                        </button>
+                                                    ) : (
+                                                        <button onClick={() => handleRevert(t)} className="p-2.5 text-muted-foreground hover:text-amber-600 rounded-lg hover:bg-amber-500/10 transition-colors" title="Estornar (voltar para pendente)">
+                                                            <RotateCcw className="size-4" />
                                                         </button>
                                                     )}
                                                     <button onClick={() => openEditSheet(t)} className="p-2.5 text-muted-foreground hover:text-primary rounded-lg hover:bg-primary/10 transition-colors" title="Editar">

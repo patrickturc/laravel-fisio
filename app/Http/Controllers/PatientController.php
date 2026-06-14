@@ -77,7 +77,19 @@ class PatientController extends Controller
             'appointments' => fn($q) => $q->orderBy('appointment_date', 'desc'),
             'evolutions' => fn($q) => $q->orderBy('data_atendimento', 'desc'),
             'memberships' => fn($q) => $q->orderBy('end_date', 'desc'),
+            'financialTransactions' => fn($q) => $q->orderBy('date', 'desc'),
         ]);
+
+        $today = now()->toDateString();
+        $financialSummary = [
+            'total_received' => (float) $patient->financialTransactions->where('type', 'income')->where('status', 'paid')->sum('amount'),
+            'total_pending' => (float) $patient->financialTransactions->where('type', 'income')->where('status', 'pending')->sum('amount'),
+            'overdue_amount' => (float) $patient->financialTransactions
+                ->where('type', 'income')
+                ->where('status', 'pending')
+                ->filter(fn($t) => $t->due_date && $t->due_date->toDateString() < $today)
+                ->sum('amount'),
+        ];
 
         $protocols = \App\Models\ClinicalProtocol::orderBy('name')->get(['id', 'name', 'total_sessions']);
         $commercialPlans = \App\Models\CommercialPlan::orderBy('name')->get(['id', 'name', 'price', 'duration_months']);
@@ -86,6 +98,7 @@ class PatientController extends Controller
             'patient' => $patient,
             'protocols' => $protocols,
             'commercialPlans' => $commercialPlans,
+            'financialSummary' => $financialSummary,
         ]);
     }
 

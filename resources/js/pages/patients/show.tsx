@@ -1,7 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-import { ArrowLeft, Phone, MapPin, Edit, Trash2, Calendar, FileText, Cake, Clock, Activity, Mail, User, Shield, Heart, Briefcase, Plus, Tag } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, Edit, Trash2, Calendar, FileText, Cake, Clock, Activity, Mail, User, Shield, Heart, Briefcase, Plus, Tag, DollarSign, CheckCircle, RotateCcw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { useConfirmModal } from '@/components/confirm-modal';
@@ -59,6 +59,23 @@ interface Patient {
         price: string;
         status: string;
     }>;
+    financial_transactions?: Array<{
+        id: string;
+        type: 'income' | 'expense';
+        amount: string;
+        date: string;
+        due_date: string | null;
+        paid_at: string | null;
+        description: string;
+        category: string | null;
+        status: 'paid' | 'pending';
+    }>;
+}
+
+interface FinancialSummary {
+    total_received: number;
+    total_pending: number;
+    overdue_amount: number;
 }
 
 interface TimelineItem {
@@ -68,9 +85,9 @@ interface TimelineItem {
     data: any;
 }
 
-type Tab = 'info' | 'memberships' | 'evolutions' | 'appointments';
+type Tab = 'info' | 'memberships' | 'financial' | 'evolutions' | 'appointments';
 
-export default function PatientShow({ patient, protocols = [], commercialPlans = [] }: { patient: Patient, protocols?: Array<{ id: string; name: string }>, commercialPlans?: any[] }) {
+export default function PatientShow({ patient, protocols = [], commercialPlans = [], financialSummary }: { patient: Patient, protocols?: Array<{ id: string; name: string }>, commercialPlans?: any[], financialSummary?: FinancialSummary }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Pacientes', href: '/patients' },
         { title: patient.nickname || patient.name, href: `/patients/${patient.id}` },
@@ -99,6 +116,31 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
 
     const evolutionsList = [...patient.evolutions].sort((a, b) => new Date(b.data_atendimento).getTime() - new Date(a.data_atendimento).getTime());
     const appointmentsList = [...patient.appointments].sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime());
+    const financialList = [...(patient.financial_transactions || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const formatCurrency = (val: string | number) => Number(val).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const isTxOverdue = (t: { status: string; due_date: string | null }) => t.status === 'pending' && !!t.due_date && new Date(t.due_date) < new Date();
+
+    async function handleMarkPaid(t: { id: string; description: string; amount: string; type: string }) {
+        const verb = t.type === 'income' ? 'recebido' : 'pago';
+        const confirmed = await confirm({
+            title: t.type === 'income' ? 'Confirmar recebimento' : 'Confirmar pagamento',
+            message: `Confirma que "${t.description}" (${formatCurrency(t.amount)}) foi ${verb}?`,
+            confirmLabel: 'Confirmar',
+            variant: 'warning',
+        });
+        if (confirmed) router.post(`/financial/${t.id}/mark-paid`, {}, { preserveScroll: true });
+    }
+
+    async function handleRevert(t: { id: string; description: string; amount: string }) {
+        const confirmed = await confirm({
+            title: 'Estornar pagamento',
+            message: `Desfazer a baixa de "${t.description}" (${formatCurrency(t.amount)})? Ela voltará para pendente.`,
+            confirmLabel: 'Estornar',
+            variant: 'warning',
+        });
+        if (confirmed) router.post(`/financial/${t.id}/mark-pending`, {}, { preserveScroll: true });
+    }
 
     const statusLabel: Record<string, string> = { scheduled: 'Agendado', completed: 'Realizado', cancelled: 'Cancelado' };
     const statusColor: Record<string, string> = { scheduled: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' };
@@ -116,6 +158,7 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
     const tabs: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
         { key: 'info', label: 'Informações Pessoais', icon: <User className="size-4" /> },
         { key: 'memberships', label: 'Matrículas', icon: <Tag className="size-4" />, count: patient.memberships?.length },
+        { key: 'financial', label: 'Financeiro', icon: <DollarSign className="size-4" />, count: financialList.length },
         { key: 'evolutions', label: 'Prontuário', icon: <Activity className="size-4" />, count: evolutionsList.length },
         { key: 'appointments', label: 'Agendamentos', icon: <Calendar className="size-4" />, count: appointmentsList.length },
     ];
@@ -344,6 +387,92 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                                 </button>
                             </div>
                         )}
+                    </motion.div>
+                )}
+
+                {/* ── Tab: Financeiro ── */}
+                {activeTab === 'financial' && (
+                    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                        {/* KPIs */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5">
+                                <div className="flex items-center gap-2 mb-1 text-emerald-600"><CheckCircle className="size-4" /><span className="text-xs font-medium text-muted-foreground">Total Recebido</span></div>
+                                <p className="text-2xl font-bold text-emerald-600">{formatCurrency(financialSummary?.total_received ?? 0)}</p>
+                            </div>
+                            <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5">
+                                <div className="flex items-center gap-2 mb-1 text-amber-600"><Clock className="size-4" /><span className="text-xs font-medium text-muted-foreground">A Receber</span></div>
+                                <p className="text-2xl font-bold text-amber-600">{formatCurrency(financialSummary?.total_pending ?? 0)}</p>
+                            </div>
+                            <div className={`border rounded-2xl p-5 ${(financialSummary?.overdue_amount ?? 0) > 0 ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/30' : 'bg-card/60 border-border/50 backdrop-blur-xl'}`}>
+                                <div className="flex items-center gap-2 mb-1 text-red-600"><AlertTriangle className="size-4" /><span className="text-xs font-medium text-muted-foreground">Vencido</span></div>
+                                <p className={`text-2xl font-bold ${(financialSummary?.overdue_amount ?? 0) > 0 ? 'text-red-600' : 'text-muted-foreground'}`}>{formatCurrency(financialSummary?.overdue_amount ?? 0)}</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-lg font-bold flex items-center gap-2">
+                                    <DollarSign className="size-5 text-primary" /> Histórico de Pagamentos
+                                    <span className="text-sm font-normal text-muted-foreground ml-2">({financialList.length})</span>
+                                </h2>
+                                <Link href={`/financial?search=${encodeURIComponent(patient.name)}`} className="text-sm font-medium text-primary hover:underline">Ver no financeiro →</Link>
+                            </div>
+
+                            {financialList.length === 0 ? (
+                                <div className="text-center py-12 bg-muted/30 rounded-xl border border-dashed border-border">
+                                    <DollarSign className="size-10 text-muted-foreground/30 mx-auto mb-3" />
+                                    <p className="text-sm text-muted-foreground font-medium">Nenhum lançamento financeiro para este paciente.</p>
+                                    <p className="text-xs text-muted-foreground mt-1">As mensalidades e cobranças aparecerão aqui.</p>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-border/50">
+                                    {financialList.map(t => {
+                                        const overdue = isTxOverdue(t);
+                                        return (
+                                            <div key={t.id} className="flex items-center gap-3 py-3 group">
+                                                <div className={`size-2 rounded-full flex-shrink-0 ${t.type === 'income' ? 'bg-emerald-500' : 'bg-red-400'}`} />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="font-medium text-foreground text-sm truncate">{t.description}</div>
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
+                                                        <span>{new Date(t.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
+                                                        {t.category && <span>• {t.category}</span>}
+                                                        {t.status === 'paid' && t.paid_at && (
+                                                            <span className="text-emerald-600/80">• Baixado em {new Date(t.paid_at).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
+                                                        )}
+                                                        {t.status === 'pending' && t.due_date && (
+                                                            <span className={overdue ? 'text-red-600 font-semibold' : ''}>• Vence {new Date(t.due_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className={`font-bold text-sm whitespace-nowrap ${t.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
+                                                    {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
+                                                </div>
+                                                <div className="w-20 flex justify-end">
+                                                    {overdue ? (
+                                                        <span className="px-2 py-0.5 text-xs font-semibold rounded-md bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Vencido</span>
+                                                    ) : t.status === 'paid' ? (
+                                                        <span className="px-2 py-0.5 text-xs font-semibold rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Pago</span>
+                                                    ) : (
+                                                        <span className="px-2 py-0.5 text-xs font-semibold rounded-md bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Pendente</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    {t.status === 'pending' ? (
+                                                        <button onClick={() => handleMarkPaid(t)} className="p-2 text-muted-foreground hover:text-emerald-600 rounded-lg hover:bg-emerald-500/10 transition-colors" title="Confirmar recebimento">
+                                                            <CheckCircle className="size-4" />
+                                                        </button>
+                                                    ) : (
+                                                        <button onClick={() => handleRevert(t)} className="p-2 text-muted-foreground hover:text-amber-600 rounded-lg hover:bg-amber-500/10 transition-colors" title="Estornar (voltar para pendente)">
+                                                            <RotateCcw className="size-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
                     </motion.div>
                 )}
 
