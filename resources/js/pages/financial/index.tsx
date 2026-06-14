@@ -414,7 +414,7 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                                     <th className="px-5 py-3.5 font-semibold hidden lg:table-cell">Vencimento</th>
                                     <th className="px-5 py-3.5 font-semibold text-right">Valor</th>
                                     <th className="px-5 py-3.5 font-semibold text-center hidden sm:table-cell">Status</th>
-                                    <th className="px-5 py-3.5 w-24"></th>
+                                    <th className="px-5 py-3.5"><span className="sr-only">Ações</span></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/50">
@@ -471,7 +471,7 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                                                 )}
                                             </td>
                                             <td className="px-5 py-3.5">
-                                                <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                                <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                                                     {t.status === 'pending' ? (
                                                         <button onClick={() => handleMarkPaid(t)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 transition-colors">
                                                             Pago
