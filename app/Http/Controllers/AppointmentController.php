@@ -134,6 +134,17 @@ class AppointmentController extends Controller
                         });
                     })->exists();
 
+                // Guard against duplicates (e.g. re-submitting a recurring
+                // series): the same patient already booked at that date/time.
+                $patientAlreadyBooked = Appointment::where('appointment_date', $dateString)
+                    ->where('start_time', $validated['start_time'])
+                    ->where('status', '!=', 'cancelled')
+                    ->whereHas('patients', function ($q) use ($validated) {
+                        $q->whereIn('patients.id', $validated['patient_ids']);
+                    })->exists();
+
+                $conflict = $conflict || $patientAlreadyBooked;
+
                 if ($conflict) {
                     if ($createdCount === 0 && ! $isRecurring) {
                         DB::rollBack();
@@ -505,9 +516,11 @@ class AppointmentController extends Controller
                 // For group classes: delete all future of the same group class
                 $query->where('group_class_id', $appointment->group_class_id);
             } else {
-                // For individual: match the same start_time, type, and patient
+                // No group class link (individual sessions OR orphaned group
+                // appointments left over from a deleted class): match the same
+                // type, start_time and overlapping patients on the same weekday.
                 $patientIds = $appointment->patients()->pluck('patients.id')->toArray();
-                $query->where('type', 'individual')
+                $query->where('type', $appointment->type)
                     ->where('start_time', $appointment->start_time)
                     ->whereHas('patients', function ($q) use ($patientIds) {
                         $q->whereIn('patients.id', $patientIds);
