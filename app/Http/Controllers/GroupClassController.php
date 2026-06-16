@@ -71,6 +71,63 @@ class GroupClassController extends Controller
     }
 
     /**
+     * Propagate roster changes to the class's future scheduled appointments:
+     * newly-added students join upcoming classes (respecting capacity) and
+     * removed students are dropped only where still merely "scheduled"
+     * (attendance history and one-off drop-ins are preserved).
+     *
+     * @param  list<string>  $added
+     * @param  list<string>  $removed
+     */
+    private function syncRosterToFutureAppointments(GroupClass $groupClass, array $added, array $removed): void
+    {
+        if (empty($added) && empty($removed)) {
+            return;
+        }
+
+        $futureAppointments = $groupClass->appointments()
+            ->where('appointment_date', '>=', now()->format('Y-m-d'))
+            ->where('status', 'scheduled')
+            ->with('patients')
+            ->get();
+
+        foreach ($futureAppointments as $appointment) {
+            if (! empty($removed)) {
+                $toDetach = $appointment->patients
+                    ->whereIn('id', $removed)
+                    ->filter(fn ($p) => $p->pivot->status === 'scheduled')
+                    ->pluck('id')
+                    ->all();
+
+                if (! empty($toDetach)) {
+                    $appointment->patients()->detach($toDetach);
+                }
+            }
+
+            if (! empty($added)) {
+                $current = $appointment->patients
+                    ->filter(fn ($p) => $p->pivot->status !== 'cancelled')
+                    ->pluck('id');
+
+                $room = $appointment->max_participants - $current->count();
+                $existing = $appointment->patients->pluck('id');
+
+                foreach ($added as $patientId) {
+                    if ($room <= 0) {
+                        break;
+                    }
+                    if ($existing->contains($patientId)) {
+                        continue;
+                    }
+
+                    $appointment->patients()->attach($patientId, ['status' => 'scheduled']);
+                    $room--;
+                }
+            }
+        }
+    }
+
+    /**
      * Occupancy and attendance stats for a class across its appointments.
      *
      * @return array{total_classes:int, avg_participants:float, occupancy_rate:int, attended:int, missed:int, cancelled:int, attendance_rate:int}
@@ -200,11 +257,14 @@ class GroupClassController extends Controller
             }
 
             if ($request->has('patient_ids')) {
-                if (isset($validated['patient_ids'])) {
-                    $groupClass->patients()->sync($validated['patient_ids']);
-                } else {
-                    $groupClass->patients()->detach();
-                }
+                $oldRoster = $groupClass->patients()->pluck('patients.id')->all();
+                $newRoster = isset($validated['patient_ids']) ? $validated['patient_ids'] : [];
+
+                $groupClass->patients()->sync($newRoster);
+
+                $added = array_values(array_diff($newRoster, $oldRoster));
+                $removed = array_values(array_diff($oldRoster, $newRoster));
+                $this->syncRosterToFutureAppointments($groupClass, $added, $removed);
             }
 
             DB::commit();

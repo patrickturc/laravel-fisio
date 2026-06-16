@@ -4,7 +4,9 @@ use App\Http\Controllers\GroupClassController;
 use App\Models\Appointment;
 use App\Models\GroupClass;
 use App\Models\GroupClassSchedule;
+use App\Models\Patient;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
 
 function userCanManageClasses(): User
@@ -65,6 +67,55 @@ test('extend-active is idempotent (no duplicates on a second run)', function () 
     $second = Appointment::where('group_class_id', $gc->id)->count();
 
     expect($second)->toBe($first);
+});
+
+test('adding a student to a class adds them to future scheduled appointments', function () {
+    $user = userCanManageClasses();
+    $gc = classWithMondaySchedule($user);
+    test()->post(route('group-classes.extend-active'));
+
+    $futureCount = Appointment::where('group_class_id', $gc->id)->where('status', 'scheduled')->count();
+    expect($futureCount)->toBeGreaterThan(0);
+
+    $patient = Patient::create(['name' => 'Novo Aluno', 'user_id' => $user->id]);
+
+    test()->put(route('group-classes.update', $gc->id), [
+        'patient_ids' => [$patient->id],
+    ])->assertRedirect();
+
+    // The new student is now attached to every future scheduled class.
+    $attachedCount = Appointment::where('group_class_id', $gc->id)
+        ->where('status', 'scheduled')
+        ->whereHas('patients', fn ($q) => $q->where('patients.id', $patient->id))
+        ->count();
+
+    expect($attachedCount)->toBe($futureCount);
+});
+
+test('removing a student drops them from future scheduled appointments only', function () {
+    $user = userCanManageClasses();
+    $gc = classWithMondaySchedule($user);
+    $patient = Patient::create(['name' => 'Aluno', 'user_id' => $user->id]);
+    $gc->patients()->attach($patient->id);
+    test()->post(route('group-classes.extend-active'));
+
+    // Mark the first class as attended — that must NOT be undone by removal.
+    $first = Appointment::where('group_class_id', $gc->id)->orderBy('appointment_date')->first();
+    $first->patients()->updateExistingPivot($patient->id, ['status' => 'attended']);
+
+    test()->put(route('group-classes.update', $gc->id), ['patient_ids' => []])->assertRedirect();
+
+    // Still attached to the attended class (history preserved)...
+    expect($first->fresh()->patients()->where('patients.id', $patient->id)->exists())->toBeTrue();
+
+    // ...but no longer enrolled (pivot "scheduled") in any future class.
+    $stillEnrolled = DB::table('appointment_patient')
+        ->join('appointments', 'appointments.id', '=', 'appointment_patient.appointment_id')
+        ->where('appointments.group_class_id', $gc->id)
+        ->where('appointment_patient.patient_id', $patient->id)
+        ->where('appointment_patient.status', 'scheduled')
+        ->count();
+    expect($stillEnrolled)->toBe(0);
 });
 
 test('deleting a class soft-deletes it and never orphans its appointments', function () {
