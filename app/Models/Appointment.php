@@ -22,6 +22,7 @@ class Appointment extends Model
         'status',
         'max_participants',
         'group_class_id',
+        'schedule_id',
     ];
 
     protected function casts(): array
@@ -35,8 +36,13 @@ class Appointment extends Model
     public function patients()
     {
         return $this->belongsToMany(Patient::class)
-            ->withPivot('status', 'reminder_sent_at')
+            ->withPivot('status', 'reminder_sent_at', 'membership_id')
             ->withTimestamps();
+    }
+
+    public function schedule()
+    {
+        return $this->belongsTo(GroupClassSchedule::class, 'schedule_id');
     }
 
     public function user()

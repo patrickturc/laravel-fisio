@@ -17,7 +17,9 @@ class GroupClassController extends Controller
     {
         // Order the classes by their earliest weekly slot (weekday, then time):
         // Monday classes first, then Tuesday, etc. Classes without a schedule go last.
-        $groupClasses = GroupClass::with(['schedules', 'patients'])->get()
+        $groupClasses = GroupClass::with(['schedules', 'patients'])
+            ->withMax('appointments', 'appointment_date')
+            ->get()
             ->sortBy(function (GroupClass $groupClass) {
                 $earliest = $groupClass->schedules
                     ->sortBy(fn ($s) => sprintf('%d-%s', $s->day_of_week, $s->start_time))
@@ -53,6 +55,8 @@ class GroupClassController extends Controller
         // Last date for which appointments have been generated for this class.
         $lastAppointmentDate = $groupClass->appointments()->max('appointment_date');
 
+        $occupancy = $this->occupancyStats($groupClass);
+
         $patients = Patient::orderBy('name')->get(['id', 'name']);
         $users = User::orderBy('name')->get(['id', 'name']);
 
@@ -60,9 +64,58 @@ class GroupClassController extends Controller
             'groupClass' => $groupClass,
             'futureAppointments' => $futureAppointments,
             'lastAppointmentDate' => $lastAppointmentDate,
+            'occupancy' => $occupancy,
             'patients' => $patients,
             'users' => $users,
         ]);
+    }
+
+    /**
+     * Occupancy and attendance stats for a class across its appointments.
+     *
+     * @return array{total_classes:int, avg_participants:float, occupancy_rate:int, attended:int, missed:int, cancelled:int, attendance_rate:int}
+     */
+    private function occupancyStats(GroupClass $groupClass): array
+    {
+        $appointmentIds = $groupClass->appointments()->pluck('id');
+        $totalClasses = $appointmentIds->count();
+
+        $avgParticipants = 0.0;
+        if ($totalClasses > 0) {
+            // Active enrollments (excludes per-patient cancellations).
+            $totalParticipants = DB::table('appointment_patient')
+                ->whereIn('appointment_id', $appointmentIds)
+                ->whereIn('status', ['scheduled', 'attended', 'missed'])
+                ->count();
+            $avgParticipants = round($totalParticipants / $totalClasses, 1);
+        }
+
+        $occupancyRate = $groupClass->max_participants > 0
+            ? (int) round(($avgParticipants / $groupClass->max_participants) * 100)
+            : 0;
+
+        $statusCounts = DB::table('appointment_patient')
+            ->whereIn('appointment_id', $appointmentIds)
+            ->selectRaw('status, count(*) as c')
+            ->groupBy('status')
+            ->pluck('c', 'status');
+
+        $attended = (int) ($statusCounts['attended'] ?? 0);
+        $missed = (int) ($statusCounts['missed'] ?? 0);
+        $cancelled = (int) ($statusCounts['cancelled'] ?? 0);
+        $attendanceRate = ($attended + $missed) > 0
+            ? (int) round(($attended / ($attended + $missed)) * 100)
+            : 0;
+
+        return [
+            'total_classes' => $totalClasses,
+            'avg_participants' => $avgParticipants,
+            'occupancy_rate' => $occupancyRate,
+            'attended' => $attended,
+            'missed' => $missed,
+            'cancelled' => $cancelled,
+            'attendance_rate' => $attendanceRate,
+        ];
     }
 
     public function store(Request $request)
@@ -171,6 +224,11 @@ class GroupClassController extends Controller
         return redirect()->route('group-classes.index')->with('success', 'Turma excluída com sucesso!');
     }
 
+    /**
+     * Number of weeks of classes to keep generated ahead.
+     */
+    public const HORIZON_WEEKS = 8;
+
     public function generateAppointments(Request $request, GroupClass $groupClass)
     {
         $validated = $request->validate([
@@ -178,98 +236,145 @@ class GroupClassController extends Controller
             'reschedule' => 'nullable|boolean',
         ]);
 
-        $groupClass->load(['schedules', 'patients']);
+        try {
+            $result = DB::transaction(fn () => $this->generateForClass(
+                $groupClass,
+                Carbon::parse($validated['end_date']),
+                $validated['reschedule'] ?? false,
+            ));
+
+            $msg = "✅ {$result['created']} aulas geradas com sucesso!";
+            if (($validated['reschedule'] ?? false) && $result['deleted'] > 0) {
+                $msg = "✅ {$result['deleted']} aulas antigas removidas e {$result['created']} novas aulas geradas!";
+            }
+            if ($result['conflicts'] > 0) {
+                $msg .= " Atenção: {$result['conflicts']} aula(s) ignorada(s) por conflito de horário do profissional.";
+            }
+
+            return back()->with('success', $msg);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erro ao gerar agendamentos: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Extend every active class up to the rolling horizon. Triggered by the
+     * dashboard "extend classes" action.
+     */
+    public function extendActiveClasses(Request $request)
+    {
+        $endDate = Carbon::today()->addWeeks(self::HORIZON_WEEKS);
+        $totalCreated = 0;
+        $classes = 0;
+
+        try {
+            DB::transaction(function () use ($endDate, &$totalCreated, &$classes) {
+                GroupClass::where('status', 'active')->with(['schedules', 'patients'])->get()
+                    ->each(function (GroupClass $groupClass) use ($endDate, &$totalCreated, &$classes) {
+                        $result = $this->generateForClass($groupClass, $endDate, false);
+                        $totalCreated += $result['created'];
+                        if ($result['created'] > 0) {
+                            $classes++;
+                        }
+                    });
+            });
+
+            return back()->with('success', "✅ {$totalCreated} aulas geradas em {$classes} turma(s) (próximas ".self::HORIZON_WEEKS.' semanas).');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erro ao estender aulas: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Core generation: materialise a class's weekly schedules into concrete
+     * appointments up to $endDate. Returns counts of created/deleted/conflicts.
+     *
+     * @return array{created:int, deleted:int, conflicts:int}
+     */
+    private function generateForClass(GroupClass $groupClass, Carbon $endDate, bool $reschedule): array
+    {
+        $groupClass->loadMissing(['schedules', 'patients']);
 
         $startDate = Carbon::today();
-        $endDate = Carbon::parse($validated['end_date']);
-        $reschedule = $validated['reschedule'] ?? false;
-
-        $schedules = $groupClass->schedules;
-        $patientIds = $groupClass->patients->pluck('id')->toArray();
-        $userId = auth()->id();
+        $userId = $groupClass->user_id ?? auth()->id();
 
         // Respect the class capacity: never enroll more students than max_participants.
-        $patientIds = array_slice($patientIds, 0, $groupClass->max_participants);
+        $patientIds = array_slice($groupClass->patients->pluck('id')->toArray(), 0, $groupClass->max_participants);
 
         $createdCount = 0;
         $deletedCount = 0;
         $conflictCount = 0;
 
-        DB::beginTransaction();
-        try {
-            // If reschedule mode, delete all future scheduled (non-completed) appointments for this class
-            if ($reschedule) {
-                $deletedCount = Appointment::where('group_class_id', $groupClass->id)
-                    ->where('appointment_date', '>=', $startDate->format('Y-m-d'))
-                    ->where('status', 'scheduled')
-                    ->delete();
+        if ($reschedule) {
+            $deletedCount = Appointment::where('group_class_id', $groupClass->id)
+                ->where('appointment_date', '>=', $startDate->format('Y-m-d'))
+                ->where('status', 'scheduled')
+                ->delete();
+        }
+
+        foreach ($groupClass->schedules as $schedule) {
+            $currentDate = $startDate->copy();
+
+            while ($currentDate->dayOfWeek !== $schedule->day_of_week) {
+                $currentDate->addDay();
             }
 
-            foreach ($schedules as $schedule) {
-                $currentDate = $startDate->copy();
+            while ($currentDate->lessThanOrEqualTo($endDate)) {
+                $dateString = $currentDate->format('Y-m-d');
 
-                while ($currentDate->dayOfWeek !== $schedule->day_of_week) {
-                    $currentDate->addDay();
-                }
+                $exists = Appointment::where('group_class_id', $groupClass->id)
+                    ->whereDate('appointment_date', $dateString)
+                    ->where(function ($q) use ($schedule) {
+                        // Match the exact slot (new data) or the time (legacy data
+                        // generated before schedule_id existed).
+                        $q->where('schedule_id', $schedule->id)
+                            ->orWhere('start_time', $schedule->start_time);
+                    })
+                    ->exists();
 
-                while ($currentDate->lessThanOrEqualTo($endDate)) {
-                    $dateString = $currentDate->format('Y-m-d');
+                // Skip if the instructor already has an overlapping appointment
+                // (another class or individual session) at this time. Overlap is
+                // computed in PHP so it works on any database driver.
+                $newStart = strtotime($schedule->start_time);
+                $newEnd = $newStart + ($schedule->duration_minutes * 60);
+                $conflict = Appointment::where('appointment_date', $dateString)
+                    ->where('user_id', $userId)
+                    ->where('group_class_id', '!=', $groupClass->id)
+                    ->get(['start_time', 'duration_minutes'])
+                    ->contains(function ($other) use ($newStart, $newEnd) {
+                        $otherStart = strtotime($other->start_time);
+                        $otherEnd = $otherStart + ($other->duration_minutes * 60);
 
-                    $exists = Appointment::where('group_class_id', $groupClass->id)
-                        ->where('appointment_date', $dateString)
-                        ->where('start_time', $schedule->start_time)
-                        ->exists();
+                        return $otherStart < $newEnd && $otherEnd > $newStart;
+                    });
 
-                    // Skip if the instructor already has an overlapping appointment
-                    // (another class or individual session) at this time.
-                    $end = date('H:i', strtotime($schedule->start_time) + ($schedule->duration_minutes * 60));
-                    $conflict = Appointment::where('appointment_date', $dateString)
-                        ->where('user_id', $userId)
-                        ->where('group_class_id', '!=', $groupClass->id)
-                        ->where('start_time', '<', $end)
-                        ->whereRaw("start_time::time + (duration_minutes || ' minutes')::interval > ?::time", [$schedule->start_time])
-                        ->exists();
+                if (! $exists && $conflict) {
+                    $conflictCount++;
+                } elseif (! $exists) {
+                    $appointment = Appointment::create([
+                        'user_id' => $userId,
+                        'group_class_id' => $groupClass->id,
+                        'schedule_id' => $schedule->id,
+                        'title' => $groupClass->name,
+                        'type' => 'group',
+                        'max_participants' => $groupClass->max_participants,
+                        'appointment_date' => $dateString,
+                        'start_time' => $schedule->start_time,
+                        'duration_minutes' => $schedule->duration_minutes,
+                    ]);
 
-                    if (! $exists && $conflict) {
-                        $conflictCount++;
-                    } elseif (! $exists) {
-                        $appointment = Appointment::create([
-                            'user_id' => $userId,
-                            'group_class_id' => $groupClass->id,
-                            'title' => $groupClass->name,
-                            'type' => 'group',
-                            'max_participants' => $groupClass->max_participants,
-                            'appointment_date' => $dateString,
-                            'start_time' => $schedule->start_time,
-                            'duration_minutes' => $schedule->duration_minutes,
-                        ]);
-
-                        foreach ($patientIds as $patientId) {
-                            $appointment->patients()->attach($patientId, ['status' => 'scheduled']);
-                        }
-
-                        $createdCount++;
+                    foreach ($patientIds as $patientId) {
+                        $appointment->patients()->attach($patientId, ['status' => 'scheduled']);
                     }
 
-                    $currentDate->addWeek();
+                    $createdCount++;
                 }
-            }
-            DB::commit();
 
-            $msg = "✅ {$createdCount} aulas geradas com sucesso!";
-            if ($reschedule && $deletedCount > 0) {
-                $msg = "✅ {$deletedCount} aulas antigas removidas e {$createdCount} novas aulas geradas!";
+                $currentDate->addWeek();
             }
-            if ($conflictCount > 0) {
-                $msg .= " Atenção: {$conflictCount} aula(s) ignorada(s) por conflito de horário do profissional.";
-            }
-
-            return back()->with('success', $msg);
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return back()->with('error', 'Erro ao gerar agendamentos: '.$e->getMessage());
         }
+
+        return ['created' => $createdCount, 'deleted' => $deletedCount, 'conflicts' => $conflictCount];
     }
 
     public function updateFutureAppointments(Request $request, GroupClass $groupClass)
@@ -285,18 +390,23 @@ class GroupClassController extends Controller
 
         $count = 0;
         foreach ($updated as $appointment) {
-            // Find the matching schedule for this appointment's day of week.
-            $appointmentDay = Carbon::parse($appointment->appointment_date)->dayOfWeek;
-            $sameDay = $groupClass->schedules->filter(function ($s) use ($appointmentDay) {
-                return $s->day_of_week === $appointmentDay;
-            });
+            // Prefer the exact originating schedule slot when known.
+            $matchingSchedule = $appointment->schedule_id
+                ? $groupClass->schedules->firstWhere('id', $appointment->schedule_id)
+                : null;
 
-            // When a day has more than one session, disambiguate by the appointment's
-            // current start_time so each session keeps its own slot (instead of all
-            // collapsing onto the first schedule).
-            $matchingSchedule = $sameDay->first(function ($s) use ($appointment) {
-                return substr((string) $s->start_time, 0, 5) === substr((string) $appointment->start_time, 0, 5);
-            }) ?? $sameDay->first();
+            if (! $matchingSchedule) {
+                // Legacy fallback: match by weekday, disambiguating by start_time
+                // so multiple sessions on the same day keep their own slot.
+                $appointmentDay = Carbon::parse($appointment->appointment_date)->dayOfWeek;
+                $sameDay = $groupClass->schedules->filter(function ($s) use ($appointmentDay) {
+                    return $s->day_of_week === $appointmentDay;
+                });
+
+                $matchingSchedule = $sameDay->first(function ($s) use ($appointment) {
+                    return substr((string) $s->start_time, 0, 5) === substr((string) $appointment->start_time, 0, 5);
+                }) ?? $sameDay->first();
+            }
 
             if ($matchingSchedule) {
                 $appointment->update([

@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\Evolution;
+use App\Models\FinancialTransaction;
+use App\Models\GroupClass;
+use App\Models\Membership;
 use App\Models\Patient;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -15,7 +18,7 @@ class DashboardController extends Controller
     {
         $requestedDate = $request->query('date');
 
-        if (!$requestedDate) {
+        if (! $requestedDate) {
             $today = now()->toDateString();
             $nextAppointment = Appointment::where('appointment_date', '>=', $today)
                 ->orderBy('appointment_date', 'asc')
@@ -51,25 +54,27 @@ class DashboardController extends Controller
 
         $today = now();
         $nextWeek = now()->addDays(7);
-        
+
         $upcomingBirthdays = Patient::whereNotNull('birthdate')->get(['id', 'name', 'birthdate'])->filter(function ($patient) use ($today, $nextWeek) {
             $birthdayThisYear = $patient->birthdate->copy()->year($today->year);
             if ($birthdayThisYear->isBefore($today->startOfDay())) {
                 $birthdayThisYear->addYear();
             }
+
             return $birthdayThisYear->between($today->startOfDay(), $nextWeek->endOfDay());
         })->map(function ($patient) use ($today) {
             $birthdayThisYear = $patient->birthdate->copy()->year($today->year);
             if ($birthdayThisYear->isBefore($today->startOfDay())) {
                 $birthdayThisYear->addYear();
             }
+
             return [
                 'id' => $patient->id,
                 'name' => $patient->name,
                 'birthdate' => $patient->birthdate->format('Y-m-d'),
                 'isToday' => $birthdayThisYear->isToday(),
                 'daysToBirthday' => $today->startOfDay()->diffInDays($birthdayThisYear, false),
-                'age_turning' => $birthdayThisYear->year - $patient->birthdate->year
+                'age_turning' => $birthdayThisYear->year - $patient->birthdate->year,
             ];
         })->sortBy('daysToBirthday')->values();
 
@@ -77,10 +82,10 @@ class DashboardController extends Controller
         $currentYear = now()->year;
 
         $financialSummary = [
-            'income' => \App\Models\FinancialTransaction::where('type', 'income')->where('status', 'paid')->whereMonth('date', $currentMonth)->whereYear('date', $currentYear)->sum('amount'),
-            'expense' => \App\Models\FinancialTransaction::where('type', 'expense')->where('status', 'paid')->whereMonth('date', $currentMonth)->whereYear('date', $currentYear)->sum('amount'),
-            'pending_income' => \App\Models\FinancialTransaction::where('type', 'income')->where('status', 'pending')->whereMonth('date', $currentMonth)->whereYear('date', $currentYear)->sum('amount'),
-            'pending_expense' => \App\Models\FinancialTransaction::where('type', 'expense')->where('status', 'pending')->whereMonth('date', $currentMonth)->whereYear('date', $currentYear)->sum('amount'),
+            'income' => FinancialTransaction::where('type', 'income')->where('status', 'paid')->whereMonth('date', $currentMonth)->whereYear('date', $currentYear)->sum('amount'),
+            'expense' => FinancialTransaction::where('type', 'expense')->where('status', 'paid')->whereMonth('date', $currentMonth)->whereYear('date', $currentYear)->sum('amount'),
+            'pending_income' => FinancialTransaction::where('type', 'income')->where('status', 'pending')->whereMonth('date', $currentMonth)->whereYear('date', $currentYear)->sum('amount'),
+            'pending_expense' => FinancialTransaction::where('type', 'expense')->where('status', 'pending')->whereMonth('date', $currentMonth)->whereYear('date', $currentYear)->sum('amount'),
         ];
 
         // Growth Indicators
@@ -89,7 +94,7 @@ class DashboardController extends Controller
         $newPatientsLastMonth = Patient::whereMonth('created_at', $lastMonth->month)->whereYear('created_at', $lastMonth->year)->count();
 
         $revenueThisMonth = $financialSummary['income'];
-        $revenueLastMonth = \App\Models\FinancialTransaction::where('type', 'income')->where('status', 'paid')->whereMonth('date', $lastMonth->month)->whereYear('date', $lastMonth->year)->sum('amount');
+        $revenueLastMonth = FinancialTransaction::where('type', 'income')->where('status', 'paid')->whereMonth('date', $lastMonth->month)->whereYear('date', $lastMonth->year)->sum('amount');
 
         $appointmentsThisMonth = Appointment::whereMonth('appointment_date', $currentMonth)->whereYear('appointment_date', $currentYear)->count();
         $completedThisMonth = Appointment::where('status', 'completed')->whereMonth('appointment_date', $currentMonth)->whereYear('appointment_date', $currentYear)->count();
@@ -99,10 +104,31 @@ class DashboardController extends Controller
         $completedLastMonth = Appointment::where('status', 'completed')->whereMonth('appointment_date', $lastMonth->month)->whereYear('appointment_date', $lastMonth->year)->count();
         $completionRateLastMonth = $appointmentsLastMonth > 0 ? round(($completedLastMonth / $appointmentsLastMonth) * 100) : 0;
 
-        $activeMemberships = \App\Models\Membership::where('status', 'active')->count();
-        $expiringMemberships = \App\Models\Membership::where('status', 'active')->where('end_date', '<=', now()->addDays(7))->where('end_date', '>=', now())->count();
+        // Active classes whose generated appointments are running low (less
+        // than two weeks ahead), so the user can extend them from the dashboard.
+        $lowThreshold = now()->addDays(14)->toDateString();
+        $classesNeedingExtension = GroupClass::where('status', 'active')
+            ->whereHas('schedules')
+            ->withMax('appointments', 'appointment_date')
+            ->get()
+            ->filter(function ($groupClass) use ($lowThreshold) {
+                return $groupClass->appointments_max_appointment_date === null
+                    || $groupClass->appointments_max_appointment_date < $lowThreshold;
+            })
+            ->map(function ($groupClass) {
+                return [
+                    'id' => $groupClass->id,
+                    'name' => $groupClass->name,
+                    'color' => $groupClass->color,
+                    'last_appointment_date' => $groupClass->appointments_max_appointment_date,
+                ];
+            })
+            ->values();
 
-        $calcChange = fn($current, $previous) => $previous > 0 ? round((($current - $previous) / $previous) * 100) : ($current > 0 ? 100 : 0);
+        $activeMemberships = Membership::where('status', 'active')->count();
+        $expiringMemberships = Membership::where('status', 'active')->where('end_date', '<=', now()->addDays(7))->where('end_date', '>=', now())->count();
+
+        $calcChange = fn ($current, $previous) => $previous > 0 ? round((($current - $previous) / $previous) * 100) : ($current > 0 ? 100 : 0);
 
         $growthIndicators = [
             'newPatients' => ['current' => $newPatientsThisMonth, 'change' => $calcChange($newPatientsThisMonth, $newPatientsLastMonth)],
@@ -119,9 +145,10 @@ class DashboardController extends Controller
             'upcomingBirthdays' => $upcomingBirthdays,
             'selectedDate' => $selectedDate,
             'weekDays' => $weekDays,
-            'weekLabel' => $startOfWeek->locale('pt_BR')->isoFormat('D [de] MMM') . ' — ' . $startOfWeek->copy()->addDays(6)->locale('pt_BR')->isoFormat('D [de] MMM, YYYY'),
+            'weekLabel' => $startOfWeek->locale('pt_BR')->isoFormat('D [de] MMM').' — '.$startOfWeek->copy()->addDays(6)->locale('pt_BR')->isoFormat('D [de] MMM, YYYY'),
             'financialSummary' => $financialSummary,
             'growthIndicators' => $growthIndicators,
+            'classesNeedingExtension' => $classesNeedingExtension,
         ]);
     }
 }

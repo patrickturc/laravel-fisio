@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
-import { Users, ArrowLeft, Calendar, User, Clock, Settings, Plus, PlayCircle, Trash2, CalendarDays } from 'lucide-react';
+import { Users, ArrowLeft, Calendar, User, Clock, Settings, Plus, PlayCircle, Trash2, CalendarDays, BarChart3 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -12,7 +12,7 @@ import { InlineEdit } from '@/components/inline-edit';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-export default function GroupClassShow({ groupClass, futureAppointments = [], lastAppointmentDate = null, patients, users = [] }: { groupClass: any, futureAppointments?: any[], lastAppointmentDate?: string | null, patients: any[], users?: any[] }) {
+export default function GroupClassShow({ groupClass, futureAppointments = [], lastAppointmentDate = null, occupancy = null, patients, users = [] }: { groupClass: any, futureAppointments?: any[], lastAppointmentDate?: string | null, occupancy?: { total_classes: number; avg_participants: number; occupancy_rate: number; attended: number; missed: number; cancelled: number; attendance_rate: number } | null, patients: any[], users?: any[] }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Turmas', href: '/group-classes' },
         { title: groupClass.name, href: `/group-classes/${groupClass.id}` },
@@ -200,6 +200,53 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], la
                                 <Plus className="size-4" /> Adicionar Aluno
                             </Button>
                         </motion.div>
+
+                        {occupancy && occupancy.total_classes > 0 && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.15 }}
+                                className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm"
+                            >
+                                <h2 className="text-lg font-bold flex items-center gap-2 mb-4">
+                                    <BarChart3 className="size-5 text-primary" /> Ocupação
+                                </h2>
+
+                                <div className="mb-4">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <span className="text-sm text-muted-foreground">Taxa média de ocupação</span>
+                                        <span className="text-sm font-bold">{occupancy.occupancy_rate}%</span>
+                                    </div>
+                                    <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
+                                        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, occupancy.occupancy_rate)}%` }} />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1.5">
+                                        Média de {occupancy.avg_participants} de {groupClass.max_participants} alunos por aula • {occupancy.total_classes} aulas
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-2 text-center">
+                                    <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 p-3">
+                                        <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{occupancy.attended}</p>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5">Presenças</p>
+                                    </div>
+                                    <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 p-3">
+                                        <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{occupancy.missed}</p>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5">Faltas</p>
+                                    </div>
+                                    <div className="rounded-xl bg-red-50 dark:bg-red-900/20 p-3">
+                                        <p className="text-xl font-bold text-red-600 dark:text-red-400">{occupancy.cancelled}</p>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5">Cancel.</p>
+                                    </div>
+                                </div>
+
+                                {(occupancy.attended + occupancy.missed) > 0 && (
+                                    <p className="text-xs text-muted-foreground mt-3 text-center">
+                                        Taxa de comparecimento: <span className="font-semibold text-foreground">{occupancy.attendance_rate}%</span>
+                                    </p>
+                                )}
+                            </motion.div>
+                        )}
                     </div>
 
                     {/* Right Column - Agendamentos */}

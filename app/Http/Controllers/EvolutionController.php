@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Evolution;
-use App\Models\Patient;
-use App\Models\ClinicalProtocol;
 use App\Models\Appointment;
+use App\Models\ClinicalProtocol;
+use App\Models\Evolution;
+use App\Models\Membership;
+use App\Models\Patient;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class EvolutionController extends Controller
 {
@@ -20,7 +22,7 @@ class EvolutionController extends Controller
             }]);
 
         if ($request->filled('search')) {
-            $query->where('name', 'ilike', '%' . $request->search . '%');
+            $query->where('name', 'ilike', '%'.$request->search.'%');
         }
 
         if ($request->filled('tipo')) {
@@ -44,10 +46,10 @@ class EvolutionController extends Controller
         // Calculate pending evolutions (past appointments without an evolution)
         $now = now();
         $today = $now->toDateString();
-        
-        $recentAppointments = Appointment::with(['patients' => function($q) {
-                $q->wherePivotIn('status', ['scheduled', 'attended']);
-            }, 'groupClass'])
+
+        $recentAppointments = Appointment::with(['patients' => function ($q) {
+            $q->wherePivotIn('status', ['scheduled', 'attended']);
+        }, 'groupClass'])
             ->where('appointment_date', '>=', $now->copy()->subDays(14)->toDateString())
             ->where('appointment_date', '<=', $today)
             ->get();
@@ -56,10 +58,10 @@ class EvolutionController extends Controller
 
         foreach ($recentAppointments as $appointment) {
             // Only consider past appointments based on start_time + duration
-            $endTimeStr = $appointment->appointment_date->format('Y-m-d') . ' ' . $appointment->start_time;
+            $endTimeStr = $appointment->appointment_date->format('Y-m-d').' '.$appointment->start_time;
             try {
-                $endTime = \Carbon\Carbon::parse($endTimeStr)->addMinutes($appointment->duration_minutes);
-                if (!$endTime->isPast()) {
+                $endTime = Carbon::parse($endTimeStr)->addMinutes($appointment->duration_minutes);
+                if (! $endTime->isPast()) {
                     continue;
                 }
             } catch (\Exception $e) {
@@ -72,15 +74,15 @@ class EvolutionController extends Controller
                     ->where('paciente_id', $patient->id)
                     ->exists();
 
-                if (!$hasEvolution) {
+                if (! $hasEvolution) {
                     $pendingEvolutions[] = [
-                        'id' => $appointment->id . '_' . $patient->id,
+                        'id' => $appointment->id.'_'.$patient->id,
                         'appointment_id' => $appointment->id,
                         'patient_id' => $patient->id,
                         'patient_name' => $patient->name,
                         'patient_type' => $patient->type,
                         'appointment_date' => $appointment->appointment_date->format('Y-m-d'),
-                        'start_time' => \Carbon\Carbon::parse($appointment->start_time)->format('H:i'),
+                        'start_time' => Carbon::parse($appointment->start_time)->format('H:i'),
                         'title' => $appointment->type === 'group' ? ($appointment->groupClass->name ?? $appointment->title ?? 'Turma de Pilates') : 'Pilates/Individual',
                     ];
                 }
@@ -88,9 +90,10 @@ class EvolutionController extends Controller
         }
 
         // Sort pending by date descending
-        usort($pendingEvolutions, function($a, $b) {
-            $dateA = $a['appointment_date'] . ' ' . $a['start_time'];
-            $dateB = $b['appointment_date'] . ' ' . $b['start_time'];
+        usort($pendingEvolutions, function ($a, $b) {
+            $dateA = $a['appointment_date'].' '.$a['start_time'];
+            $dateB = $b['appointment_date'].' '.$b['start_time'];
+
             return strcmp($dateB, $dateA);
         });
 
@@ -160,22 +163,22 @@ class EvolutionController extends Controller
         }
 
         $validated = $request->validate($rules);
-        
+
         if ($isSimple && empty($validated['tipo_atendimento'])) {
             $validated['tipo_atendimento'] = 'sessao';
         }
 
         $linkedAuto = false;
         if (empty($validated['agendamento_id'])) {
-            $appointment = \App\Models\Appointment::whereHas('patients', function($q) use ($validated) {
+            $appointment = Appointment::whereHas('patients', function ($q) use ($validated) {
                 $q->where('patients.id', $validated['paciente_id']);
             })
-            ->where('appointment_date', $validated['data_atendimento'])
-            ->where('status', '!=', 'cancelled')
-            ->whereDoesntHave('evolutions', function($q) use ($validated) {
-                $q->where('paciente_id', $validated['paciente_id']);
-            })
-            ->first();
+                ->where('appointment_date', $validated['data_atendimento'])
+                ->where('status', '!=', 'cancelled')
+                ->whereDoesntHave('evolutions', function ($q) use ($validated) {
+                    $q->where('paciente_id', $validated['paciente_id']);
+                })
+                ->first();
 
             if ($appointment) {
                 $validated['agendamento_id'] = $appointment->id;
@@ -188,14 +191,23 @@ class EvolutionController extends Controller
 
         // Mark linked appointment as completed
         if ($evolution->agendamento_id) {
-            \App\Models\Appointment::where('id', $evolution->agendamento_id)
-                ->update(['status' => 'completed']);
-            // Also update the patient status in the pivot
-            $evolution->appointment?->patients()->updateExistingPivot($evolution->paciente_id, ['status' => 'attended']);
+            $appointment = Appointment::find($evolution->agendamento_id);
+            if ($appointment) {
+                $appointment->update(['status' => 'completed']);
+                // Mark the patient present and record the membership consumed.
+                $membershipId = Membership::activeForAttendance(
+                    $evolution->paciente_id,
+                    $appointment->appointment_date->toDateString(),
+                )?->id;
+                $appointment->patients()->updateExistingPivot($evolution->paciente_id, [
+                    'status' => 'attended',
+                    'membership_id' => $membershipId,
+                ]);
+            }
         }
 
-        $msg = $linkedAuto 
-            ? 'Evolução registrada e vinculada automaticamente à aula pendente do dia!' 
+        $msg = $linkedAuto
+            ? 'Evolução registrada e vinculada automaticamente à aula pendente do dia!'
             : 'Evolução registrada com sucesso!';
 
         return redirect()->back()->with('success', $msg);
@@ -204,7 +216,7 @@ class EvolutionController extends Controller
     public function show(Evolution $evolution)
     {
         $evolution->load(['patient', 'professional']);
-        $protocols = \App\Models\ClinicalProtocol::orderBy('name')->get(['id', 'name']);
+        $protocols = ClinicalProtocol::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('evolutions/show', [
             'evolution' => $evolution,
@@ -220,7 +232,7 @@ class EvolutionController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $protocols = \App\Models\ClinicalProtocol::orderBy('name')->get(['id', 'name']);
+        $protocols = ClinicalProtocol::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('evolutions/patient-evolutions', [
             'patient' => $patient,
@@ -287,7 +299,7 @@ class EvolutionController extends Controller
         $evolution->load(['patient', 'professional']);
 
         $tipo = ['avaliacao' => 'Avaliação', 'reavaliacao' => 'Reavaliação', 'sessao' => 'Sessão'][$evolution->tipo_atendimento] ?? $evolution->tipo_atendimento;
-        $date = \Carbon\Carbon::parse($evolution->data_atendimento)->format('d/m/Y');
+        $date = Carbon::parse($evolution->data_atendimento)->format('d/m/Y');
 
         $html = '<!DOCTYPE html><html><head><meta charset="utf-8">
         <style>
@@ -306,42 +318,70 @@ class EvolutionController extends Controller
 
         $html .= '<div class="header">';
         $html .= '<h1>Evolução Clínica (SOAP)</h1>';
-        $html .= '<p class="meta"><strong>Paciente:</strong> ' . e($evolution->patient->name ?? 'N/A') . ' &nbsp; | &nbsp; ';
-        $html .= '<strong>Data:</strong> ' . $date . ' &nbsp; | &nbsp; ';
-        $html .= '<strong>Tipo:</strong> ' . $tipo . '</p>';
+        $html .= '<p class="meta"><strong>Paciente:</strong> '.e($evolution->patient->name ?? 'N/A').' &nbsp; | &nbsp; ';
+        $html .= '<strong>Data:</strong> '.$date.' &nbsp; | &nbsp; ';
+        $html .= '<strong>Tipo:</strong> '.$tipo.'</p>';
         $html .= '</div>';
 
         // S - Subjetivo
         $html .= '<h2>S — Subjetivo</h2>';
-        if ($evolution->queixa_principal) $html .= '<div class="field"><div class="field-label">Queixa Principal</div><div class="field-value">' . e($evolution->queixa_principal) . '</div></div>';
-        if ($evolution->relato_paciente) $html .= '<div class="field"><div class="field-label">Relato do Paciente</div><div class="field-value">' . e($evolution->relato_paciente) . '</div></div>';
-        if ($evolution->dor_eva !== null) $html .= '<div class="field"><div class="field-label">EVA da Dor</div><div class="field-value">' . $evolution->dor_eva . '/10</div></div>';
-        if ($evolution->localizacao_dor) $html .= '<div class="field"><div class="field-label">Localização</div><div class="field-value">' . e($evolution->localizacao_dor) . '</div></div>';
-        if ($evolution->tipo_dor) $html .= '<div class="field"><div class="field-label">Tipo de Dor</div><div class="field-value">' . e($evolution->tipo_dor) . '</div></div>';
+        if ($evolution->queixa_principal) {
+            $html .= '<div class="field"><div class="field-label">Queixa Principal</div><div class="field-value">'.e($evolution->queixa_principal).'</div></div>';
+        }
+        if ($evolution->relato_paciente) {
+            $html .= '<div class="field"><div class="field-label">Relato do Paciente</div><div class="field-value">'.e($evolution->relato_paciente).'</div></div>';
+        }
+        if ($evolution->dor_eva !== null) {
+            $html .= '<div class="field"><div class="field-label">EVA da Dor</div><div class="field-value">'.$evolution->dor_eva.'/10</div></div>';
+        }
+        if ($evolution->localizacao_dor) {
+            $html .= '<div class="field"><div class="field-label">Localização</div><div class="field-value">'.e($evolution->localizacao_dor).'</div></div>';
+        }
+        if ($evolution->tipo_dor) {
+            $html .= '<div class="field"><div class="field-label">Tipo de Dor</div><div class="field-value">'.e($evolution->tipo_dor).'</div></div>';
+        }
 
         // O - Objetivo
         $html .= '<h2>O — Objetivo</h2>';
         $vitals = [];
-        if ($evolution->pressao_arterial) $vitals[] = '<strong>PA:</strong> ' . e($evolution->pressao_arterial);
-        if ($evolution->frequencia_cardiaca) $vitals[] = '<strong>FC:</strong> ' . e($evolution->frequencia_cardiaca);
-        if ($evolution->saturacao) $vitals[] = '<strong>SpO2:</strong> ' . e($evolution->saturacao);
-        if (!empty($vitals)) $html .= '<p>' . implode(' &nbsp; | &nbsp; ', $vitals) . '</p>';
-        if ($evolution->condutas_realizadas) $html .= '<div class="field"><div class="field-label">Condutas Realizadas</div><div class="field-value">' . nl2br(e($evolution->condutas_realizadas)) . '</div></div>';
+        if ($evolution->pressao_arterial) {
+            $vitals[] = '<strong>PA:</strong> '.e($evolution->pressao_arterial);
+        }
+        if ($evolution->frequencia_cardiaca) {
+            $vitals[] = '<strong>FC:</strong> '.e($evolution->frequencia_cardiaca);
+        }
+        if ($evolution->saturacao) {
+            $vitals[] = '<strong>SpO2:</strong> '.e($evolution->saturacao);
+        }
+        if (! empty($vitals)) {
+            $html .= '<p>'.implode(' &nbsp; | &nbsp; ', $vitals).'</p>';
+        }
+        if ($evolution->condutas_realizadas) {
+            $html .= '<div class="field"><div class="field-label">Condutas Realizadas</div><div class="field-value">'.nl2br(e($evolution->condutas_realizadas)).'</div></div>';
+        }
 
         // A - Avaliação
         $html .= '<h2>A — Avaliação</h2>';
-        if ($evolution->analise_profissional) $html .= '<div class="field"><div class="field-label">Análise Profissional</div><div class="field-value">' . nl2br(e($evolution->analise_profissional)) . '</div></div>';
-        if ($evolution->resposta_tratamento) $html .= '<div class="field"><div class="field-label">Resposta ao Tratamento</div><div class="field-value">' . nl2br(e($evolution->resposta_tratamento)) . '</div></div>';
+        if ($evolution->analise_profissional) {
+            $html .= '<div class="field"><div class="field-label">Análise Profissional</div><div class="field-value">'.nl2br(e($evolution->analise_profissional)).'</div></div>';
+        }
+        if ($evolution->resposta_tratamento) {
+            $html .= '<div class="field"><div class="field-label">Resposta ao Tratamento</div><div class="field-value">'.nl2br(e($evolution->resposta_tratamento)).'</div></div>';
+        }
 
         // P - Plano
         $html .= '<h2>P — Plano</h2>';
-        if ($evolution->conduta_planejada) $html .= '<div class="field"><div class="field-label">Conduta Planejada</div><div class="field-value">' . nl2br(e($evolution->conduta_planejada)) . '</div></div>';
-        if ($evolution->orientacoes_domiciliares) $html .= '<div class="field"><div class="field-label">Orientações Domiciliares</div><div class="field-value">' . nl2br(e($evolution->orientacoes_domiciliares)) . '</div></div>';
+        if ($evolution->conduta_planejada) {
+            $html .= '<div class="field"><div class="field-label">Conduta Planejada</div><div class="field-value">'.nl2br(e($evolution->conduta_planejada)).'</div></div>';
+        }
+        if ($evolution->orientacoes_domiciliares) {
+            $html .= '<div class="field"><div class="field-label">Orientações Domiciliares</div><div class="field-value">'.nl2br(e($evolution->orientacoes_domiciliares)).'</div></div>';
+        }
 
-        $html .= '<div class="footer">Phisio &mdash; Gerado em ' . now()->format('d/m/Y H:i') . '</div>';
+        $html .= '<div class="footer">Phisio &mdash; Gerado em '.now()->format('d/m/Y H:i').'</div>';
         $html .= '</body></html>';
 
-        $filename = 'evolucao_' . ($evolution->patient->name ?? 'paciente') . '_' . \Str::slug($date) . '.pdf';
+        $filename = 'evolucao_'.($evolution->patient->name ?? 'paciente').'_'.\Str::slug($date).'.pdf';
 
         return Pdf::loadHTML($html)->download($filename);
     }

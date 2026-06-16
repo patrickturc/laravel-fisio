@@ -2,9 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
 
 class GroupClassSchedule extends Model
 {
@@ -20,5 +19,10 @@ class GroupClassSchedule extends Model
     public function groupClass()
     {
         return $this->belongsTo(GroupClass::class);
+    }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class, 'schedule_id');
     }
 }

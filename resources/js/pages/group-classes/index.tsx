@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
-import { Users, Plus, Search, Calendar, MoreVertical, Edit, Trash } from 'lucide-react';
+import { Users, Plus, Search, Calendar, MoreVertical, Edit, Trash, CalendarClock } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -74,9 +74,20 @@ export default function GroupClassesIndex({ groupClasses, patients = [], users =
 
                                     <h3 className="text-xl font-bold tracking-tight mb-2 group-hover:text-primary transition-colors">{groupClass.name}</h3>
                                     
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                                         <Calendar className="size-4" />
                                         <span>{formatDays(groupClass.schedules)}</span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 text-xs mb-4">
+                                        <CalendarClock className="size-3.5 text-muted-foreground" />
+                                        {groupClass.appointments_max_appointment_date ? (
+                                            <span className="text-muted-foreground">
+                                                Aulas geradas até <span className="font-semibold text-foreground">{new Date(groupClass.appointments_max_appointment_date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                                            </span>
+                                        ) : (
+                                            <span className="text-amber-600 font-medium">Nenhuma aula gerada</span>
+                                        )}
                                     </div>
 
                                     <div className="mt-auto pt-4 border-t border-border/50 flex items-center justify-between">

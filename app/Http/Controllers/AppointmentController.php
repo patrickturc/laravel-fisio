@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\ClinicalProtocol;
 use App\Models\GroupClass;
+use App\Models\GroupClassSchedule;
 use App\Models\Membership;
 use App\Models\Patient;
 use App\Models\User;
@@ -281,16 +282,23 @@ class AppointmentController extends Controller
                 $newDayOfWeek = $newDateObj->dayOfWeek;
                 $newTime = $validated['start_time'];
 
-                // Shifting future appointments
-                $futureAppointments = Appointment::where('group_class_id', $appointment->group_class_id)
-                    ->where('appointment_date', '>=', $oldDate->format('Y-m-d'))
-                    ->where('start_time', $oldTime)
-                    ->get()
-                    ->filter(function ($appt) use ($oldDayOfWeek) {
-                        return Carbon::parse($appt->appointment_date)->dayOfWeek === $oldDayOfWeek;
-                    });
-
                 $daysDiff = Carbon::parse($oldDate)->startOfDay()->diffInDays($newDateObj->startOfDay(), false);
+
+                // Prefer matching by the originating schedule slot (robust);
+                // fall back to weekday/time matching for legacy appointments.
+                if ($appointment->schedule_id) {
+                    $futureAppointments = Appointment::where('schedule_id', $appointment->schedule_id)
+                        ->where('appointment_date', '>=', $oldDate->format('Y-m-d'))
+                        ->get();
+                } else {
+                    $futureAppointments = Appointment::where('group_class_id', $appointment->group_class_id)
+                        ->where('appointment_date', '>=', $oldDate->format('Y-m-d'))
+                        ->where('start_time', $oldTime)
+                        ->get()
+                        ->filter(function ($appt) use ($oldDayOfWeek) {
+                            return Carbon::parse($appt->appointment_date)->dayOfWeek === $oldDayOfWeek;
+                        });
+                }
 
                 foreach ($futureAppointments as $appt) {
                     $shiftedDate = Carbon::parse($appt->appointment_date)->addDays($daysDiff);
@@ -300,23 +308,21 @@ class AppointmentController extends Controller
                     ]);
                 }
 
-                // Update the base schedule
-                $groupClass = GroupClass::find($appointment->group_class_id);
-                if ($groupClass) {
-                    // Start times are often stored as H:i:s, $oldTime might be H:i
-                    $schedule = $groupClass->schedules()
+                // Update the originating schedule slot directly when known.
+                $schedule = $appointment->schedule_id
+                    ? GroupClassSchedule::find($appointment->schedule_id)
+                    : GroupClass::find($appointment->group_class_id)?->schedules()
                         ->where('day_of_week', $oldDayOfWeek)
                         ->where(function ($q) use ($oldTime) {
                             $q->where('start_time', $oldTime)
                                 ->orWhere('start_time', $oldTime.':00');
                         })->first();
 
-                    if ($schedule) {
-                        $schedule->update([
-                            'day_of_week' => $newDayOfWeek,
-                            'start_time' => $newTime,
-                        ]);
-                    }
+                if ($schedule) {
+                    $schedule->update([
+                        'day_of_week' => $newDayOfWeek,
+                        'start_time' => $newTime,
+                    ]);
                 }
 
                 DB::commit();
@@ -471,6 +477,7 @@ class AppointmentController extends Controller
 
         $appointment->patients()->updateExistingPivot($patientId, [
             'status' => $validated['status'],
+            'membership_id' => $this->membershipToConsume($validated['status'], $patientId, $appointment),
         ]);
 
         return back()->with('success', 'Status atualizado com sucesso.');
@@ -492,15 +499,37 @@ class AppointmentController extends Controller
             // Patients still "scheduled" inherit the session outcome; explicit
             // attended/missed/cancelled marks set per patient are preserved.
             if ($validated['status'] === 'completed') {
-                $appointment->patients()->wherePivot('status', 'scheduled')
-                    ->each(fn ($patient) => $appointment->patients()->updateExistingPivot($patient->id, ['status' => 'attended']));
+                $appointment->patients()->wherePivot('status', 'scheduled')->each(
+                    fn ($patient) => $appointment->patients()->updateExistingPivot($patient->id, [
+                        'status' => 'attended',
+                        'membership_id' => $this->membershipToConsume('attended', $patient->id, $appointment),
+                    ])
+                );
             } elseif ($validated['status'] === 'cancelled') {
-                $appointment->patients()->wherePivot('status', 'scheduled')
-                    ->each(fn ($patient) => $appointment->patients()->updateExistingPivot($patient->id, ['status' => 'cancelled']));
+                $appointment->patients()->wherePivot('status', 'scheduled')->each(
+                    fn ($patient) => $appointment->patients()->updateExistingPivot($patient->id, [
+                        'status' => 'cancelled',
+                        'membership_id' => null,
+                    ])
+                );
             }
         });
 
         return back()->with('success', 'Status da sessão atualizado.');
+    }
+
+    /**
+     * Resolve which membership an attendance consumes. Returns null unless the
+     * patient is being marked "attended" and has an active membership covering
+     * the appointment date.
+     */
+    private function membershipToConsume(string $status, string $patientId, Appointment $appointment): ?string
+    {
+        if ($status !== 'attended') {
+            return null;
+        }
+
+        return Membership::activeForAttendance($patientId, $appointment->appointment_date->toDateString())?->id;
     }
 
     public function destroy(Request $request, Appointment $appointment)

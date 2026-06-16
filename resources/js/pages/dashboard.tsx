@@ -1,8 +1,9 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-import { Users, Calendar, FileText, Clock, Plus, ChevronRight, ChevronLeft, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, CreditCard, BarChart3, CalendarDays } from 'lucide-react';
+import { Users, Calendar, FileText, Clock, Plus, ChevronRight, ChevronLeft, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, CreditCard, BarChart3, CalendarDays, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
@@ -57,6 +58,7 @@ interface Props {
         completionRate: { current: number; change: number };
         activeMemberships: { current: number; expiring: number };
     };
+    classesNeedingExtension: Array<{ id: string; name: string; color: string | null; last_appointment_date: string | null }>;
 }
 
 function navigateToDate(date: string) {
@@ -69,9 +71,19 @@ function shiftWeek(currentDate: string, direction: number) {
     navigateToDate(d.toISOString().split('T')[0]);
 }
 
-export default function Dashboard({ totalPatients, dayAppointments, dayCount, pendingEvolutions, selectedDate, weekDays, weekLabel, upcomingBirthdays, financialSummary, growthIndicators }: Props) {
+export default function Dashboard({ totalPatients, dayAppointments, dayCount, pendingEvolutions, selectedDate, weekDays, weekLabel, upcomingBirthdays, financialSummary, growthIndicators, classesNeedingExtension = [] }: Props) {
     const statusLabel: Record<string, string> = { scheduled: 'Agendado', completed: 'Realizado', cancelled: 'Cancelado' };
     const statusColor: Record<string, string> = { scheduled: 'bg-blue-100 text-blue-700', completed: 'bg-emerald-100 text-emerald-700', cancelled: 'bg-red-100 text-red-700' };
+
+    const [isExtending, setIsExtending] = useState(false);
+
+    function extendClasses() {
+        setIsExtending(true);
+        router.post('/group-classes/extend-active', {}, {
+            preserveScroll: true,
+            onFinish: () => setIsExtending(false),
+        });
+    }
 
     const formatCurrency = (val: number) => {
         return Number(val).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -89,6 +101,48 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
                     <h1 className="text-2xl font-bold tracking-tight">Bom dia! 👋</h1>
                     <p className="text-muted-foreground text-sm mt-1">Aqui está o resumo do seu dia.</p>
                 </div>
+
+                {/* Classes running out of generated appointments */}
+                {classesNeedingExtension.length > 0 && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                        className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-5 shadow-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-start gap-3">
+                                <div className="p-2.5 bg-amber-500/15 rounded-xl shrink-0"><AlertTriangle className="size-5 text-amber-600" /></div>
+                                <div>
+                                    <h3 className="font-semibold text-amber-800 dark:text-amber-300">
+                                        {classesNeedingExtension.length} turma(s) com aulas acabando
+                                    </h3>
+                                    <p className="text-sm text-amber-700/80 dark:text-amber-400/80 mt-0.5">
+                                        Gere as próximas aulas para não ficar sem agenda. Clique para estender por mais 8 semanas.
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                        {classesNeedingExtension.map((gc) => (
+                                            <Link key={gc.id} href={`/group-classes/${gc.id}`}
+                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/60 dark:bg-black/20 border border-amber-200 dark:border-amber-500/20 text-xs font-medium text-amber-800 dark:text-amber-300 hover:bg-white transition-colors">
+                                                <span className="size-2 rounded-full" style={{ backgroundColor: gc.color || '#8b5cf6' }} />
+                                                {gc.name}
+                                                <span className="text-amber-600/70">
+                                                    {gc.last_appointment_date
+                                                        ? `até ${new Date(gc.last_appointment_date + 'T12:00:00').toLocaleDateString('pt-BR')}`
+                                                        : 'sem aulas'}
+                                                </span>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <button
+                                onClick={extendClasses}
+                                disabled={isExtending}
+                                className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-amber-600 text-white text-sm font-medium shadow-sm hover:bg-amber-700 transition-colors disabled:opacity-60 shrink-0"
+                            >
+                                <CalendarDays className="size-4" />
+                                {isExtending ? 'Gerando...' : 'Estender todas as turmas'}
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
 
                 {/* KPI Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

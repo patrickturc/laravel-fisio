@@ -166,6 +166,9 @@ Route::middleware(['auth', 'verified'])->group(function () use ($resourceWithPer
     $resourceWithPermissions('commercial-plans', CommercialPlanController::class, 'commercial_plans.manage');
 
     // Group Classes
+    Route::post('group-classes/extend-active', [GroupClassController::class, 'extendActiveClasses'])
+        ->middleware('permission:group_classes.manage.edit')
+        ->name('group-classes.extend-active');
     Route::post('group-classes/{group_class}/generate-appointments', [GroupClassController::class, 'generateAppointments'])
         ->middleware('permission:group_classes.manage.edit')
         ->name('group-classes.generate');

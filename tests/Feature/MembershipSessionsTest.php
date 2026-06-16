@@ -5,6 +5,8 @@ use App\Models\CommercialPlan;
 use App\Models\Membership;
 use App\Models\Patient;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Permission;
 
 function makeMembershipWithPlan(int $sessionsTotal): Membership
 {
@@ -65,6 +67,38 @@ test('missed sessions do not count and remaining never goes negative', function 
 
     expect($membership->sessions_used)->toBe(2)
         ->and($membership->sessions_remaining)->toBe(0);
+});
+
+test('marking a patient present links the consumed membership on the pivot', function () {
+    Permission::findOrCreate('appointments.manage.edit', 'web');
+    $membership = makeMembershipWithPlan(4);
+    $user = $membership->patient->user;
+    $user->givePermissionTo('appointments.manage.edit');
+    test()->actingAs($user);
+
+    $appointment = Appointment::create([
+        'user_id' => $user->id,
+        'appointment_date' => now()->toDateString(),
+        'start_time' => '08:00',
+        'duration_minutes' => 50,
+        'type' => 'group',
+        'max_participants' => 4,
+        'status' => 'scheduled',
+    ]);
+    $appointment->patients()->attach($membership->patient_id, ['status' => 'scheduled']);
+
+    test()->post("/appointments/{$appointment->id}/patients/{$membership->patient_id}/status", ['status' => 'attended']);
+
+    $pivotMembership = DB::table('appointment_patient')
+        ->where('appointment_id', $appointment->id)
+        ->where('patient_id', $membership->patient_id)
+        ->value('membership_id');
+
+    expect($pivotMembership)->toBe($membership->id);
+
+    $membership->load('commercialPlan')->append(['sessions_used', 'sessions_remaining']);
+    expect($membership->sessions_used)->toBe(1)
+        ->and($membership->sessions_remaining)->toBe(3);
 });
 
 test('a plan without sessions_total is unlimited', function () {
