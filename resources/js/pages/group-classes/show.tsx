@@ -12,7 +12,7 @@ import { InlineEdit } from '@/components/inline-edit';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-export default function GroupClassShow({ groupClass, futureAppointments = [], patients, users = [] }: { groupClass: any, futureAppointments?: any[], patients: any[], users?: any[] }) {
+export default function GroupClassShow({ groupClass, futureAppointments = [], lastAppointmentDate = null, patients, users = [] }: { groupClass: any, futureAppointments?: any[], lastAppointmentDate?: string | null, patients: any[], users?: any[] }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Turmas', href: '/group-classes' },
         { title: groupClass.name, href: `/group-classes/${groupClass.id}` },
@@ -218,6 +218,16 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], pa
                                     <p className="text-sm text-muted-foreground mt-1">
                                         Sessões agendadas no calendário para esta turma.
                                     </p>
+                                    {lastAppointmentDate ? (
+                                        <p className="text-sm font-medium text-primary mt-1 flex items-center gap-1.5">
+                                            <CalendarDays className="size-4" />
+                                            Aulas geradas até {new Date(lastAppointmentDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                                        </p>
+                                    ) : (
+                                        <p className="text-sm font-medium text-amber-600 mt-1">
+                                            Nenhuma aula gerada ainda.
+                                        </p>
+                                    )}
                                 </div>
                                 <Button className="gap-2 rounded-xl" onClick={() => setShowGenerateModal(true)}>
                                     <PlayCircle className="size-4" /> Gerar Aulas

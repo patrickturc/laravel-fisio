@@ -2,33 +2,47 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Appointment;
 use App\Models\GroupClass;
 use App\Models\Patient;
-use App\Models\Appointment;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class GroupClassController extends Controller
 {
     public function index()
     {
-        $groupClasses = GroupClass::with(['schedules', 'patients'])->orderBy('name')->get();
+        // Order the classes by their earliest weekly slot (weekday, then time):
+        // Monday classes first, then Tuesday, etc. Classes without a schedule go last.
+        $groupClasses = GroupClass::with(['schedules', 'patients'])->get()
+            ->sortBy(function (GroupClass $groupClass) {
+                $earliest = $groupClass->schedules
+                    ->sortBy(fn ($s) => sprintf('%d-%s', $s->day_of_week, $s->start_time))
+                    ->first();
+
+                return $earliest
+                    ? sprintf('%d-%s', $earliest->day_of_week, $earliest->start_time)
+                    : '9-99:99:99';
+            })
+            ->values();
+
         $patients = Patient::orderBy('name')->get(['id', 'name']);
         $users = User::orderBy('name')->get(['id', 'name']);
+
         return Inertia::render('group-classes/index', [
             'groupClasses' => $groupClasses,
             'patients' => $patients,
-            'users' => $users
+            'users' => $users,
         ]);
     }
 
     public function show(GroupClass $groupClass)
     {
         $groupClass->load(['schedules', 'patients']);
-        
+
         $futureAppointments = $groupClass->appointments()
             ->where('appointment_date', '>=', now()->format('Y-m-d'))
             ->orderBy('appointment_date')
@@ -36,14 +50,18 @@ class GroupClassController extends Controller
             ->with('patients')
             ->get();
 
+        // Last date for which appointments have been generated for this class.
+        $lastAppointmentDate = $groupClass->appointments()->max('appointment_date');
+
         $patients = Patient::orderBy('name')->get(['id', 'name']);
         $users = User::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('group-classes/show', [
             'groupClass' => $groupClass,
             'futureAppointments' => $futureAppointments,
+            'lastAppointmentDate' => $lastAppointmentDate,
             'patients' => $patients,
-            'users' => $users
+            'users' => $users,
         ]);
     }
 
@@ -73,15 +91,17 @@ class GroupClassController extends Controller
                 $groupClass->schedules()->create($schedule);
             }
 
-            if (!empty($validated['patient_ids'])) {
+            if (! empty($validated['patient_ids'])) {
                 $groupClass->patients()->attach($validated['patient_ids']);
             }
 
             DB::commit();
+
             return redirect()->route('group-classes.show', $groupClass->id)->with('success', 'Turma criada com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Erro ao criar turma: ' . $e->getMessage());
+
+            return back()->with('error', 'Erro ao criar turma: '.$e->getMessage());
         }
     }
 
@@ -135,16 +155,19 @@ class GroupClassController extends Controller
             }
 
             DB::commit();
+
             return redirect()->back()->with('success', 'Turma atualizada com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Erro ao atualizar turma: ' . $e->getMessage());
+
+            return back()->with('error', 'Erro ao atualizar turma: '.$e->getMessage());
         }
     }
 
     public function destroy(GroupClass $groupClass)
     {
         $groupClass->delete();
+
         return redirect()->route('group-classes.index')->with('success', 'Turma excluída com sucesso!');
     }
 
@@ -156,15 +179,15 @@ class GroupClassController extends Controller
         ]);
 
         $groupClass->load(['schedules', 'patients']);
-        
+
         $startDate = Carbon::today();
         $endDate = Carbon::parse($validated['end_date']);
         $reschedule = $validated['reschedule'] ?? false;
-        
+
         $schedules = $groupClass->schedules;
         $patientIds = $groupClass->patients->pluck('id')->toArray();
         $userId = auth()->id();
-        
+
         // Respect the class capacity: never enroll more students than max_participants.
         $patientIds = array_slice($patientIds, 0, $groupClass->max_participants);
 
@@ -207,9 +230,9 @@ class GroupClassController extends Controller
                         ->whereRaw("start_time::time + (duration_minutes || ' minutes')::interval > ?::time", [$schedule->start_time])
                         ->exists();
 
-                    if (!$exists && $conflict) {
+                    if (! $exists && $conflict) {
                         $conflictCount++;
-                    } elseif (!$exists) {
+                    } elseif (! $exists) {
                         $appointment = Appointment::create([
                             'user_id' => $userId,
                             'group_class_id' => $groupClass->id,
@@ -244,21 +267,22 @@ class GroupClassController extends Controller
             return back()->with('success', $msg);
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Erro ao gerar agendamentos: ' . $e->getMessage());
+
+            return back()->with('error', 'Erro ao gerar agendamentos: '.$e->getMessage());
         }
     }
 
     public function updateFutureAppointments(Request $request, GroupClass $groupClass)
     {
         $groupClass->load('schedules');
-        
+
         $today = Carbon::today()->format('Y-m-d');
-        
+
         $updated = Appointment::where('group_class_id', $groupClass->id)
             ->where('appointment_date', '>=', $today)
             ->where('status', 'scheduled')
             ->get();
-        
+
         $count = 0;
         foreach ($updated as $appointment) {
             // Find the matching schedule for this appointment's day of week.
@@ -273,7 +297,7 @@ class GroupClassController extends Controller
             $matchingSchedule = $sameDay->first(function ($s) use ($appointment) {
                 return substr((string) $s->start_time, 0, 5) === substr((string) $appointment->start_time, 0, 5);
             }) ?? $sameDay->first();
-            
+
             if ($matchingSchedule) {
                 $appointment->update([
                     'start_time' => $matchingSchedule->start_time,
@@ -284,7 +308,7 @@ class GroupClassController extends Controller
                 $count++;
             }
         }
-        
+
         return back()->with('success', "✅ {$count} agendamentos futuros atualizados com o novo horário!");
     }
 }
