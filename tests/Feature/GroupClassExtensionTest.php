@@ -7,6 +7,7 @@ use App\Models\GroupClassSchedule;
 use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
 
 function userCanManageClasses(): User
@@ -128,4 +129,38 @@ test('deleting a class soft-deletes it and never orphans its appointments', func
     // Class is soft-deleted; appointments keep their group_class_id link.
     expect(GroupClass::withTrashed()->find($gc->id)->trashed())->toBeTrue();
     expect(Appointment::whereNull('group_class_id')->where('type', 'group')->count())->toBe(0);
+});
+
+test('showing class details displays detailed absences', function () {
+    $user = userCanManageClasses();
+    Permission::findOrCreate('group_classes.manage.view', 'web');
+    $user->givePermissionTo('group_classes.manage.view');
+
+    $gc = classWithMondaySchedule($user);
+    $patient = Patient::create(['name' => 'Aluno Faltoso', 'user_id' => $user->id]);
+    $gc->patients()->attach($patient->id);
+
+    // Create an appointment and mark the patient as missed
+    $app = Appointment::create([
+        'user_id' => $user->id,
+        'group_class_id' => $gc->id,
+        'title' => $gc->name,
+        'type' => 'group',
+        'max_participants' => $gc->max_participants,
+        'appointment_date' => now()->subDay()->format('Y-m-d'),
+        'start_time' => '18:00:00',
+        'duration_minutes' => 50,
+    ]);
+    $app->patients()->attach($patient->id, ['status' => 'missed']);
+
+    $response = test()->get(route('group-classes.show', $gc->id));
+    $response->assertStatus(200);
+
+    // Assert Inertia page receives the absences prop
+    $response->assertInertia(fn (Assert $page) => $page
+        ->component('group-classes/show')
+        ->has('absences', 1)
+        ->where('absences.0.patient_name', 'Aluno Faltoso')
+        ->where('absences.0.appointment_date', $app->appointment_date->format('Y-m-d'))
+    );
 });

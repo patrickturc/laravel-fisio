@@ -1,10 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
-import { Users, ArrowLeft, Calendar, User, Clock, Settings, Plus, PlayCircle, Trash2, CalendarDays, BarChart3 } from 'lucide-react';
+import { Users, ArrowLeft, Calendar, User, Clock, Settings, Plus, PlayCircle, Trash2, CalendarDays, BarChart3, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useConfirmModal } from '@/components/confirm-modal';
 import { Pagination } from '@/components/pagination';
 import { GroupClassFormSheet } from './group-class-form-sheet';
@@ -12,7 +12,7 @@ import { InlineEdit } from '@/components/inline-edit';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-export default function GroupClassShow({ groupClass, futureAppointments = [], lastAppointmentDate = null, occupancy = null, patients, users = [] }: { groupClass: any, futureAppointments?: any[], lastAppointmentDate?: string | null, occupancy?: { total_classes: number; avg_participants: number; occupancy_rate: number; attended: number; missed: number; cancelled: number; attendance_rate: number } | null, patients: any[], users?: any[] }) {
+export default function GroupClassShow({ groupClass, futureAppointments = [], lastAppointmentDate = null, occupancy = null, patients, users = [], absences = [] }: { groupClass: any, futureAppointments?: any[], lastAppointmentDate?: string | null, occupancy?: { total_classes: number; avg_participants: number; occupancy_rate: number; attended: number; missed: number; cancelled: number; attendance_rate: number } | null, patients: any[], users?: any[], absences?: any[] }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Turmas', href: '/group-classes' },
         { title: groupClass.name, href: `/group-classes/${groupClass.id}` },
@@ -28,6 +28,7 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], la
     const [generateReschedule, setGenerateReschedule] = useState(false);
     const { confirm, modal } = useConfirmModal();
     const [isGenerating, setIsGenerating] = useState(false);
+    const [showAbsences, setShowAbsences] = useState(false);
 
     function handleGenerateAppointments() {
         setIsGenerating(true);
@@ -230,10 +231,28 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], la
                                         <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{occupancy.attended}</p>
                                         <p className="text-[11px] text-muted-foreground mt-0.5">Presenças</p>
                                     </div>
-                                    <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 p-3">
-                                        <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{occupancy.missed}</p>
-                                        <p className="text-[11px] text-muted-foreground mt-0.5">Faltas</p>
-                                    </div>
+                                    {absences.length > 0 ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAbsences(!showAbsences)}
+                                            className={`rounded-xl p-3 text-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-card active:scale-95 ${
+                                                showAbsences
+                                                    ? 'bg-amber-100 dark:bg-amber-900/40 ring-1 ring-amber-300 dark:ring-amber-800'
+                                                    : 'bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-center gap-1">
+                                                <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{occupancy.missed}</p>
+                                                <ChevronDown className={`size-3.5 text-amber-600 dark:text-amber-400 transition-transform duration-200 ${showAbsences ? 'rotate-180' : ''}`} />
+                                            </div>
+                                            <p className="text-[11px] text-muted-foreground mt-0.5">Faltas</p>
+                                        </button>
+                                    ) : (
+                                        <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 p-3 opacity-60">
+                                            <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{occupancy.missed}</p>
+                                            <p className="text-[11px] text-muted-foreground mt-0.5">Faltas</p>
+                                        </div>
+                                    )}
                                     <div className="rounded-xl bg-red-50 dark:bg-red-900/20 p-3">
                                         <p className="text-xl font-bold text-red-600 dark:text-red-400">{occupancy.cancelled}</p>
                                         <p className="text-[11px] text-muted-foreground mt-0.5">Cancel.</p>
@@ -245,6 +264,45 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], la
                                         Taxa de comparecimento: <span className="font-semibold text-foreground">{occupancy.attendance_rate}%</span>
                                     </p>
                                 )}
+
+                                <AnimatePresence>
+                                    {showAbsences && absences.length > 0 && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="overflow-hidden border-t border-border/50 mt-4 pt-4"
+                                        >
+                                            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 text-left">
+                                                Alunos que Faltaram
+                                            </h3>
+                                            <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                                                {absences.map((absence: any) => {
+                                                    const formattedDate = new Date(absence.appointment_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+                                                    return (
+                                                        <div key={`${absence.appointment_id}-${absence.patient_id}`} className="flex items-center justify-between p-2 rounded-lg bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/10 dark:border-amber-500/20 text-xs">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="size-6 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 flex items-center justify-center font-semibold text-[10px]">
+                                                                    {absence.patient_name.charAt(0).toUpperCase()}
+                                                                </div>
+                                                                <Link
+                                                                    href={`/patients/${absence.patient_id}`}
+                                                                    className="font-medium text-foreground hover:text-primary hover:underline truncate max-w-[120px] transition-colors"
+                                                                >
+                                                                    {absence.patient_name}
+                                                                </Link>
+                                                            </div>
+                                                            <span className="text-muted-foreground">
+                                                                {formattedDate} às {absence.start_time.substring(0, 5)}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </motion.div>
                         )}
                     </div>

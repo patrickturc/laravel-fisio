@@ -57,6 +57,20 @@ class GroupClassController extends Controller
 
         $occupancy = $this->occupancyStats($groupClass);
 
+        $absences = DB::table('appointment_patient')
+            ->join('appointments', 'appointment_patient.appointment_id', '=', 'appointments.id')
+            ->join('patients', 'appointment_patient.patient_id', '=', 'patients.id')
+            ->where('appointments.group_class_id', $groupClass->id)
+            ->where('appointment_patient.status', 'missed')
+            ->select('patients.id as patient_id', 'patients.name as patient_name', 'appointments.appointment_date', 'appointments.start_time', 'appointments.id as appointment_id')
+            ->orderByDesc('appointments.appointment_date')
+            ->orderByDesc('appointments.start_time')
+            ->get()
+            ->map(function ($absence) {
+                $absence->appointment_date = Carbon::parse($absence->appointment_date)->format('Y-m-d');
+                return $absence;
+            });
+
         $patients = Patient::orderBy('name')->get(['id', 'name']);
         $users = User::orderBy('name')->get(['id', 'name']);
 
@@ -67,6 +81,7 @@ class GroupClassController extends Controller
             'occupancy' => $occupancy,
             'patients' => $patients,
             'users' => $users,
+            'absences' => $absences,
         ]);
     }
 

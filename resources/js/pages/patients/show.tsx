@@ -42,6 +42,9 @@ interface Patient {
         duration_minutes: number;
         status: string;
         notes: string | null;
+        pivot?: {
+            status: string;
+        };
     }>;
     evolutions: Array<{
         id: string;
@@ -103,6 +106,7 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
     const [isAppointmentSheetOpen, setIsAppointmentSheetOpen] = useState(false);
     const [isMembershipSheetOpen, setIsMembershipSheetOpen] = useState(false);
     const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
+    const [appointmentFilter, setAppointmentFilter] = useState<'all' | 'missed'>('all');
     const { confirm, modal } = useConfirmModal();
 
     async function handleDelete() {
@@ -117,6 +121,14 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
     const evolutionsList = [...patient.evolutions].sort((a, b) => new Date(b.data_atendimento).getTime() - new Date(a.data_atendimento).getTime());
     const appointmentsList = [...patient.appointments].sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime());
     const financialList = [...(patient.financial_transactions || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const missedAppointments = appointmentsList.filter(app => (app.pivot?.status || app.status) === 'missed');
+    const displayedAppointments = appointmentsList.filter(app => {
+        if (appointmentFilter === 'missed') {
+            return (app.pivot?.status || app.status) === 'missed';
+        }
+        return true;
+    });
 
     const formatCurrency = (val: string | number) => Number(val).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const isTxOverdue = (t: { status: string; due_date: string | null }) => t.status === 'pending' && !!t.due_date && new Date(t.due_date) < new Date();
@@ -142,8 +154,27 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
         if (confirmed) router.post(`/financial/${t.id}/mark-pending`, {}, { preserveScroll: true });
     }
 
-    const statusLabel: Record<string, string> = { scheduled: 'Agendado', completed: 'Realizado', cancelled: 'Cancelado' };
-    const statusColor: Record<string, string> = { scheduled: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' };
+    const statusLabel: Record<string, string> = { 
+        scheduled: 'Agendado', 
+        completed: 'Realizado', 
+        attended: 'Presença', 
+        missed: 'Falta', 
+        cancelled: 'Cancelado' 
+    };
+    const statusColor: Record<string, string> = { 
+        scheduled: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', 
+        completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', 
+        attended: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', 
+        missed: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', 
+        cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
+    };
+    const dotColor: Record<string, string> = {
+        scheduled: 'bg-blue-500',
+        completed: 'bg-emerald-500',
+        attended: 'bg-emerald-500',
+        missed: 'bg-amber-500',
+        cancelled: 'bg-red-500'
+    };
     const tipoLabel: Record<string, string> = { avaliacao: 'Avaliação', reavaliacao: 'Reavaliação', sessao: 'Sessão' };
     const genderLabel: Record<string, string> = { male: 'Masculino', female: 'Feminino', other: 'Outro' };
 
@@ -290,6 +321,26 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                                     <div className="p-2.5 bg-pink-500/10 rounded-xl text-pink-600"><Cake className="size-4" /></div>
                                     <div><p className="text-xs text-muted-foreground">Nascimento</p><p className="font-semibold text-sm">{new Date(patient.birthdate).toLocaleDateString('pt-BR')}</p></div>
                                 </div>
+                            )}
+                            {missedAppointments.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setActiveTab('appointments');
+                                        setAppointmentFilter('missed');
+                                    }}
+                                    className="bg-amber-500/5 dark:bg-amber-500/10 hover:bg-amber-500/10 dark:hover:bg-amber-500/20 border border-amber-500/20 hover:border-amber-500/30 rounded-2xl p-5 flex items-center gap-3 text-left transition-all active:scale-95 cursor-pointer shadow-sm hover:shadow"
+                                >
+                                    <div className="p-2.5 bg-amber-500/15 rounded-xl text-amber-600 dark:text-amber-400">
+                                        <AlertTriangle className="size-4" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground font-medium">Faltas Registradas</p>
+                                        <p className="font-bold text-sm text-amber-700 dark:text-amber-400">
+                                            {missedAppointments.length} {missedAppointments.length === 1 ? 'falta' : 'faltas'}
+                                        </p>
+                                    </div>
+                                </button>
                             )}
                         </div>
 
@@ -539,14 +590,45 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                 {activeTab === 'appointments' && (
                     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
                         <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm">
-                            <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
                                 <h2 className="text-lg font-bold flex items-center gap-2">
                                     <Calendar className="size-5 text-primary" /> Histórico de Agendamentos
-                                    <span className="text-sm font-normal text-muted-foreground ml-2">({appointmentsList.length} registros)</span>
+                                    <span className="text-sm font-normal text-muted-foreground ml-2">({displayedAppointments.length} registros)</span>
                                 </h2>
-                                <button onClick={() => setIsAppointmentSheetOpen(true)} className="flex items-center gap-2 h-9 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors text-sm shadow-sm">
-                                    <Plus className="size-4" /> Novo Agendamento
-                                </button>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex gap-1 bg-muted/50 p-1 rounded-xl border border-border/30 text-xs">
+                                        <button
+                                            type="button"
+                                            onClick={() => setAppointmentFilter('all')}
+                                            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+                                                appointmentFilter === 'all'
+                                                    ? 'bg-card text-foreground shadow-sm'
+                                                    : 'text-muted-foreground hover:text-foreground'
+                                            }`}
+                                        >
+                                            Todos
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAppointmentFilter('missed')}
+                                            className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                                                appointmentFilter === 'missed'
+                                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 shadow-sm font-semibold'
+                                                    : 'text-muted-foreground hover:text-foreground'
+                                            }`}
+                                        >
+                                            Faltas
+                                            {missedAppointments.length > 0 && (
+                                                <span className="px-1.5 py-0.2 rounded-full bg-amber-500/15 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                                                    {missedAppointments.length}
+                                                </span>
+                                            )}
+                                        </button>
+                                    </div>
+                                    <button onClick={() => setIsAppointmentSheetOpen(true)} className="flex items-center gap-2 h-9 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors text-sm shadow-sm">
+                                        <Plus className="size-4" /> Novo Agendamento
+                                    </button>
+                                </div>
                             </div>
 
                             {appointmentsList.length === 0 ? (
@@ -554,38 +636,47 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                                     <Calendar className="size-10 text-muted-foreground/30 mx-auto mb-3" />
                                     <p className="text-sm text-muted-foreground font-medium">Nenhum agendamento encontrado.</p>
                                 </div>
+                            ) : displayedAppointments.length === 0 ? (
+                                <div className="text-center py-12 bg-muted/30 rounded-xl border border-dashed border-border">
+                                    <Calendar className="size-10 text-muted-foreground/30 mx-auto mb-3 text-amber-500" />
+                                    <p className="text-sm text-muted-foreground font-medium">Nenhuma falta registrada para este paciente.</p>
+                                </div>
                             ) : (
                                 <div className="relative">
                                     <div className="absolute left-[18px] top-2 bottom-2 w-0.5 bg-border/50" />
                                     <div className="space-y-1">
-                                        {appointmentsList.map((app, i) => (
-                                            <motion.div
-                                                initial={{ opacity: 0, x: -10 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                transition={{ delay: i * 0.03 }}
-                                                key={app.id}
-                                                className="relative flex gap-4 pl-10 py-3 hover:bg-muted/20 rounded-xl transition-colors group"
-                                            >
-                                                <div className="absolute left-2.5 top-5 size-3 rounded-full border-2 border-background bg-emerald-500" />
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                                                        <span className="text-xs font-medium text-muted-foreground">
-                                                            {new Date(app.appointment_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
-                                                        </span>
-                                                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${statusColor[app.status]}`}>{statusLabel[app.status]}</span>
-                                                        {app.start_time && (
-                                                            <span className="text-xs text-muted-foreground">{app.start_time.slice(0,5)} • {app.duration_minutes}min</span>
+                                        {displayedAppointments.map((app, i) => {
+                                            const appStatus = app.pivot?.status || app.status;
+                                            const statusDotClass = dotColor[appStatus] || 'bg-emerald-500';
+                                            return (
+                                                <motion.div
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: i * 0.03 }}
+                                                    key={app.id}
+                                                    className="relative flex gap-4 pl-10 py-3 hover:bg-muted/20 rounded-xl transition-colors group"
+                                                >
+                                                    <div className={`absolute left-2.5 top-5 size-3 rounded-full border-2 border-background ${statusDotClass}`} />
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                            <span className="text-xs font-medium text-muted-foreground">
+                                                                {new Date(app.appointment_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                                                            </span>
+                                                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${statusColor[appStatus] || 'bg-emerald-100 text-emerald-700'}`}>{statusLabel[appStatus] || appStatus}</span>
+                                                            {app.start_time && (
+                                                                <span className="text-xs text-muted-foreground">{app.start_time.slice(0,5)} • {app.duration_minutes}min</span>
+                                                            )}
+                                                        </div>
+                                                        {app.notes && (
+                                                            <p className="text-sm text-muted-foreground line-clamp-1">{app.notes}</p>
                                                         )}
                                                     </div>
-                                                    {app.notes && (
-                                                        <p className="text-sm text-muted-foreground line-clamp-1">{app.notes}</p>
-                                                    )}
-                                                </div>
-                                                <div className="flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-center items-end">
-                                                    <Link href={`/appointments/${app.id}`} className="text-xs font-medium text-primary hover:underline">Ver →</Link>
-                                                </div>
-                                            </motion.div>
-                                        ))}
+                                                    <div className="flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-center items-end">
+                                                        <Link href={`/appointments/${app.id}`} className="text-xs font-medium text-primary hover:underline">Ver →</Link>
+                                                    </div>
+                                                </motion.div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}
