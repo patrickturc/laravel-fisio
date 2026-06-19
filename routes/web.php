@@ -80,10 +80,24 @@ Route::middleware(['auth', 'verified'])->group(function () use ($resourceWithPer
     // Patients
     $resourceWithPermissions('patients', PatientController::class, 'patients.manage');
 
+    // Patient Documents
+    Route::post('patients/{patient}/documents', [App\Http\Controllers\PatientDocumentController::class, 'store'])
+        ->middleware('permission:patients.manage.edit')
+        ->name('patients.documents.store');
+    Route::get('patients/documents/{patient_document}/download', [App\Http\Controllers\PatientDocumentController::class, 'download'])
+        ->middleware('permission:patients.manage.view')
+        ->name('patients.documents.download');
+    Route::delete('patients/documents/{patient_document}', [App\Http\Controllers\PatientDocumentController::class, 'destroy'])
+        ->middleware('permission:patients.manage.edit')
+        ->name('patients.documents.destroy');
+
     // Appointments
     Route::get('api/appointments/events', [AppointmentController::class, 'events'])
         ->middleware('permission:appointments.manage.view')
         ->name('appointments.events');
+    Route::get('api/appointments/slots-view', [AppointmentController::class, 'slotsView'])
+        ->middleware('permission:appointments.manage.view')
+        ->name('appointments.slots-view');
     Route::get('api/appointments/{appointment}', [AppointmentController::class, 'details'])
         ->middleware('permission:appointments.manage.view')
         ->name('appointments.details');

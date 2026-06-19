@@ -583,4 +583,59 @@ class AppointmentController extends Controller
         return redirect()->route('appointments.index')
             ->with('success', 'Agendamento excluído!');
     }
+
+    /**
+     * Return appointments formatted for the slots/vagas table view.
+     * Groups data by date and time, showing patient occupancy per slot.
+     */
+    public function slotsView(Request $request)
+    {
+        $startDate = $request->filled('start_date')
+            ? Carbon::parse($request->start_date)->startOfWeek(Carbon::MONDAY)
+            : Carbon::now()->startOfWeek(Carbon::MONDAY);
+
+        $endDate = $startDate->copy()->endOfWeek(Carbon::SATURDAY);
+
+        $appointments = Appointment::with(['patients', 'groupClass'])
+            ->where('appointment_date', '>=', $startDate->format('Y-m-d'))
+            ->where('appointment_date', '<=', $endDate->format('Y-m-d'))
+            ->where('status', '!=', 'cancelled')
+            ->orderBy('appointment_date')
+            ->orderBy('start_time')
+            ->get();
+
+        $slots = [];
+
+        foreach ($appointments as $app) {
+            $dateKey = $app->appointment_date->format('Y-m-d');
+            $timeKey = substr($app->start_time, 0, 5);
+
+            $patients = $app->patients->values()->map(function ($patient, $index) {
+                return [
+                    'slot' => $index + 1,
+                    'name' => $patient->name,
+                    'id' => $patient->id,
+                    'status' => $patient->pivot->status ?? 'scheduled',
+                ];
+            });
+
+            $slots[$dateKey][] = [
+                'time' => $timeKey,
+                'appointment_id' => $app->id,
+                'type' => $app->type,
+                'title' => $app->title,
+                'max_participants' => $app->max_participants ?? 1,
+                'group_class_name' => $app->groupClass?->name,
+                'color' => $app->groupClass?->color ?? ($app->type === 'group' ? '#8b5cf6' : '#3b82f6'),
+                'patients' => $patients,
+                'duration_minutes' => $app->duration_minutes,
+            ];
+        }
+
+        return response()->json([
+            'slots' => $slots,
+            'week_start' => $startDate->format('Y-m-d'),
+            'week_end' => $endDate->format('Y-m-d'),
+        ]);
+    }
 }

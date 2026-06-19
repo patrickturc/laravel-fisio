@@ -74,4 +74,9 @@ class Patient extends Model
     {
         return $this->hasMany(FinancialTransaction::class);
     }
+
+    public function documents()
+    {
+        return $this->hasMany(PatientDocument::class);
+    }
 }

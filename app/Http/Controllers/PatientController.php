@@ -78,6 +78,7 @@ class PatientController extends Controller
             'evolutions' => fn($q) => $q->orderBy('data_atendimento', 'desc'),
             'memberships' => fn($q) => $q->orderBy('end_date', 'desc'),
             'financialTransactions' => fn($q) => $q->orderBy('date', 'desc'),
+            'documents' => fn($q) => $q->orderBy('created_at', 'desc'),
         ]);
 
         $today = now()->toDateString();

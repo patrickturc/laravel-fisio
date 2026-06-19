@@ -1,8 +1,10 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-import { ArrowLeft, Phone, MapPin, Edit, Trash2, Calendar, FileText, Cake, Clock, Activity, Mail, User, Shield, Heart, Briefcase, Plus, Tag, DollarSign, CheckCircle, RotateCcw, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, Edit, Trash2, Calendar, FileText, Cake, Clock, Activity, Mail, User, Shield, Heart, Briefcase, Plus, Tag, DollarSign, CheckCircle, RotateCcw, AlertTriangle, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
 import { useConfirmModal } from '@/components/confirm-modal';
 import { useState } from 'react';
@@ -73,6 +75,13 @@ interface Patient {
         category: string | null;
         status: 'paid' | 'pending';
     }>;
+    documents?: Array<{
+        id: string;
+        file_path: string;
+        original_name: string;
+        description: string | null;
+        created_at: string;
+    }>;
 }
 
 interface FinancialSummary {
@@ -88,7 +97,7 @@ interface TimelineItem {
     data: any;
 }
 
-type Tab = 'info' | 'memberships' | 'financial' | 'evolutions' | 'appointments';
+type Tab = 'info' | 'memberships' | 'financial' | 'evolutions' | 'appointments' | 'documents';
 
 export default function PatientShow({ patient, protocols = [], commercialPlans = [], financialSummary }: { patient: Patient, protocols?: Array<{ id: string; name: string }>, commercialPlans?: any[], financialSummary?: FinancialSummary }) {
     const breadcrumbs: BreadcrumbItem[] = [
@@ -116,6 +125,36 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
             confirmLabel: 'Excluir',
         });
         if (confirmed) router.delete(`/patients/${patient.id}`);
+    }
+
+    const docForm = useForm({
+        file: null as File | null,
+        description: '',
+    });
+
+    const handleDocSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        docForm.post(`/patients/${patient.id}/documents`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                docForm.reset();
+                const fileInput = document.getElementById('doc-file') as HTMLInputElement;
+                if (fileInput) fileInput.value = '';
+            }
+        });
+    };
+
+    async function handleDeleteDoc(id: string, name: string) {
+        const confirmed = await confirm({
+            title: 'Excluir Documento',
+            message: `Tem certeza que deseja excluir o documento "${name}"? Essa ação não pode ser desfeita.`,
+            confirmLabel: 'Excluir',
+        });
+        if (confirmed) {
+            router.delete(`/patients/documents/${id}`, {
+                preserveScroll: true,
+            });
+        }
     }
 
     const evolutionsList = [...patient.evolutions].sort((a, b) => new Date(b.data_atendimento).getTime() - new Date(a.data_atendimento).getTime());
@@ -192,6 +231,7 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
         { key: 'financial', label: 'Financeiro', icon: <DollarSign className="size-4" />, count: financialList.length },
         { key: 'evolutions', label: 'Prontuário', icon: <Activity className="size-4" />, count: evolutionsList.length },
         { key: 'appointments', label: 'Agendamentos', icon: <Calendar className="size-4" />, count: appointmentsList.length },
+        { key: 'documents', label: 'Documentos', icon: <FileText className="size-4" />, count: patient.documents?.length },
     ];
 
     return (
@@ -680,6 +720,115 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* ── Tab: Documentos ── */}
+                {activeTab === 'documents' && (
+                    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Lista de Documentos */}
+                        <div className="lg:col-span-2 bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm">
+                            <h2 className="text-lg font-bold flex items-center gap-2 mb-6">
+                                <FileText className="size-5 text-primary" /> Documentos Anexados
+                                <span className="text-sm font-normal text-muted-foreground ml-2">
+                                    ({patient.documents?.length || 0} arquivos)
+                                </span>
+                            </h2>
+
+                            {!patient.documents || patient.documents.length === 0 ? (
+                                <div className="text-center py-16 bg-muted/30 rounded-xl border border-dashed border-border">
+                                    <FileText className="size-10 text-muted-foreground/30 mx-auto mb-3" />
+                                    <p className="text-sm text-muted-foreground font-medium">Nenhum documento anexado.</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Contratos, termos e outros arquivos salvos aparecerão aqui.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-border/50">
+                                    {patient.documents.map(doc => (
+                                        <div key={doc.id} className="flex items-center justify-between py-4 first:pt-0 last:pb-0 group">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="p-2.5 bg-primary/10 rounded-xl text-primary flex-shrink-0">
+                                                    <FileText className="size-5" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="font-semibold text-sm text-foreground truncate" title={doc.original_name}>
+                                                        {doc.original_name}
+                                                    </p>
+                                                    {doc.description && (
+                                                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{doc.description}</p>
+                                                    )}
+                                                    <p className="text-[10px] text-muted-foreground/80 mt-1">
+                                                        Enviado em {new Date(doc.created_at).toLocaleDateString('pt-BR')}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                                <a
+                                                    href={`/patients/documents/${doc.id}/download`}
+                                                    className="p-2.5 text-muted-foreground hover:text-primary rounded-xl hover:bg-primary/10 transition-colors"
+                                                    title="Baixar arquivo"
+                                                >
+                                                    <Download className="size-4" />
+                                                </a>
+                                                <button
+                                                    onClick={() => handleDeleteDoc(doc.id, doc.original_name)}
+                                                    className="p-2.5 text-muted-foreground hover:text-red-600 rounded-xl hover:bg-red-500/10 transition-colors"
+                                                    title="Excluir arquivo"
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Enviar Novo Documento */}
+                        <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm h-fit">
+                            <h3 className="text-lg font-bold flex items-center gap-2 mb-6">
+                                <Upload className="size-5 text-primary" /> Enviar Documento
+                            </h3>
+
+                            <form onSubmit={handleDocSubmit} className="space-y-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="doc-file">Selecione o arquivo (PDF, PNG, JPG, JPEG - max 10MB)</Label>
+                                    <Input
+                                        id="doc-file"
+                                        type="file"
+                                        accept=".pdf,image/*"
+                                        onChange={e => docForm.setData('file', e.target.files ? e.target.files[0] : null)}
+                                        className="cursor-pointer file:text-primary file:font-semibold"
+                                        required
+                                    />
+                                    {docForm.errors.file && (
+                                        <p className="text-red-500 text-xs mt-1">{docForm.errors.file}</p>
+                                    )}
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="doc-desc">Descrição / Nome do Documento</Label>
+                                    <Input
+                                        id="doc-desc"
+                                        placeholder="Ex: Contrato de Pilates 2026"
+                                        value={docForm.data.description}
+                                        onChange={e => docForm.setData('description', e.target.value)}
+                                    />
+                                    {docForm.errors.description && (
+                                        <p className="text-red-500 text-xs mt-1">{docForm.errors.description}</p>
+                                    )}
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    disabled={docForm.processing || !docForm.data.file}
+                                    className="w-full rounded-xl"
+                                >
+                                    {docForm.processing ? 'Enviando...' : 'Enviar Documento'}
+                                </Button>
+                            </form>
                         </div>
                     </motion.div>
                 )}

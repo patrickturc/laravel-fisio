@@ -1,11 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { CalendarPlus, Search, Clock, Calendar as CalendarIcon, User, Users, List, CalendarDays } from 'lucide-react';
+import { CalendarPlus, Search, Clock, Calendar as CalendarIcon, User, Users, List, CalendarDays, LayoutGrid } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Pagination } from '@/components/pagination';
 import CalendarView from '@/components/calendar-view';
+import SlotsView from '@/components/slots-view';
 import { AppointmentFormSheet } from './appointment-form-sheet';
 import { GroupClassFormSheet } from '../group-classes/group-class-form-sheet';
 import axios from 'axios';
@@ -23,7 +24,7 @@ interface PaginatedAppointments {
 }
 
 export default function AppointmentsIndex({ appointments, filters = {}, patients = [], groupClasses = [], users = [] }: { appointments: PaginatedAppointments; filters?: any; patients?: any[]; groupClasses?: any[]; users?: any[] }) {
-    const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+    const [viewMode, setViewMode] = useState<'calendar' | 'list' | 'slots'>('calendar');
     const [search, setSearch] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
     const [dateFrom, setDateFrom] = useState(filters.date_from || '');
@@ -207,6 +208,17 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                             Grade
                         </button>
                         <button
+                            onClick={() => setViewMode('slots')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                viewMode === 'slots' 
+                                    ? 'bg-background shadow-sm text-primary border border-border/50' 
+                                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                            }`}
+                        >
+                            <LayoutGrid className="size-4" />
+                            Vagas
+                        </button>
+                        <button
                             onClick={() => setViewMode('list')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                                 viewMode === 'list' 
@@ -266,6 +278,33 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                                             router.reload({ only: ['appointments'] });
                                         });
                                     }
+                                }}
+                            />
+                        </motion.div>
+                    ) : viewMode === 'slots' ? (
+                        <motion.div
+                            key="slots"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
+                            className="flex-1 w-full"
+                        >
+                            <SlotsView
+                                refreshTrigger={appointments}
+                                onEventClick={(eventId) => {
+                                    axios.get(`/api/appointments/${eventId}`)
+                                        .then(res => {
+                                            setEditingAppointment(res.data);
+                                            setSheetOpen(true);
+                                        });
+                                }}
+                                onDateSelect={(date, time, durationMinutes) => {
+                                    setEditingAppointment(null);
+                                    setInitialDate(date);
+                                    setInitialTime(time);
+                                    setInitialDuration(durationMinutes);
+                                    setSheetOpen(true);
                                 }}
                             />
                         </motion.div>
