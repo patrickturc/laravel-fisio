@@ -10,6 +10,7 @@ use App\Http\Controllers\FinancialTransactionController;
 use App\Http\Controllers\GroupClassController;
 use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\PatientController;
+use App\Http\Controllers\PatientDocumentController;
 use App\Http\Controllers\RecurringExpenseController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Http\Request;
@@ -81,13 +82,16 @@ Route::middleware(['auth', 'verified'])->group(function () use ($resourceWithPer
     $resourceWithPermissions('patients', PatientController::class, 'patients.manage');
 
     // Patient Documents
-    Route::post('patients/{patient}/documents', [App\Http\Controllers\PatientDocumentController::class, 'store'])
+    Route::post('patients/{patient}/documents', [PatientDocumentController::class, 'store'])
         ->middleware('permission:patients.manage.edit')
         ->name('patients.documents.store');
-    Route::get('patients/documents/{patient_document}/download', [App\Http\Controllers\PatientDocumentController::class, 'download'])
+    Route::get('patients/documents/{patient_document}/download', [PatientDocumentController::class, 'download'])
         ->middleware('permission:patients.manage.view')
         ->name('patients.documents.download');
-    Route::delete('patients/documents/{patient_document}', [App\Http\Controllers\PatientDocumentController::class, 'destroy'])
+    Route::get('patients/documents/{patient_document}/preview', [PatientDocumentController::class, 'preview'])
+        ->middleware('permission:patients.manage.view')
+        ->name('patients.documents.preview');
+    Route::delete('patients/documents/{patient_document}', [PatientDocumentController::class, 'destroy'])
         ->middleware('permission:patients.manage.edit')
         ->name('patients.documents.destroy');
 

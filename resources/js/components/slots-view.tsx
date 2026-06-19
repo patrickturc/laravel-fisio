@@ -12,11 +12,12 @@ interface SlotPatient {
 
 interface SlotEntry {
     time: string;
-    appointment_id: string;
+    appointment_id: string | null;
     type: 'individual' | 'group';
     title: string | null;
     max_participants: number;
     group_class_name: string | null;
+    group_class_id?: string;
     color: string;
     patients: SlotPatient[];
     duration_minutes: number;
@@ -196,15 +197,15 @@ export default function SlotsView({ onEventClick, onDateSelect, refreshTrigger }
                     <div className="size-16 rounded-full bg-muted flex items-center justify-center mb-4">
                         <Users className="size-7 text-muted-foreground/50" />
                     </div>
-                    <h3 className="text-lg font-bold mb-1 text-foreground">Nenhum agendamento</h3>
-                    <p className="text-sm text-muted-foreground max-w-xs">Não há agendamentos nesta semana.</p>
+                    <h3 className="text-lg font-bold mb-1 text-foreground">Nenhuma turma ativa</h3>
+                    <p className="text-sm text-muted-foreground max-w-xs">Não há turmas com horários definidos para exibir.</p>
                 </div>
             ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-auto max-h-[calc(100vh-280px)]">
                     <table className="w-full border-collapse min-w-[800px]">
-                        <thead>
+                        <thead className="sticky top-0 z-20">
                             <tr>
-                                <th className="sticky left-0 z-10 bg-muted/80 backdrop-blur-sm border-b border-r border-border/50 px-3 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[80px] min-w-[80px]">
+                                <th className="sticky left-0 z-30 bg-muted/95 backdrop-blur-md border-b border-r border-border/50 px-3 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[80px] min-w-[80px]">
                                     Horário
                                 </th>
                                 {dayDates.map((date, i) => (
@@ -212,8 +213,8 @@ export default function SlotsView({ onEventClick, onDateSelect, refreshTrigger }
                                         key={date}
                                         className={`border-b border-r border-border/50 px-2 py-3 text-center last:border-r-0 transition-colors ${
                                             isToday(date) 
-                                                ? 'bg-primary/5' 
-                                                : 'bg-muted/40'
+                                                ? 'bg-primary/5 backdrop-blur-md' 
+                                                : 'bg-muted/95 backdrop-blur-md'
                                         }`}
                                     >
                                         <div className="flex flex-col items-center gap-0.5">
@@ -292,12 +293,10 @@ export default function SlotsView({ onEventClick, onDateSelect, refreshTrigger }
                                                         hasEntry && !isOccupied ? 'cursor-pointer' : ''
                                                     }`}
                                                     onClick={() => {
-                                                        if (isOccupied && entryForSlot && onEventClick) {
+                                                        if (entryForSlot?.appointment_id && onEventClick) {
                                                             onEventClick(entryForSlot.appointment_id);
-                                                        } else if (hasEntry && !isOccupied && entryForSlot && onEventClick) {
-                                                            onEventClick(entryForSlot.appointment_id);
-                                                        } else if (!hasEntry && onDateSelect) {
-                                                            onDateSelect(date, time, 50);
+                                                        } else if (onDateSelect) {
+                                                            onDateSelect(date, time, entryForSlot?.duration_minutes || 50);
                                                         }
                                                     }}
                                                 >

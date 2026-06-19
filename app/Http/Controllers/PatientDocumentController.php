@@ -20,7 +20,7 @@ class PatientDocumentController extends Controller
         ]);
 
         $file = $request->file('file');
-        
+
         // Store the file securely using the default disk
         $path = $file->store('patients/documents');
 
@@ -35,11 +35,27 @@ class PatientDocumentController extends Controller
     }
 
     /**
+     * Preview the specified document inline.
+     */
+    public function preview(PatientDocument $patientDocument)
+    {
+        if (! Storage::exists($patientDocument->file_path)) {
+            abort(404, 'Arquivo não encontrado.');
+        }
+
+        $mimeType = Storage::mimeType($patientDocument->file_path);
+
+        return response(Storage::get($patientDocument->file_path))
+            ->header('Content-Type', $mimeType)
+            ->header('Content-Disposition', 'inline; filename="'.$patientDocument->original_name.'"');
+    }
+
+    /**
      * Download the specified document securely.
      */
     public function download(PatientDocument $patientDocument)
     {
-        if (!Storage::exists($patientDocument->file_path)) {
+        if (! Storage::exists($patientDocument->file_path)) {
             abort(404, 'Arquivo não encontrado.');
         }
 

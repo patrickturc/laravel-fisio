@@ -1,7 +1,7 @@
 import { Head, Link, router, usePage, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-import { ArrowLeft, Phone, MapPin, Edit, Trash2, Calendar, FileText, Cake, Clock, Activity, Mail, User, Shield, Heart, Briefcase, Plus, Tag, DollarSign, CheckCircle, RotateCcw, AlertTriangle, Download, Upload } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, Edit, Trash2, Calendar, FileText, Cake, Clock, Activity, Mail, User, Shield, Heart, Briefcase, Plus, Tag, DollarSign, CheckCircle, RotateCcw, AlertTriangle, Download, Upload, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -317,15 +317,15 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-1 bg-muted/30 p-1 rounded-xl border border-border/30">
+                <div className="flex gap-1 bg-muted/30 p-1 rounded-xl border border-border/30 overflow-x-auto scrollbar-none whitespace-nowrap">
                     {tabs.map(tab => (
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex-1 justify-center ${activeTab === tab.key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-card/50'}`}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex-shrink-0 md:flex-1 justify-center ${activeTab === tab.key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-card/50'}`}
                         >
                             {tab.icon}
-                            <span className="hidden sm:inline">{tab.label}</span>
+                            <span>{tab.label}</span>
                             {tab.count !== undefined && tab.count > 0 && (
                                 <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary/10 text-primary font-bold">{tab.count}</span>
                             )}
@@ -765,6 +765,15 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2 flex-shrink-0">
+                                                <a
+                                                    href={`/patients/documents/${doc.id}/preview`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-2.5 text-muted-foreground hover:text-primary rounded-xl hover:bg-primary/10 transition-colors"
+                                                    title="Visualizar arquivo"
+                                                >
+                                                    <Eye className="size-4" />
+                                                </a>
                                                 <a
                                                     href={`/patients/documents/${doc.id}/download`}
                                                     className="p-2.5 text-muted-foreground hover:text-primary rounded-xl hover:bg-primary/10 transition-colors"

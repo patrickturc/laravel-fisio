@@ -586,7 +586,8 @@ class AppointmentController extends Controller
 
     /**
      * Return appointments formatted for the slots/vagas table view.
-     * Groups data by date and time, showing patient occupancy per slot.
+     * Time rows are derived from GroupClassSchedule definitions so that
+     * every configured class time appears even when no appointment exists yet.
      */
     public function slotsView(Request $request)
     {
@@ -596,40 +597,88 @@ class AppointmentController extends Controller
 
         $endDate = $startDate->copy()->endOfWeek(Carbon::SATURDAY);
 
+        // 1. Load all active group class schedules with their class info
+        $schedules = GroupClassSchedule::with(['groupClass' => function ($q) {
+            $q->withTrashed(); // include soft-deleted so we don't break existing slots
+        }])
+            ->whereHas('groupClass', function ($q) {
+                $q->where('status', 'active')->withTrashed();
+            })
+            ->orderBy('start_time')
+            ->get();
+
+        // 2. Load all appointments for the week (to match against schedules)
         $appointments = Appointment::with(['patients', 'groupClass'])
             ->where('appointment_date', '>=', $startDate->format('Y-m-d'))
             ->where('appointment_date', '<=', $endDate->format('Y-m-d'))
             ->where('status', '!=', 'cancelled')
-            ->orderBy('appointment_date')
             ->orderBy('start_time')
             ->get();
 
+        // Index appointments by date+time for fast lookup
+        $appointmentIndex = [];
+        foreach ($appointments as $app) {
+            $key = $app->appointment_date->format('Y-m-d').'|'.substr($app->start_time, 0, 5);
+            $appointmentIndex[$key][] = $app;
+        }
+
+        // 3. Build slots: iterate each day, find matching schedules by day_of_week
         $slots = [];
 
-        foreach ($appointments as $app) {
-            $dateKey = $app->appointment_date->format('Y-m-d');
-            $timeKey = substr($app->start_time, 0, 5);
+        for ($day = $startDate->copy(); $day->lte($endDate); $day->addDay()) {
+            $dateKey = $day->format('Y-m-d');
+            $dayOfWeek = $day->dayOfWeek; // 0=Sun, 1=Mon ... 6=Sat
 
-            $patients = $app->patients->values()->map(function ($patient, $index) {
-                return [
-                    'slot' => $index + 1,
-                    'name' => $patient->name,
-                    'id' => $patient->id,
-                    'status' => $patient->pivot->status ?? 'scheduled',
+            $daySchedules = $schedules->where('day_of_week', $dayOfWeek);
+
+            foreach ($daySchedules as $schedule) {
+                $timeKey = substr($schedule->start_time, 0, 5);
+                $gc = $schedule->groupClass;
+                if (! $gc) {
+                    continue;
+                }
+
+                // Find the matching appointment for this date+time
+                $lookupKey = $dateKey.'|'.$timeKey;
+                $matchedApps = $appointmentIndex[$lookupKey] ?? [];
+
+                // Try to find the appointment that belongs to this group class
+                $matchedApp = null;
+                foreach ($matchedApps as $app) {
+                    if ($app->group_class_id === $gc->id) {
+                        $matchedApp = $app;
+                        break;
+                    }
+                }
+
+                $patients = [];
+                $appointmentId = null;
+
+                if ($matchedApp) {
+                    $appointmentId = $matchedApp->id;
+                    $patients = $matchedApp->patients->values()->map(function ($patient, $index) {
+                        return [
+                            'slot' => $index + 1,
+                            'name' => $patient->name,
+                            'id' => $patient->id,
+                            'status' => $patient->pivot->status ?? 'scheduled',
+                        ];
+                    })->toArray();
+                }
+
+                $slots[$dateKey][] = [
+                    'time' => $timeKey,
+                    'appointment_id' => $appointmentId,
+                    'type' => 'group',
+                    'title' => $gc->name,
+                    'max_participants' => $gc->max_participants ?? 4,
+                    'group_class_name' => $gc->name,
+                    'group_class_id' => $gc->id,
+                    'color' => $gc->color ?? '#8b5cf6',
+                    'patients' => $patients,
+                    'duration_minutes' => $schedule->duration_minutes,
                 ];
-            });
-
-            $slots[$dateKey][] = [
-                'time' => $timeKey,
-                'appointment_id' => $app->id,
-                'type' => $app->type,
-                'title' => $app->title,
-                'max_participants' => $app->max_participants ?? 1,
-                'group_class_name' => $app->groupClass?->name,
-                'color' => $app->groupClass?->color ?? ($app->type === 'group' ? '#8b5cf6' : '#3b82f6'),
-                'patients' => $patients,
-                'duration_minutes' => $app->duration_minutes,
-            ];
+            }
         }
 
         return response()->json([
