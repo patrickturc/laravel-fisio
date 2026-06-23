@@ -46,7 +46,11 @@ class DashboardController extends Controller
         $totalPatients = Patient::count();
 
         $dayAppointments = Appointment::with('patients')
-            ->where('appointment_date', $selectedDate)
+            ->whereDate('appointment_date', $selectedDate)
+            ->where(function ($query) {
+                $query->where('type', '!=', 'group')
+                    ->orWhereHas('patients');
+            })
             ->orderBy('start_time')
             ->get();
 
