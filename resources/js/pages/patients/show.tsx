@@ -1,7 +1,7 @@
 import { Head, Link, router, usePage, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-import { ArrowLeft, Phone, MapPin, Edit, Trash2, Calendar, FileText, Cake, Clock, Activity, Mail, User, Shield, Heart, Briefcase, Plus, Tag, DollarSign, CheckCircle, RotateCcw, AlertTriangle, Download, Upload, Eye } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, Edit, Trash2, Calendar, FileText, Cake, Clock, Activity, Mail, User, Shield, Heart, Briefcase, Plus, Tag, DollarSign, CheckCircle, RotateCcw, AlertTriangle, Download, Upload, Eye, X, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -116,6 +116,7 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
     const [isMembershipSheetOpen, setIsMembershipSheetOpen] = useState(false);
     const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
     const [appointmentFilter, setAppointmentFilter] = useState<'all' | 'missed'>('all');
+    const [previewingDoc, setPreviewingDoc] = useState<{ id: string; original_name: string } | null>(null);
     const { confirm, modal } = useConfirmModal();
 
     async function handleDelete() {
@@ -317,12 +318,12 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-1 bg-muted/30 p-1 rounded-xl border border-border/30 overflow-x-auto scrollbar-none whitespace-nowrap">
+                <div className="flex flex-wrap gap-1 bg-muted/30 p-1 rounded-xl border border-border/30">
                     {tabs.map(tab => (
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex-shrink-0 md:flex-1 justify-center ${activeTab === tab.key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-card/50'}`}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex-grow sm:flex-1 min-w-[140px] justify-center ${activeTab === tab.key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-card/50'}`}
                         >
                             {tab.icon}
                             <span>{tab.label}</span>
@@ -765,15 +766,13 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2 flex-shrink-0">
-                                                <a
-                                                    href={`/patients/documents/${doc.id}/preview`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
+                                                <button
+                                                    onClick={() => setPreviewingDoc({ id: doc.id, original_name: doc.original_name })}
                                                     className="p-2.5 text-muted-foreground hover:text-primary rounded-xl hover:bg-primary/10 transition-colors"
                                                     title="Visualizar arquivo"
                                                 >
                                                     <Eye className="size-4" />
-                                                </a>
+                                                </button>
                                                 <a
                                                     href={`/patients/documents/${doc.id}/download`}
                                                     className="p-2.5 text-muted-foreground hover:text-primary rounded-xl hover:bg-primary/10 transition-colors"
@@ -840,6 +839,80 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                             </form>
                         </div>
                     </motion.div>
+                )}
+
+                {/* ── Document Preview Modal ── */}
+                {previewingDoc && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setPreviewingDoc(null)}>
+                        {/* Backdrop */}
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+                        {/* Modal */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
+                            className="relative z-10 w-[95vw] max-w-4xl h-[90vh] bg-card border border-border/50 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/50 bg-muted/30">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                                        <FileText className="size-4" />
+                                    </div>
+                                    <p className="font-semibold text-sm text-foreground truncate">
+                                        {previewingDoc.original_name}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                    <a
+                                        href={`/patients/documents/${previewingDoc.id}/preview`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors"
+                                        title="Abrir em nova aba"
+                                    >
+                                        <Maximize2 className="size-4" />
+                                    </a>
+                                    <a
+                                        href={`/patients/documents/${previewingDoc.id}/download`}
+                                        className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors"
+                                        title="Baixar arquivo"
+                                    >
+                                        <Download className="size-4" />
+                                    </a>
+                                    <button
+                                        onClick={() => setPreviewingDoc(null)}
+                                        className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors"
+                                        title="Fechar"
+                                    >
+                                        <X className="size-4" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 overflow-hidden bg-muted/20">
+                                {previewingDoc.original_name.match(/\.(png|jpe?g|gif|webp|svg)$/i) ? (
+                                    <div className="w-full h-full flex items-center justify-center p-4 overflow-auto">
+                                        <img
+                                            src={`/patients/documents/${previewingDoc.id}/preview`}
+                                            alt={previewingDoc.original_name}
+                                            className="max-w-full max-h-full object-contain rounded-lg shadow-md"
+                                        />
+                                    </div>
+                                ) : (
+                                    <iframe
+                                        src={`/patients/documents/${previewingDoc.id}/preview`}
+                                        className="w-full h-full border-0"
+                                        title={previewingDoc.original_name}
+                                    />
+                                )}
+                            </div>
+                        </motion.div>
+                    </div>
                 )}
             </div>
             {modal}
