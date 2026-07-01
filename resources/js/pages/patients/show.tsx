@@ -13,6 +13,7 @@ import { AppointmentFormSheet } from '../appointments/appointment-form-sheet';
 import { MembershipFormSheet } from '../memberships/membership-form-sheet';
 import { PatientFormSheet } from './PatientFormSheet';
 import { InlineEdit } from '@/components/inline-edit';
+import { usePermissions } from '@/hooks/use-permissions';
 
 interface Patient {
     id: string;
@@ -118,6 +119,7 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
     const [appointmentFilter, setAppointmentFilter] = useState<'all' | 'missed'>('all');
     const [previewingDoc, setPreviewingDoc] = useState<{ id: string; original_name: string } | null>(null);
     const { confirm, modal } = useConfirmModal();
+    const { can } = usePermissions();
 
     async function handleDelete() {
         const confirmed = await confirm({
@@ -251,32 +253,44 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                                 {(patient.nickname || patient.name).charAt(0).toUpperCase()}
                             </div>
                             <div>
-                                <InlineEdit 
-                                    value={patient.name}
-                                    onSave={(val) => router.put(`/patients/${patient.id}`, { name: val }, { preserveScroll: true })}
-                                    className="text-2xl font-bold tracking-tight bg-transparent"
-                                />
+                                {can('patients.manage.edit') ? (
+                                    <InlineEdit
+                                        value={patient.name}
+                                        onSave={(val) => router.put(`/patients/${patient.id}`, { name: val }, { preserveScroll: true })}
+                                        className="text-2xl font-bold tracking-tight bg-transparent"
+                                    />
+                                ) : (
+                                    <span className="text-2xl font-bold tracking-tight">{patient.name}</span>
+                                )}
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                                     <span className="text-sm text-muted-foreground">
-                                        <InlineEdit 
-                                            value={patient.nickname || ''}
-                                            placeholder="Adicionar apelido..."
-                                            onSave={(val) => router.put(`/patients/${patient.id}`, { nickname: val }, { preserveScroll: true })}
-                                            className="bg-transparent"
-                                            renderDisplay={(val) => <span>{val ? `"${val}"` : 'Adicionar apelido'}</span>}
-                                        />
+                                        {can('patients.manage.edit') ? (
+                                            <InlineEdit
+                                                value={patient.nickname || ''}
+                                                placeholder="Adicionar apelido..."
+                                                onSave={(val) => router.put(`/patients/${patient.id}`, { nickname: val }, { preserveScroll: true })}
+                                                className="bg-transparent"
+                                                renderDisplay={(val) => <span>{val ? `"${val}"` : 'Adicionar apelido'}</span>}
+                                            />
+                                        ) : (
+                                            patient.nickname && <span>"{patient.nickname}"</span>
+                                        )}
                                     </span>
                                     <span className={`inline-flex px-3 py-0.5 rounded-full text-xs font-semibold ${patient.type === 'pilates' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
-                                        <InlineEdit 
-                                            value={patient.type}
-                                            type="select"
-                                            options={[
-                                                { value: 'pilates', label: 'Pilates' },
-                                                { value: 'physiotherapy', label: 'Fisioterapia' }
-                                            ]}
-                                            onSave={(val) => router.put(`/patients/${patient.id}`, { type: val }, { preserveScroll: true })}
-                                            className="font-semibold text-xs bg-transparent"
-                                        />
+                                        {can('patients.manage.edit') ? (
+                                            <InlineEdit
+                                                value={patient.type}
+                                                type="select"
+                                                options={[
+                                                    { value: 'pilates', label: 'Pilates' },
+                                                    { value: 'physiotherapy', label: 'Fisioterapia' }
+                                                ]}
+                                                onSave={(val) => router.put(`/patients/${patient.id}`, { type: val }, { preserveScroll: true })}
+                                                className="font-semibold text-xs bg-transparent"
+                                            />
+                                        ) : (
+                                            <span className="font-semibold text-xs">{patient.type === 'pilates' ? 'Pilates' : 'Fisioterapia'}</span>
+                                        )}
                                     </span>
                                     {activeMembership ? (
                                         <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
@@ -295,26 +309,36 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => setIsPatientFormOpen(true)} className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-                            <Edit className="size-4" />
-                        </button>
-                        <button onClick={handleDelete} className="p-2.5 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors">
-                            <Trash2 className="size-4" />
-                        </button>
+                        {can('patients.manage.edit') && (
+                            <button onClick={() => setIsPatientFormOpen(true)} className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                                <Edit className="size-4" />
+                            </button>
+                        )}
+                        {can('patients.manage.delete') && (
+                            <button onClick={handleDelete} className="p-2.5 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors">
+                                <Trash2 className="size-4" />
+                            </button>
+                        )}
                     </div>
                 </div>
 
                 {/* Quick actions */}
                 <div className="flex gap-3 flex-wrap">
-                    <button onClick={() => setIsAppointmentSheetOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-semibold hover:bg-primary/20 transition-colors">
-                        <Calendar className="size-4" /> Novo Agendamento
-                    </button>
-                    <button onClick={() => { setEditingEvolution(null); setIsEvolutionSheetOpen(true); }} className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 text-indigo-600 rounded-xl text-sm font-semibold hover:bg-indigo-500/20 transition-colors">
-                        <Activity className="size-4" /> Nova Evolução
-                    </button>
-                    <button onClick={() => setIsMembershipSheetOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-600 rounded-xl text-sm font-semibold hover:bg-emerald-500/20 transition-colors">
-                        <Plus className="size-4" /> Nova Matrícula
-                    </button>
+                    {can('appointments.manage.create') && (
+                        <button onClick={() => setIsAppointmentSheetOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-semibold hover:bg-primary/20 transition-colors">
+                            <Calendar className="size-4" /> Novo Agendamento
+                        </button>
+                    )}
+                    {can('evolutions.manage.create') && (
+                        <button onClick={() => { setEditingEvolution(null); setIsEvolutionSheetOpen(true); }} className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 text-indigo-600 rounded-xl text-sm font-semibold hover:bg-indigo-500/20 transition-colors">
+                            <Activity className="size-4" /> Nova Evolução
+                        </button>
+                    )}
+                    {can('memberships.manage.create') && (
+                        <button onClick={() => setIsMembershipSheetOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-600 rounded-xl text-sm font-semibold hover:bg-emerald-500/20 transition-colors">
+                            <Plus className="size-4" /> Nova Matrícula
+                        </button>
+                    )}
                 </div>
 
                 {/* Tabs */}
@@ -441,9 +465,11 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                             <h2 className="text-lg font-bold flex items-center gap-2">
                                 <Tag className="size-5 text-primary" /> Matrículas e Planos
                             </h2>
-                            <button onClick={() => setIsMembershipSheetOpen(true)} className="flex items-center gap-2 h-9 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors text-sm shadow-sm">
-                                <Plus className="size-4" /> Nova Matrícula
-                            </button>
+                            {can('memberships.manage.create') && (
+                                <button onClick={() => setIsMembershipSheetOpen(true)} className="flex items-center gap-2 h-9 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors text-sm shadow-sm">
+                                    <Plus className="size-4" /> Nova Matrícula
+                                </button>
+                            )}
                         </div>
 
                         {patient.memberships && patient.memberships.length > 0 ? (
@@ -577,9 +603,11 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                                     <Activity className="size-5 text-primary" /> Prontuário
                                     <span className="text-sm font-normal text-muted-foreground ml-2">({evolutionsList.length} registros)</span>
                                 </h2>
-                                <button onClick={() => { setEditingEvolution(null); setIsEvolutionSheetOpen(true); }} className="flex items-center gap-2 h-9 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors text-sm shadow-sm">
-                                    <Plus className="size-4" /> Nova Evolução
-                                </button>
+                                {can('evolutions.manage.create') && (
+                                    <button onClick={() => { setEditingEvolution(null); setIsEvolutionSheetOpen(true); }} className="flex items-center gap-2 h-9 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors text-sm shadow-sm">
+                                        <Plus className="size-4" /> Nova Evolução
+                                    </button>
+                                )}
                             </div>
 
                             {evolutionsList.length === 0 ? (
@@ -666,9 +694,11 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                                             )}
                                         </button>
                                     </div>
-                                    <button onClick={() => setIsAppointmentSheetOpen(true)} className="flex items-center gap-2 h-9 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors text-sm shadow-sm">
-                                        <Plus className="size-4" /> Novo Agendamento
-                                    </button>
+                                    {can('appointments.manage.create') && (
+                                        <button onClick={() => setIsAppointmentSheetOpen(true)} className="flex items-center gap-2 h-9 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors text-sm shadow-sm">
+                                            <Plus className="size-4" /> Novo Agendamento
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -780,13 +810,15 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                                                 >
                                                     <Download className="size-4" />
                                                 </a>
-                                                <button
-                                                    onClick={() => handleDeleteDoc(doc.id, doc.original_name)}
-                                                    className="p-2.5 text-muted-foreground hover:text-red-600 rounded-xl hover:bg-red-500/10 transition-colors"
-                                                    title="Excluir arquivo"
-                                                >
-                                                    <Trash2 className="size-4" />
-                                                </button>
+                                                {can('patients.manage.edit') && (
+                                                    <button
+                                                        onClick={() => handleDeleteDoc(doc.id, doc.original_name)}
+                                                        className="p-2.5 text-muted-foreground hover:text-red-600 rounded-xl hover:bg-red-500/10 transition-colors"
+                                                        title="Excluir arquivo"
+                                                    >
+                                                        <Trash2 className="size-4" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
@@ -795,6 +827,7 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                         </div>
 
                         {/* Enviar Novo Documento */}
+                        {can('patients.manage.edit') && (
                         <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-sm h-fit">
                             <h3 className="text-lg font-bold flex items-center gap-2 mb-6">
                                 <Upload className="size-5 text-primary" /> Enviar Documento
@@ -838,6 +871,7 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                                 </Button>
                             </form>
                         </div>
+                        )}
                     </motion.div>
                 )}
 

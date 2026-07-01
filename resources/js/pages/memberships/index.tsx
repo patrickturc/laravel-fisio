@@ -5,6 +5,7 @@ import { Plus, Search, Tag, User, Calendar as CalendarIcon, DollarSign, Save } f
 import { useState, FormEvent } from 'react';
 import { Pagination } from '@/components/pagination';
 import { MembershipFormSheet } from './membership-form-sheet';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Matrículas', href: '/memberships' },
@@ -21,6 +22,8 @@ export default function MembershipsIndex({
     patients?: any[];
     commercialPlans?: any[];
 }) {
+    const { can } = usePermissions();
+
     const [search, setSearch] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
 
@@ -96,13 +99,15 @@ export default function MembershipsIndex({
                             <option value="expired">Vencidas</option>
                             <option value="cancelled">Canceladas</option>
                         </select>
-                        <button
-                            onClick={openCreate}
-                            className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm cursor-pointer"
-                        >
-                            <Plus className="size-4" />
-                            <span className="hidden sm:inline">Nova Matrícula</span>
-                        </button>
+                        {can('memberships.manage.create') && (
+                            <button
+                                onClick={openCreate}
+                                className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm cursor-pointer"
+                            >
+                                <Plus className="size-4" />
+                                <span className="hidden sm:inline">Nova Matrícula</span>
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -151,9 +156,11 @@ export default function MembershipsIndex({
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-3 items-center">
-                                                    <button onClick={() => openEdit(membership)} className="text-primary hover:text-primary/80 font-medium text-sm">
-                                                        Editar
-                                                    </button>
+                                                    {can('memberships.manage.edit') && (
+                                                        <button onClick={() => openEdit(membership)} className="text-primary hover:text-primary/80 font-medium text-sm">
+                                                            Editar
+                                                        </button>
+                                                    )}
                                                     <Link href={`/memberships/${membership.id}`} className="text-primary hover:text-primary/80 font-medium text-sm">
                                                         Ver Detalhes
                                                     </Link>

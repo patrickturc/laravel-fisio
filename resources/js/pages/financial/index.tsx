@@ -5,6 +5,7 @@ import { Plus, Search, TrendingUp, TrendingDown, DollarSign, Wallet, User, Edit,
 import { useState, useMemo, FormEvent } from 'react';
 import { Pagination } from '@/components/pagination';
 import { useConfirmModal } from '@/components/confirm-modal';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -49,6 +50,7 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const { confirm, modal } = useConfirmModal();
+    const { can } = usePermissions();
 
     const [sheetOpen, setSheetOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<any>(null);
@@ -225,13 +227,15 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                             <RefreshCw className="size-4" />
                             <span className="hidden sm:inline">Recorrentes</span>
                         </Link>
-                        <button
-                            onClick={openCreateSheet}
-                            className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
-                        >
-                            <Plus className="size-4" />
-                            <span className="hidden sm:inline">Nova Transação</span>
-                        </button>
+                        {can('financial.transactions.create') && (
+                            <button
+                                onClick={openCreateSheet}
+                                className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
+                            >
+                                <Plus className="size-4" />
+                                <span className="hidden sm:inline">Nova Transação</span>
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -472,21 +476,27 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                                             </td>
                                             <td className="px-5 py-3.5">
                                                 <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
-                                                    {t.status === 'pending' ? (
-                                                        <button onClick={() => handleMarkPaid(t)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 transition-colors">
-                                                            Pago
-                                                        </button>
-                                                    ) : (
-                                                        <button onClick={() => handleRevert(t)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 transition-colors">
-                                                            Cancelar Pgmto
+                                                    {can('financial.transactions.edit') && (
+                                                        t.status === 'pending' ? (
+                                                            <button onClick={() => handleMarkPaid(t)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 transition-colors">
+                                                                Pago
+                                                            </button>
+                                                        ) : (
+                                                            <button onClick={() => handleRevert(t)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 transition-colors">
+                                                                Cancelar Pgmto
+                                                            </button>
+                                                        )
+                                                    )}
+                                                    {can('financial.transactions.edit') && (
+                                                        <button onClick={() => openEditSheet(t)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                                            Editar
                                                         </button>
                                                     )}
-                                                    <button onClick={() => openEditSheet(t)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                                                        Editar
-                                                    </button>
-                                                    <button onClick={() => handleDelete(t)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors">
-                                                        Excluir
-                                                    </button>
+                                                    {can('financial.transactions.delete') && (
+                                                        <button onClick={() => handleDelete(t)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors">
+                                                            Excluir
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

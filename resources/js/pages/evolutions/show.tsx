@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { useConfirmModal } from '@/components/confirm-modal';
 import { useState } from 'react';
 import EvolutionFormSheet from '@/components/EvolutionFormSheet';
+import { usePermissions } from '@/hooks/use-permissions';
 
 interface Evolution {
     id: string;
@@ -37,6 +38,7 @@ export default function EvolutionShow({ evolution, protocols = [] }: { evolution
         { title: new Date(evolution.data_atendimento).toLocaleDateString('pt-BR'), href: `/evolutions/${evolution.id}` },
     ];
 
+    const { can } = usePermissions();
     const [isEvolutionSheetOpen, setIsEvolutionSheetOpen] = useState(false);
     const { confirm, modal } = useConfirmModal();
 
@@ -78,8 +80,12 @@ export default function EvolutionShow({ evolution, protocols = [] }: { evolution
                         <a href={`/evolutions/${evolution.id}/pdf`} target="_blank" className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Exportar PDF">
                             <Download className="size-4" />
                         </a>
-                        <button onClick={() => setIsEvolutionSheetOpen(true)} className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"><Edit className="size-4" /></button>
-                        <button onClick={handleDelete} className="p-2.5 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 className="size-4" /></button>
+                        {can('evolutions.manage.edit') && (
+                            <button onClick={() => setIsEvolutionSheetOpen(true)} className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"><Edit className="size-4" /></button>
+                        )}
+                        {can('evolutions.manage.delete') && (
+                            <button onClick={handleDelete} className="p-2.5 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 className="size-4" /></button>
+                        )}
                     </div>
                 </div>
 

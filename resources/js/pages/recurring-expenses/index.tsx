@@ -5,6 +5,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Plus, RefreshCw, Edit, Trash2, Power, PowerOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useConfirmModal } from '@/components/confirm-modal';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 const expenseCategories = ['Aluguel', 'Equipamentos', 'Material', 'Água/Luz/Internet', 'Salários', 'Impostos', 'Marketing', 'Manutenção', 'Outros'];
@@ -32,6 +33,7 @@ const formatCurrency = (val: string | number) =>
 
 export default function RecurringExpenseIndex({ expenses }: { expenses: RecurringExpense[] }) {
     const { confirm, modal } = useConfirmModal();
+    const { can } = usePermissions();
     const [sheetOpen, setSheetOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -104,10 +106,12 @@ export default function RecurringExpenseIndex({ expenses }: { expenses: Recurrin
                         <h1 className="text-2xl font-bold tracking-tight">Gastos Recorrentes</h1>
                         <p className="text-muted-foreground text-sm mt-1">Despesas fixas que são geradas automaticamente todo mês.</p>
                     </div>
-                    <button onClick={openCreate}
-                        className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm">
-                        <Plus className="size-4" /> Novo Gasto
-                    </button>
+                    {can('recurring_expenses.manage.create') && (
+                        <button onClick={openCreate}
+                            className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm">
+                            <Plus className="size-4" /> Novo Gasto
+                        </button>
+                    )}
                 </div>
 
                 {expenses.length > 0 ? (
@@ -139,19 +143,25 @@ export default function RecurringExpenseIndex({ expenses }: { expenses: Recurrin
                                 </div>
 
                                 <div className="flex items-center gap-1">
-                                    <button onClick={() => toggleActive(expense)}
-                                        className={`p-2.5 rounded-xl transition-colors ${expense.is_active ? 'text-emerald-600 hover:bg-emerald-500/10' : 'text-gray-400 hover:bg-gray-500/10'}`}
-                                        title={expense.is_active ? 'Desativar' : 'Ativar'}>
-                                        {expense.is_active ? <Power className="size-4" /> : <PowerOff className="size-4" />}
-                                    </button>
-                                    <button onClick={() => openEdit(expense)}
-                                        className="p-2.5 text-muted-foreground hover:text-primary rounded-xl hover:bg-primary/10 transition-colors">
-                                        <Edit className="size-4" />
-                                    </button>
-                                    <button onClick={() => handleDelete(expense)}
-                                        className="p-2.5 text-muted-foreground hover:text-red-500 rounded-xl hover:bg-red-500/10 transition-colors">
-                                        <Trash2 className="size-4" />
-                                    </button>
+                                    {can('recurring_expenses.manage.edit') && (
+                                        <button onClick={() => toggleActive(expense)}
+                                            className={`p-2.5 rounded-xl transition-colors ${expense.is_active ? 'text-emerald-600 hover:bg-emerald-500/10' : 'text-gray-400 hover:bg-gray-500/10'}`}
+                                            title={expense.is_active ? 'Desativar' : 'Ativar'}>
+                                            {expense.is_active ? <Power className="size-4" /> : <PowerOff className="size-4" />}
+                                        </button>
+                                    )}
+                                    {can('recurring_expenses.manage.edit') && (
+                                        <button onClick={() => openEdit(expense)}
+                                            className="p-2.5 text-muted-foreground hover:text-primary rounded-xl hover:bg-primary/10 transition-colors">
+                                            <Edit className="size-4" />
+                                        </button>
+                                    )}
+                                    {can('recurring_expenses.manage.delete') && (
+                                        <button onClick={() => handleDelete(expense)}
+                                            className="p-2.5 text-muted-foreground hover:text-red-500 rounded-xl hover:bg-red-500/10 transition-colors">
+                                            <Trash2 className="size-4" />
+                                        </button>
+                                    )}
                                 </div>
                             </motion.div>
                         ))}
@@ -161,9 +171,11 @@ export default function RecurringExpenseIndex({ expenses }: { expenses: Recurrin
                         <RefreshCw className="size-12 text-muted-foreground/20 mx-auto mb-4" />
                         <p className="text-lg font-medium text-foreground">Nenhum gasto recorrente</p>
                         <p className="text-sm text-muted-foreground mt-1">Cadastre despesas fixas como aluguel, luz e internet.</p>
-                        <button onClick={openCreate} className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors">
-                            <Plus className="size-4" /> Cadastrar Primeiro Gasto
-                        </button>
+                        {can('recurring_expenses.manage.create') && (
+                            <button onClick={openCreate} className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors">
+                                <Plus className="size-4" /> Cadastrar Primeiro Gasto
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

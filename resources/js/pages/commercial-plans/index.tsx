@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/input-error';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { usePermissions } from '@/hooks/use-permissions';
 
 interface CommercialPlan {
     id: string;
@@ -27,6 +28,7 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
         { title: 'Planos Comerciais', href: '/commercial-plans' },
     ];
 
+    const { can } = usePermissions();
     const { confirm, modal } = useConfirmModal();
 
     const handleDelete = async (plan: CommercialPlan) => {
@@ -111,13 +113,15 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                         <h1 className="text-3xl font-bold tracking-tight text-foreground">Planos e Pacotes</h1>
                         <p className="text-muted-foreground mt-1">Gerencie os pacotes comerciais disponíveis para matrículas.</p>
                     </div>
-                    <button
-                        onClick={openCreateSheet}
-                        className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-primary text-white text-sm font-medium shadow-sm hover:bg-primary/90 transition-colors"
-                    >
-                        <Plus className="size-4" />
-                        Novo Plano
-                    </button>
+                    {can('commercial_plans.manage.create') && (
+                        <button
+                            onClick={openCreateSheet}
+                            className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-primary text-white text-sm font-medium shadow-sm hover:bg-primary/90 transition-colors"
+                        >
+                            <Plus className="size-4" />
+                            Novo Plano
+                        </button>
+                    )}
                 </div>
 
                 <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden shadow-sm">
@@ -166,20 +170,24 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={() => openEditSheet(plan)}
-                                                    className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                                                    title="Editar"
-                                                >
-                                                    <Edit className="size-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(plan)}
-                                                    className="p-2.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                                                    title="Excluir"
-                                                >
-                                                    <Trash2 className="size-4" />
-                                                </button>
+                                                {can('commercial_plans.manage.edit') && (
+                                                    <button
+                                                        onClick={() => openEditSheet(plan)}
+                                                        className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                                        title="Editar"
+                                                    >
+                                                        <Edit className="size-4" />
+                                                    </button>
+                                                )}
+                                                {can('commercial_plans.manage.delete') && (
+                                                    <button
+                                                        onClick={() => handleDelete(plan)}
+                                                        className="p-2.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                        title="Excluir"
+                                                    >
+                                                        <Trash2 className="size-4" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

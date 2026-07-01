@@ -4,6 +4,7 @@ import type { BreadcrumbItem } from '@/types';
 import { Users, Calendar, FileText, Clock, Plus, ChevronRight, ChevronLeft, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, CreditCard, BarChart3, CalendarDays, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
@@ -72,6 +73,7 @@ function shiftWeek(currentDate: string, direction: number) {
 }
 
 export default function Dashboard({ totalPatients, dayAppointments, dayCount, pendingEvolutions, selectedDate, weekDays, weekLabel, upcomingBirthdays, financialSummary, growthIndicators, classesNeedingExtension = [] }: Props) {
+    const { can } = usePermissions();
     const statusLabel: Record<string, string> = { scheduled: 'Agendado', completed: 'Realizado', cancelled: 'Cancelado' };
     const statusColor: Record<string, string> = { scheduled: 'bg-blue-100 text-blue-700', completed: 'bg-emerald-100 text-emerald-700', cancelled: 'bg-red-100 text-red-700' };
 
@@ -132,6 +134,7 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
                                     </div>
                                 </div>
                             </div>
+                            {can('group_classes.manage.edit') && (
                             <button
                                 onClick={extendClasses}
                                 disabled={isExtending}
@@ -140,6 +143,7 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
                                 <CalendarDays className="size-4" />
                                 {isExtending ? 'Gerando...' : 'Estender todas as turmas'}
                             </button>
+                            )}
                         </div>
                     </motion.div>
                 )}
@@ -300,9 +304,11 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
                                     <CalendarDays className="size-4" />
                                 </Link>
                             </div>
+                            {can('appointments.manage.create') && (
                             <Link href="/appointments/create" className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
                                 <Plus className="size-4" /> Agendar
                             </Link>
+                            )}
                         </div>
 
                         {/* Day Pills */}
@@ -334,9 +340,11 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
                             <div className="text-center py-10">
                                 <Calendar className="size-12 text-muted-foreground/30 mx-auto mb-3" />
                                 <p className="text-muted-foreground text-sm">Nenhuma sessão neste dia.</p>
+                                {can('appointments.manage.create') && (
                                 <Link href="/appointments/create" className="text-primary text-sm font-semibold hover:text-primary/80 mt-2 inline-block">
                                     Criar agendamento →
                                 </Link>
+                                )}
                             </div>
                         ) : (
                             <div className="space-y-2">
@@ -409,14 +417,18 @@ export default function Dashboard({ totalPatients, dayAppointments, dayCount, pe
 
                 {/* Quick Actions */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {can('patients.manage.create') && (
                     <Link href="/patients/create" className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-primary/30 transition-all group flex items-center gap-4">
                         <div className="p-2.5 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors"><Plus className="size-5 text-primary" /></div>
                         <div><p className="font-semibold text-sm">Novo Paciente</p><p className="text-xs text-muted-foreground">Cadastrar paciente</p></div>
                     </Link>
+                    )}
+                    {can('appointments.manage.create') && (
                     <Link href="/appointments/create" className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-emerald-500/30 transition-all group flex items-center gap-4">
                         <div className="p-2.5 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500/20 transition-colors"><Calendar className="size-5 text-emerald-600" /></div>
                         <div><p className="font-semibold text-sm">Agendar Sessão</p><p className="text-xs text-muted-foreground">Criar agendamento</p></div>
                     </Link>
+                    )}
                     <Link href="/patients" className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-amber-500/30 transition-all group flex items-center gap-4">
                         <div className="p-2.5 bg-amber-500/10 rounded-xl group-hover:bg-amber-500/20 transition-colors"><FileText className="size-5 text-amber-600" /></div>
                         <div><p className="font-semibold text-sm">Prontuários</p><p className="text-xs text-muted-foreground">Acessar ficha de pacientes</p></div>

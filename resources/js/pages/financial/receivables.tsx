@@ -4,6 +4,7 @@ import { type BreadcrumbItem } from '@/types';
 import { ArrowLeft, AlertTriangle, Clock, Users, CheckCircle, User, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { useConfirmModal } from '@/components/confirm-modal';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Financeiro', href: '/financial' },
@@ -39,6 +40,7 @@ interface Props {
 export default function Receivables({ groups, totals }: Props) {
     const [expanded, setExpanded] = useState<string | null>(null);
     const { confirm, modal } = useConfirmModal();
+    const { can } = usePermissions();
 
     const formatCurrency = (val: string | number) =>
         Number(val).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -159,12 +161,14 @@ export default function Receivables({ groups, totals }: Props) {
                                                             </p>
                                                         </div>
                                                         <span className="font-semibold text-sm text-foreground whitespace-nowrap">{formatCurrency(t.amount)}</span>
-                                                        <button
-                                                            onClick={() => handleMarkPaid(t)}
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors"
-                                                        >
-                                                            <CheckCircle className="size-3.5" /> Receber
-                                                        </button>
+                                                        {can('financial.transactions.edit') && (
+                                                            <button
+                                                                onClick={() => handleMarkPaid(t)}
+                                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors"
+                                                            >
+                                                                <CheckCircle className="size-3.5" /> Receber
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>

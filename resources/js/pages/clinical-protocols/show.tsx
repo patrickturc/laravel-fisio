@@ -4,6 +4,7 @@ import { type BreadcrumbItem } from '@/types';
 import { ArrowLeft, Edit, Trash2, FileText, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useConfirmModal } from '@/components/confirm-modal';
+import { usePermissions } from '@/hooks/use-permissions';
 
 interface ClinicalProtocol {
     id: string;
@@ -26,6 +27,7 @@ export default function ClinicalProtocolShow({ protocol }: { protocol: ClinicalP
         { title: protocol.name, href: `/clinical-protocols/${protocol.id}` },
     ];
 
+    const { can } = usePermissions();
     const { confirm, modal } = useConfirmModal();
 
     async function handleDelete() {
@@ -54,8 +56,12 @@ export default function ClinicalProtocolShow({ protocol }: { protocol: ClinicalP
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Link href={`/clinical-protocols/${protocol.id}/edit`} className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"><Edit className="size-4" /></Link>
-                        <button onClick={handleDelete} className="p-2.5 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 className="size-4" /></button>
+                        {can('treatment_plans.manage.edit') && (
+                            <Link href={`/clinical-protocols/${protocol.id}/edit`} className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"><Edit className="size-4" /></Link>
+                        )}
+                        {can('treatment_plans.manage.delete') && (
+                            <button onClick={handleDelete} className="p-2.5 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 className="size-4" /></button>
+                        )}
                     </div>
                 </div>
 

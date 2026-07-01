@@ -13,6 +13,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { usePermissions } from '@/hooks/use-permissions';
 
 interface Patient {
     id: string;
@@ -42,6 +43,7 @@ export default function AppointmentShow({ appointment, protocols = [] }: { appoi
         { title: `${new Date(appointment.appointment_date).toLocaleDateString('pt-BR')}`, href: `/appointments/${appointment.id}` },
     ];
 
+    const { can } = usePermissions();
     const [isEvolutionSheetOpen, setIsEvolutionSheetOpen] = useState(false);
     const { confirm, modal } = useConfirmModal();
 
@@ -90,8 +92,12 @@ export default function AppointmentShow({ appointment, protocols = [] }: { appoi
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Link href={`/appointments/${appointment.id}/edit`} className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"><Edit className="size-4" /></Link>
-                        <button onClick={handleDelete} className="p-2.5 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 className="size-4" /></button>
+                        {can('appointments.manage.edit') && (
+                            <Link href={`/appointments/${appointment.id}/edit`} className="p-2.5 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"><Edit className="size-4" /></Link>
+                        )}
+                        {can('appointments.manage.delete') && (
+                            <button onClick={handleDelete} className="p-2.5 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 className="size-4" /></button>
+                        )}
                     </div>
                 </div>
 
@@ -138,6 +144,7 @@ export default function AppointmentShow({ appointment, protocols = [] }: { appoi
                                             </div>
                                         </div>
                                     </div>
+                                    {can('appointments.manage.edit') && (
                                     <div>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -161,6 +168,7 @@ export default function AppointmentShow({ appointment, protocols = [] }: { appoi
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
+                                    )}
                                 </div>
                             );
                         })}
@@ -195,7 +203,7 @@ export default function AppointmentShow({ appointment, protocols = [] }: { appoi
                     </motion.div>
                 )}
                 
-                {appointment.status === 'scheduled' && appointment.type === 'group' && (
+                {appointment.status === 'scheduled' && appointment.type === 'group' && can('appointments.manage.edit') && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                         <Button
                             onClick={() => router.patch(`/appointments/${appointment.id}/status`, { status: 'completed' }, { preserveScroll: true })}

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Pagination } from '@/components/pagination';
 import { AlertCircle, CheckCircle2, UserMinus } from 'lucide-react';
 import EvolutionFormSheet from '@/components/EvolutionFormSheet';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Evoluções', href: '/evolutions' },
@@ -33,6 +34,7 @@ interface PendingEvolution {
 
 
 export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], patients = [], protocols = [], filters = {} }: { evolutions: PaginatedEvolutions; pendingEvolutions?: PendingEvolution[]; patients?: any[]; protocols?: any[]; filters?: any }) {
+    const { can } = usePermissions();
     const [search, setSearch] = useState(filters.search || '');
     const [tipoFilter, setTipoFilter] = useState(filters.tipo || '');
     const [activeTab, setActiveTab] = useState(filters.tab || 'todas');
@@ -152,13 +154,15 @@ export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], pa
                             </button>
                         )}
 
-                        <button
-                            onClick={() => setIsSheetOpen(true)}
-                            className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
-                        >
-                            <Activity className="size-4" />
-                            <span className="hidden sm:inline">Nova Evolução</span>
-                        </button>
+                        {can('evolutions.manage.create') && (
+                            <button
+                                onClick={() => setIsSheetOpen(true)}
+                                className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
+                            >
+                                <Activity className="size-4" />
+                                <span className="hidden sm:inline">Nova Evolução</span>
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -233,14 +237,16 @@ export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], pa
                                         />
 
                                         <div className="flex items-center gap-2 mt-auto">
-                                            <button 
-                                                onClick={() => handleSaveSimple(pending)}
-                                                disabled={isSubmitting === pending.id || !observations[pending.id]?.trim()}
-                                                className="flex-1 flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium h-9 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                <CheckCircle2 className="size-4" />
-                                                Salvar
-                                            </button>
+                                            {can('evolutions.manage.create') && (
+                                                <button
+                                                    onClick={() => handleSaveSimple(pending)}
+                                                    disabled={isSubmitting === pending.id || !observations[pending.id]?.trim()}
+                                                    className="flex-1 flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium h-9 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <CheckCircle2 className="size-4" />
+                                                    Salvar
+                                                </button>
+                                            )}
                                             <button 
                                                 onClick={() => handleMarkMissed(pending)}
                                                 disabled={isSubmitting === pending.id + '_missed'}

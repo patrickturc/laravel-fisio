@@ -9,6 +9,7 @@ import CalendarView from '@/components/calendar-view';
 import SlotsView from '@/components/slots-view';
 import { AppointmentFormSheet } from './appointment-form-sheet';
 import { GroupClassFormSheet } from '../group-classes/group-class-form-sheet';
+import { usePermissions } from '@/hooks/use-permissions';
 import axios from 'axios';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -24,6 +25,7 @@ interface PaginatedAppointments {
 }
 
 export default function AppointmentsIndex({ appointments, filters = {}, patients = [], groupClasses = [], users = [] }: { appointments: PaginatedAppointments; filters?: any; patients?: any[]; groupClasses?: any[]; users?: any[] }) {
+    const { can } = usePermissions();
     const [viewMode, setViewMode] = useState<'calendar' | 'list' | 'slots'>('calendar');
     const [search, setSearch] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
@@ -140,6 +142,7 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                             <CalendarDays className="size-4" />
                             <span className="hidden sm:inline">Sincronizar</span>
                         </Link>
+                        {can('appointments.manage.create') && (
                         <button
                             onClick={() => {
                                 setEditingAppointment(null);
@@ -153,6 +156,7 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                             <CalendarPlus className="size-4" />
                             <span className="hidden sm:inline">Novo Agendamento</span>
                         </button>
+                        )}
                     </div>
                 </div>
 
@@ -258,7 +262,7 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                                     setInitialDuration(durationMinutes);
                                     setSheetOpen(true);
                                 }}
-                                onEventDrop={(eventId, newDate, newTime, isGroup) => {
+                                onEventDrop={can('appointments.manage.edit') ? (eventId, newDate, newTime, isGroup) => {
                                     if (isGroup) {
                                         setReschedulePrompt({
                                             open: true,
@@ -278,7 +282,7 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                                             router.reload({ only: ['appointments'] });
                                         });
                                     }
-                                }}
+                                } : undefined}
                             />
                         </motion.div>
                     ) : viewMode === 'slots' ? (

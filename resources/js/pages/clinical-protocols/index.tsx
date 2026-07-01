@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Pagination } from '@/components/pagination';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Protocolos Clínicos', href: '/clinical-protocols' },
@@ -20,6 +21,7 @@ interface PaginatedProtocols {
 }
 
 export default function ClinicalProtocolsIndex({ protocols, filters = {} }: { protocols: PaginatedProtocols; filters?: any }) {
+    const { can } = usePermissions();
     const [search, setSearch] = useState(filters.search || '');
 
     const [isSheetOpen, setSheetOpen] = useState(false);
@@ -110,9 +112,11 @@ export default function ClinicalProtocolsIndex({ protocols, filters = {} }: { pr
                         {hasFilters && (
                             <button onClick={clearFilters} className="h-10 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl transition-colors border border-border">Limpar</button>
                         )}
-                        <button onClick={openCreate} className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm">
-                            <Plus className="size-4" /><span className="hidden sm:inline">Novo Protocolo</span>
-                        </button>
+                        {can('treatment_plans.manage.create') && (
+                            <button onClick={openCreate} className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm">
+                                <Plus className="size-4" /><span className="hidden sm:inline">Novo Protocolo</span>
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -133,9 +137,11 @@ export default function ClinicalProtocolsIndex({ protocols, filters = {} }: { pr
                                     <Link href={`/clinical-protocols/${protocol.id}`} className="text-sm font-semibold text-primary hover:text-emerald-500 transition-colors inline-flex items-center gap-1">
                                         Detalhes →
                                     </Link>
-                                    <button onClick={() => openEdit(protocol)} className="text-sm font-semibold text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
-                                        <Edit2 className="size-4" /> Editar
-                                    </button>
+                                    {can('treatment_plans.manage.edit') && (
+                                        <button onClick={() => openEdit(protocol)} className="text-sm font-semibold text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
+                                            <Edit2 className="size-4" /> Editar
+                                        </button>
+                                    )}
                                 </div>
                             </motion.div>
                         );

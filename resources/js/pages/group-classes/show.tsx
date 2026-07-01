@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useConfirmModal } from '@/components/confirm-modal';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Pagination } from '@/components/pagination';
 import { GroupClassFormSheet } from './group-class-form-sheet';
 import { InlineEdit } from '@/components/inline-edit';
@@ -27,6 +28,7 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], la
     });
     const [generateReschedule, setGenerateReschedule] = useState(false);
     const { confirm, modal } = useConfirmModal();
+    const { can } = usePermissions();
     const [isGenerating, setIsGenerating] = useState(false);
     const [showAbsences, setShowAbsences] = useState(false);
 
@@ -78,36 +80,48 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], la
                                 <Users className="size-8" />
                             </div>
                             <div>
-                                <InlineEdit 
-                                    value={groupClass.name}
-                                    onSave={(val) => router.put(`/group-classes/${groupClass.id}`, { name: val }, { preserveScroll: true })}
-                                    className="text-2xl font-bold tracking-tight bg-transparent"
-                                />
+                                {can('group_classes.manage.edit') ? (
+                                    <InlineEdit
+                                        value={groupClass.name}
+                                        onSave={(val) => router.put(`/group-classes/${groupClass.id}`, { name: val }, { preserveScroll: true })}
+                                        className="text-2xl font-bold tracking-tight bg-transparent"
+                                    />
+                                ) : (
+                                    <span className="text-2xl font-bold tracking-tight bg-transparent">{groupClass.name}</span>
+                                )}
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                                         groupClass.status === 'active' 
                                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' 
                                             : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                                     }`}>
-                                        <InlineEdit 
-                                            value={groupClass.status}
-                                            type="select"
-                                            options={[
-                                                { value: 'active', label: 'Ativa' },
-                                                { value: 'inactive', label: 'Inativa' }
-                                            ]}
-                                            onSave={(val) => router.put(`/group-classes/${groupClass.id}`, { status: val }, { preserveScroll: true })}
-                                            className="font-semibold text-xs"
-                                        />
+                                        {can('group_classes.manage.edit') ? (
+                                            <InlineEdit
+                                                value={groupClass.status}
+                                                type="select"
+                                                options={[
+                                                    { value: 'active', label: 'Ativa' },
+                                                    { value: 'inactive', label: 'Inativa' }
+                                                ]}
+                                                onSave={(val) => router.put(`/group-classes/${groupClass.id}`, { status: val }, { preserveScroll: true })}
+                                                className="font-semibold text-xs"
+                                            />
+                                        ) : (
+                                            <span className="font-semibold text-xs">{groupClass.status === 'active' ? 'Ativa' : 'Inativa'}</span>
+                                        )}
                                     </span>
                                     <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                        <InlineEdit 
-                                            value={String(groupClass.max_participants)}
-                                            type="number"
-                                            onSave={(val) => router.put(`/group-classes/${groupClass.id}`, { max_participants: Number(val) }, { preserveScroll: true })}
-                                            className="w-16 text-xs text-center"
-                                            renderDisplay={(val) => <span>{groupClass.patients?.length || 0} de {val} alunos</span>}
-                                        />
+                                        {can('group_classes.manage.edit') ? (
+                                            <InlineEdit
+                                                value={String(groupClass.max_participants)}
+                                                type="number"
+                                                onSave={(val) => router.put(`/group-classes/${groupClass.id}`, { max_participants: Number(val) }, { preserveScroll: true })}
+                                                className="w-16 text-xs text-center"
+                                                renderDisplay={(val) => <span>{groupClass.patients?.length || 0} de {val} alunos</span>}
+                                            />
+                                        ) : (
+                                            <span>{groupClass.patients?.length || 0} de {groupClass.max_participants} alunos</span>
+                                        )}
                                     </span>
                                 </div>
                             </div>
@@ -115,12 +129,16 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], la
                     </div>
                     
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" className="gap-2 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 border-red-200 dark:border-red-900/50" onClick={handleDelete}>
-                            <Trash2 className="size-4" /> Excluir
-                        </Button>
-                        <Button className="gap-2 rounded-xl shadow-sm" onClick={() => setIsEditSheetOpen(true)}>
-                            <Settings className="size-4" /> Editar Turma
-                        </Button>
+                        {can('group_classes.manage.delete') && (
+                            <Button variant="outline" className="gap-2 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 border-red-200 dark:border-red-900/50" onClick={handleDelete}>
+                                <Trash2 className="size-4" /> Excluir
+                            </Button>
+                        )}
+                        {can('group_classes.manage.edit') && (
+                            <Button className="gap-2 rounded-xl shadow-sm" onClick={() => setIsEditSheetOpen(true)}>
+                                <Settings className="size-4" /> Editar Turma
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -334,9 +352,11 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], la
                                         </p>
                                     )}
                                 </div>
-                                <Button className="gap-2 rounded-xl" onClick={() => setShowGenerateModal(true)}>
-                                    <PlayCircle className="size-4" /> Gerar Aulas
-                                </Button>
+                                {can('group_classes.manage.edit') && (
+                                    <Button className="gap-2 rounded-xl" onClick={() => setShowGenerateModal(true)}>
+                                        <PlayCircle className="size-4" /> Gerar Aulas
+                                    </Button>
+                                )}
                             </div>
 
                             {futureAppointments.length > 0 ? (
@@ -384,9 +404,11 @@ export default function GroupClassShow({ groupClass, futureAppointments = [], la
                                     <p className="text-sm text-muted-foreground max-w-sm mb-6">
                                         As sessões reais dessa turma ainda não foram criadas na sua agenda.
                                     </p>
-                                    <Button className="gap-2 rounded-xl shadow-sm" onClick={() => setShowGenerateModal(true)}>
-                                        <PlayCircle className="size-4" /> Gerar Próximas Aulas
-                                    </Button>
+                                    {can('group_classes.manage.edit') && (
+                                        <Button className="gap-2 rounded-xl shadow-sm" onClick={() => setShowGenerateModal(true)}>
+                                            <PlayCircle className="size-4" /> Gerar Próximas Aulas
+                                        </Button>
+                                    )}
                                 </div>
                             )}
                         </motion.div>

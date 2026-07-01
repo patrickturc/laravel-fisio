@@ -6,6 +6,7 @@ import { ArrowLeft, Edit, Trash2, User, Tag, Calendar as CalendarIcon, DollarSig
 import { useConfirmModal } from '@/components/confirm-modal';
 import { MembershipFormSheet } from './membership-form-sheet';
 import { motion } from 'framer-motion';
+import { usePermissions } from '@/hooks/use-permissions';
 
 export default function MembershipShow({ membership, patients = [], commercialPlans = [] }: { membership: any; patients?: any[]; commercialPlans?: any[] }) {
     const planName = membership.commercial_plan?.name || membership.plan_name;
@@ -15,6 +16,7 @@ export default function MembershipShow({ membership, patients = [], commercialPl
         { title: planName || 'Detalhes da Matrícula', href: `/memberships/${membership.id}` },
     ];
 
+    const { can } = usePermissions();
     const { confirm, modal } = useConfirmModal();
     const [editOpen, setEditOpen] = useState(false);
 
@@ -77,27 +79,33 @@ export default function MembershipShow({ membership, patients = [], commercialPl
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button
-                            onClick={handleRenew}
-                            className="flex items-center gap-2 h-10 px-4 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
-                        >
-                            <CalendarIcon className="size-4" />
-                            Renovar
-                        </button>
-                        <button
-                            onClick={() => setEditOpen(true)}
-                            className="flex items-center gap-2 h-10 px-4 bg-card border border-border text-foreground font-medium rounded-xl hover:bg-muted transition-colors shadow-sm"
-                        >
-                            <Edit className="size-4" />
-                            Editar
-                        </button>
-                        <button
-                            onClick={handleDelete}
-                            className="flex items-center gap-2 h-10 px-4 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors shadow-sm"
-                        >
-                            <Trash2 className="size-4" />
-                            Excluir
-                        </button>
+                        {can('memberships.manage.create') && (
+                            <button
+                                onClick={handleRenew}
+                                className="flex items-center gap-2 h-10 px-4 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
+                            >
+                                <CalendarIcon className="size-4" />
+                                Renovar
+                            </button>
+                        )}
+                        {can('memberships.manage.edit') && (
+                            <button
+                                onClick={() => setEditOpen(true)}
+                                className="flex items-center gap-2 h-10 px-4 bg-card border border-border text-foreground font-medium rounded-xl hover:bg-muted transition-colors shadow-sm"
+                            >
+                                <Edit className="size-4" />
+                                Editar
+                            </button>
+                        )}
+                        {can('memberships.manage.delete') && (
+                            <button
+                                onClick={handleDelete}
+                                className="flex items-center gap-2 h-10 px-4 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors shadow-sm"
+                            >
+                                <Trash2 className="size-4" />
+                                Excluir
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -251,13 +259,15 @@ export default function MembershipShow({ membership, patients = [], commercialPl
                 </motion.div>
             </div>
 
-            <MembershipFormSheet
-                isOpen={editOpen}
-                setIsOpen={setEditOpen}
-                patients={patients}
-                commercialPlans={commercialPlans}
-                editingMembership={membership}
-            />
+            {can('memberships.manage.edit') && (
+                <MembershipFormSheet
+                    isOpen={editOpen}
+                    setIsOpen={setEditOpen}
+                    patients={patients}
+                    commercialPlans={commercialPlans}
+                    editingMembership={membership}
+                />
+            )}
         </AppLayout>
     );
 }

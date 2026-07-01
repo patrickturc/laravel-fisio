@@ -5,6 +5,7 @@ import { ArrowLeft, Activity, Plus, Calendar as CalendarIcon, User } from 'lucid
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import EvolutionFormSheet from '@/components/EvolutionFormSheet';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const tipoLabel: Record<string, string> = {
     avaliacao: 'Avaliação',
@@ -19,6 +20,7 @@ export default function PatientEvolutions({ patient, evolutions, protocols = [] 
         { title: `Evoluções de ${patient.name}`, href: `/evolutions/patient/${patient.id}` },
     ];
 
+    const { can } = usePermissions();
     const [isEvolutionSheetOpen, setIsEvolutionSheetOpen] = useState(false);
     const [editingEvolution, setEditingEvolution] = useState<any>(null);
 
@@ -41,12 +43,14 @@ export default function PatientEvolutions({ patient, evolutions, protocols = [] 
                         </div>
                     </div>
 
-                    <button 
-                        onClick={() => { setEditingEvolution(null); setIsEvolutionSheetOpen(true); }} 
-                        className="flex items-center justify-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
-                    >
-                        <Plus className="size-4" /> Nova Evolução
-                    </button>
+                    {can('evolutions.manage.create') && (
+                        <button
+                            onClick={() => { setEditingEvolution(null); setIsEvolutionSheetOpen(true); }}
+                            className="flex items-center justify-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
+                        >
+                            <Plus className="size-4" /> Nova Evolução
+                        </button>
+                    )}
                 </div>
 
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
@@ -111,7 +115,9 @@ export default function PatientEvolutions({ patient, evolutions, protocols = [] 
                                             </div>
                                             <div className="flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-center items-end">
                                                 <Link href={`/evolutions/${evo.id}`} className="text-xs font-medium text-primary hover:underline">Detalhes completos →</Link>
-                                                <button onClick={() => { setEditingEvolution(evo); setIsEvolutionSheetOpen(true); }} className="text-xs font-medium text-muted-foreground hover:text-foreground">Editar</button>
+                                                {can('evolutions.manage.edit') && (
+                                                    <button onClick={() => { setEditingEvolution(evo); setIsEvolutionSheetOpen(true); }} className="text-xs font-medium text-muted-foreground hover:text-foreground">Editar</button>
+                                                )}
                                             </div>
                                         </motion.div>
                                     ))}

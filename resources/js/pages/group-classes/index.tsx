@@ -5,6 +5,7 @@ import { Users, Plus, Search, Calendar, MoreVertical, Edit, Trash, CalendarClock
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+import { usePermissions } from '@/hooks/use-permissions';
 import { GroupClassFormSheet } from './group-class-form-sheet';
 
 export default function GroupClassesIndex({ groupClasses, patients = [], users = [] }: { groupClasses: any[], patients?: any[], users?: any[] }) {
@@ -12,6 +13,7 @@ export default function GroupClassesIndex({ groupClasses, patients = [], users =
         { title: 'Turmas', href: '/group-classes' },
     ];
 
+    const { can } = usePermissions();
     const [search, setSearch] = useState('');
     const [isSheetOpen, setIsSheetOpen] = useState(false);
 
@@ -42,9 +44,11 @@ export default function GroupClassesIndex({ groupClasses, patients = [], users =
                             className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
                         />
                     </div>
-                    <Button onClick={() => setIsSheetOpen(true)} className="w-full sm:w-auto rounded-xl gap-2 shadow-sm font-medium">
-                        <Plus className="size-4" /> Nova Turma
-                    </Button>
+                    {can('group_classes.manage.create') && (
+                        <Button onClick={() => setIsSheetOpen(true)} className="w-full sm:w-auto rounded-xl gap-2 shadow-sm font-medium">
+                            <Plus className="size-4" /> Nova Turma
+                        </Button>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

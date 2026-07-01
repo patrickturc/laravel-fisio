@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Pagination } from '@/components/pagination';
 import { PatientFormSheet, type Patient } from './PatientFormSheet';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Pacientes', href: '/patients' },
@@ -24,6 +25,7 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
     const [typeFilter, setTypeFilter] = useState(filters.type || '');
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+    const { can } = usePermissions();
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -93,16 +95,18 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
                                 Limpar
                             </button>
                         )}
-                        <button
-                            onClick={() => {
-                                setEditingPatient(null);
-                                setIsSheetOpen(true);
-                            }}
-                            className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
-                        >
-                            <UserPlus className="size-4" />
-                            <span className="hidden sm:inline">Novo Paciente</span>
-                        </button>
+                        {can('patients.manage.create') && (
+                            <button
+                                onClick={() => {
+                                    setEditingPatient(null);
+                                    setIsSheetOpen(true);
+                                }}
+                                className="flex items-center gap-2 h-10 px-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
+                            >
+                                <UserPlus className="size-4" />
+                                <span className="hidden sm:inline">Novo Paciente</span>
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -172,17 +176,19 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
                                                     <Link href={`/patients/${patient.id}`} className="p-2.5 text-muted-foreground hover:text-emerald-500 transition-colors rounded-lg hover:bg-emerald-500/10" title="Ver Paciente e Evoluções">
                                                         <FileText className="size-4" />
                                                     </Link>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setEditingPatient(patient);
-                                                            setIsSheetOpen(true);
-                                                        }}
-                                                        className="p-2.5 text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-primary/10"
-                                                        title="Editar Paciente"
-                                                    >
-                                                        <Edit className="size-4" />
-                                                    </button>
+                                                    {can('patients.manage.edit') && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setEditingPatient(patient);
+                                                                setIsSheetOpen(true);
+                                                            }}
+                                                            className="p-2.5 text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-primary/10"
+                                                            title="Editar Paciente"
+                                                        >
+                                                            <Edit className="size-4" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </motion.tr>
