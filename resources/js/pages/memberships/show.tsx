@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { ArrowLeft, Edit, Trash2, User, Tag, Calendar as CalendarIcon, DollarSign, Clock } from 'lucide-react';
-import { useConfirmModal, ConfirmModal } from '@/components/confirm-modal';
+import { useConfirmModal } from '@/components/confirm-modal';
 import { motion } from 'framer-motion';
 
 export default function MembershipShow({ membership }: { membership: any }) {
@@ -13,7 +13,26 @@ export default function MembershipShow({ membership }: { membership: any }) {
         { title: planName || 'Detalhes da Matrícula', href: `/memberships/${membership.id}` },
     ];
 
-    const confirm = useConfirmModal();
+    const { confirm, modal } = useConfirmModal();
+
+    async function handleRenew() {
+        const confirmed = await confirm({
+            title: 'Renovar Matrícula',
+            message: 'Isso criará uma nova matrícula a partir do fim da atual e gerará uma nova cobrança. Deseja continuar?',
+            confirmLabel: 'Renovar',
+            variant: 'warning',
+        });
+        if (confirmed) router.post(`/memberships/${membership.id}/renew`);
+    }
+
+    async function handleDelete() {
+        const confirmed = await confirm({
+            title: 'Excluir Matrícula',
+            message: 'Tem certeza que deseja excluir esta matrícula? Esta ação não pode ser desfeita.',
+            confirmLabel: 'Excluir',
+        });
+        if (confirmed) router.delete(`/memberships/${membership.id}`);
+    }
 
     const getStatusBadge = (status: string) => {
         switch(status) {
@@ -40,7 +59,7 @@ export default function MembershipShow({ membership }: { membership: any }) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`${planName} - Phisio`} />
-            <ConfirmModal {...confirm} />
+            {modal}
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6 md:p-10 max-w-4xl mx-auto w-full">
 
@@ -56,11 +75,7 @@ export default function MembershipShow({ membership }: { membership: any }) {
                     </div>
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={() => confirm.open({
-                                title: 'Renovar Matrícula',
-                                message: 'Isso criará uma nova matrícula a partir do fim da atual e gerará uma nova cobrança. Deseja continuar?',
-                                onConfirm: () => router.post(`/memberships/${membership.id}/renew`),
-                            })}
+                            onClick={handleRenew}
                             className="flex items-center gap-2 h-10 px-4 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
                         >
                             <CalendarIcon className="size-4" />
@@ -74,11 +89,7 @@ export default function MembershipShow({ membership }: { membership: any }) {
                             Editar
                         </Link>
                         <button
-                            onClick={() => confirm.open({
-                                title: 'Excluir Matrícula',
-                                message: 'Tem certeza que deseja excluir esta matrícula? Esta ação não pode ser desfeita.',
-                                onConfirm: () => router.delete(`/memberships/${membership.id}`),
-                            })}
+                            onClick={handleDelete}
                             className="flex items-center gap-2 h-10 px-4 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors shadow-sm"
                         >
                             <Trash2 className="size-4" />
