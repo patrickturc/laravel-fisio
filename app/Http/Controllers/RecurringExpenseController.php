@@ -19,7 +19,8 @@ class RecurringExpenseController extends Controller
 
     public function create()
     {
-        return Inertia::render('recurring-expenses/create');
+        // Creation happens via a sheet on the index; keep the URL from 404ing.
+        return redirect()->route('recurring-expenses.index');
     }
 
     public function store(Request $request)
@@ -41,9 +42,8 @@ class RecurringExpenseController extends Controller
 
     public function edit(RecurringExpense $recurringExpense)
     {
-        return Inertia::render('recurring-expenses/edit', [
-            'expense' => $recurringExpense,
-        ]);
+        // Editing happens via a sheet on the index; keep the URL from 404ing.
+        return redirect()->route('recurring-expenses.index');
     }
 
     public function update(Request $request, RecurringExpense $recurringExpense)

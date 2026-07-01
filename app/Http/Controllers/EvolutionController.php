@@ -255,31 +255,53 @@ class EvolutionController extends Controller
 
     public function update(Request $request, Evolution $evolution)
     {
-        $validated = $request->validate([
+        $isSimple = $request->input('evolution_type') === 'simple';
+
+        $rules = [
             'paciente_id' => 'required|uuid|exists:patients,id',
-            'clinical_protocol_id' => 'nullable|uuid|exists:clinical_protocols,id',
             'data_atendimento' => 'required|date',
-            'tipo_atendimento' => 'required|in:avaliacao,reavaliacao,sessao',
-            'queixa_principal' => 'nullable|string',
-            'relato_paciente' => 'nullable|string',
-            'dor_eva' => 'nullable|integer|min:0|max:10',
-            'localizacao_dor' => 'nullable|string',
-            'tipo_dor' => 'nullable|string',
-            'pressao_arterial' => 'nullable|string',
-            'frequencia_cardiaca' => 'nullable|string',
-            'saturacao' => 'nullable|string',
-            'amplitude_movimento' => 'nullable|string',
-            'forca_muscular' => 'nullable|string',
-            'avaliacao_funcional' => 'nullable|string',
-            'avaliacao_postural' => 'nullable|string',
-            'condutas_realizadas' => 'nullable|string',
-            'parametros_conduta' => 'nullable|string',
-            'resposta_tratamento' => 'nullable|string',
-            'evolucao_status' => 'nullable|string',
-            'analise_profissional' => 'nullable|string',
-            'conduta_planejada' => 'nullable|string',
-            'orientacoes_domiciliares' => 'nullable|string',
-        ]);
+        ];
+
+        if ($isSimple) {
+            $rules['observacoes'] = 'required|string';
+            $rules['tipo_atendimento'] = 'nullable|string';
+        } else {
+            $rules['clinical_protocol_id'] = 'nullable|uuid|exists:clinical_protocols,id';
+            $rules['tipo_atendimento'] = 'required|in:avaliacao,reavaliacao,sessao';
+            $rules['queixa_principal'] = 'nullable|string';
+            $rules['relato_paciente'] = 'nullable|string';
+            $rules['dor_eva'] = 'nullable|integer|min:0|max:10';
+            $rules['localizacao_dor'] = 'nullable|string';
+            $rules['tipo_dor'] = 'nullable|string';
+            $rules['pressao_arterial'] = 'nullable|string';
+            $rules['frequencia_cardiaca'] = 'nullable|string';
+            $rules['saturacao'] = 'nullable|string';
+            $rules['amplitude_movimento'] = 'nullable|string';
+            $rules['forca_muscular'] = 'nullable|string';
+            $rules['avaliacao_funcional'] = 'nullable|string';
+            $rules['avaliacao_postural'] = 'nullable|string';
+            $rules['condutas_realizadas'] = 'nullable|string';
+            $rules['parametros_conduta'] = 'nullable|string';
+            $rules['resposta_tratamento'] = 'nullable|string';
+            $rules['evolucao_status'] = 'nullable|string';
+            $rules['analise_profissional'] = 'nullable|string';
+            $rules['conduta_planejada'] = 'nullable|string';
+            $rules['orientacoes_domiciliares'] = 'nullable|string';
+        }
+
+        $validated = $request->validate($rules);
+
+        if ($isSimple) {
+            if (empty($validated['tipo_atendimento'])) {
+                $validated['tipo_atendimento'] = 'sessao';
+            }
+            // Simple (Pilates) evolutions carry only a free-text note; clear the
+            // SOAP-specific fields so a type switch doesn't leave stale data.
+            $validated['clinical_protocol_id'] = null;
+        } else {
+            // Full SOAP evolution: ensure the simple-note field is cleared.
+            $validated['observacoes'] = null;
+        }
 
         $evolution->update($validated);
 

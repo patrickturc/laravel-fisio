@@ -26,7 +26,8 @@ class ClinicalProtocolController extends Controller
 
     public function create()
     {
-        return Inertia::render('clinical-protocols/create');
+        // Creation happens via a sheet on the index; keep the URL from 404ing.
+        return redirect()->route('clinical-protocols.index');
     }
 
     public function store(Request $request)
@@ -56,9 +57,8 @@ class ClinicalProtocolController extends Controller
 
     public function edit(ClinicalProtocol $clinicalProtocol)
     {
-        return Inertia::render('clinical-protocols/edit', [
-            'protocol' => $clinicalProtocol,
-        ]);
+        // Editing happens via a sheet on the index; keep the URL from 404ing.
+        return redirect()->route('clinical-protocols.index');
     }
 
     public function update(Request $request, ClinicalProtocol $clinicalProtocol)

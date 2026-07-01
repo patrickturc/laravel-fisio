@@ -431,6 +431,48 @@ export default function AppointmentsIndex({ appointments, filters = {}, patients
                 }}
                 patients={patients || []}
             />
+
+            {reschedulePrompt.open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                        onClick={() => {
+                            // Cancel: revert the optimistic calendar move.
+                            setReschedulePrompt({ open: false, eventId: null, newDate: null, newTime: null });
+                            router.reload({ only: ['appointments'] });
+                        }}
+                    />
+                    <div className="relative bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-md">
+                        <h3 className="text-lg font-bold text-foreground mb-1">Reagendar aula da turma</h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+                            Esta aula faz parte de uma turma recorrente. Deseja mover apenas esta ocorrência ou também as próximas aulas da turma?
+                        </p>
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={() => performReschedule('single')}
+                                className="w-full h-11 px-4 rounded-xl bg-primary text-white font-semibold shadow-sm hover:bg-primary/90 transition-colors"
+                            >
+                                Somente esta aula
+                            </button>
+                            <button
+                                onClick={() => performReschedule('future')}
+                                className="w-full h-11 px-4 rounded-xl bg-card border border-border text-foreground font-medium hover:bg-muted transition-colors"
+                            >
+                                Esta e as futuras
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setReschedulePrompt({ open: false, eventId: null, newDate: null, newTime: null });
+                                    router.reload({ only: ['appointments'] });
+                                }}
+                                className="w-full h-10 px-4 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AppLayout>
     );
 }

@@ -1,11 +1,13 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { ArrowLeft, Edit, Trash2, User, Tag, Calendar as CalendarIcon, DollarSign, Clock } from 'lucide-react';
 import { useConfirmModal } from '@/components/confirm-modal';
+import { MembershipFormSheet } from './membership-form-sheet';
 import { motion } from 'framer-motion';
 
-export default function MembershipShow({ membership }: { membership: any }) {
+export default function MembershipShow({ membership, patients = [], commercialPlans = [] }: { membership: any; patients?: any[]; commercialPlans?: any[] }) {
     const planName = membership.commercial_plan?.name || membership.plan_name;
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -14,6 +16,7 @@ export default function MembershipShow({ membership }: { membership: any }) {
     ];
 
     const { confirm, modal } = useConfirmModal();
+    const [editOpen, setEditOpen] = useState(false);
 
     async function handleRenew() {
         const confirmed = await confirm({
@@ -81,13 +84,13 @@ export default function MembershipShow({ membership }: { membership: any }) {
                             <CalendarIcon className="size-4" />
                             Renovar
                         </button>
-                        <Link
-                            href={`/memberships/${membership.id}/edit`}
+                        <button
+                            onClick={() => setEditOpen(true)}
                             className="flex items-center gap-2 h-10 px-4 bg-card border border-border text-foreground font-medium rounded-xl hover:bg-muted transition-colors shadow-sm"
                         >
                             <Edit className="size-4" />
                             Editar
-                        </Link>
+                        </button>
                         <button
                             onClick={handleDelete}
                             className="flex items-center gap-2 h-10 px-4 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors shadow-sm"
@@ -247,6 +250,14 @@ export default function MembershipShow({ membership }: { membership: any }) {
                     </div>
                 </motion.div>
             </div>
+
+            <MembershipFormSheet
+                isOpen={editOpen}
+                setIsOpen={setEditOpen}
+                patients={patients}
+                commercialPlans={commercialPlans}
+                editingMembership={membership}
+            />
         </AppLayout>
     );
 }

@@ -265,10 +265,28 @@ class GroupClassController extends Controller
                 ]);
 
             if ($request->has('schedules') && isset($validated['schedules'])) {
-                $groupClass->schedules()->delete();
+                // Reconcile schedules instead of delete-all + recreate. Matching
+                // existing rows by (day_of_week, start_time) keeps their ids, so
+                // already-generated appointments retain their schedule_id link
+                // (nullOnDelete would otherwise orphan historical sessions).
+                $normalize = fn ($time) => substr((string) $time, 0, 5);
+                $existing = $groupClass->schedules()->get();
+                $keptIds = [];
+
                 foreach ($validated['schedules'] as $schedule) {
-                    $groupClass->schedules()->create($schedule);
+                    $match = $existing->first(fn ($e) => (int) $e->day_of_week === (int) $schedule['day_of_week']
+                        && $normalize($e->start_time) === $normalize($schedule['start_time']));
+
+                    if ($match) {
+                        $match->update(['duration_minutes' => $schedule['duration_minutes']]);
+                        $keptIds[] = $match->id;
+                    } else {
+                        $keptIds[] = $groupClass->schedules()->create($schedule)->id;
+                    }
                 }
+
+                // Only remove slots the user actually dropped.
+                $groupClass->schedules()->whereNotIn('id', $keptIds)->delete();
             }
 
             if ($request->has('patient_ids')) {
@@ -307,8 +325,12 @@ class GroupClassController extends Controller
     public function generateAppointments(Request $request, GroupClass $groupClass)
     {
         $validated = $request->validate([
-            'end_date' => 'required|date|after:today',
+            // Cap the horizon at one year so a far-future date can't spawn
+            // thousands of appointments in a single long-running transaction.
+            'end_date' => 'required|date|after:today|before_or_equal:'.Carbon::today()->addYear()->toDateString(),
             'reschedule' => 'nullable|boolean',
+        ], [
+            'end_date.before_or_equal' => 'A data final não pode passar de 1 ano a partir de hoje.',
         ]);
 
         try {

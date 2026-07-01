@@ -74,6 +74,7 @@ class AppointmentController extends Controller
             'start_time' => 'required',
             'duration_minutes' => 'required|integer|min:10|max:180',
             'notes' => 'nullable|string|max:1000',
+            'status' => 'nullable|in:scheduled,completed,cancelled',
             'is_recurring' => 'nullable|boolean',
             'recurrence_end_date' => 'nullable|required_if:is_recurring,true|date|after_or_equal:appointment_date',
         ]);
@@ -163,6 +164,7 @@ class AppointmentController extends Controller
                         'start_time' => $validated['start_time'],
                         'duration_minutes' => $validated['duration_minutes'],
                         'notes' => $validated['notes'],
+                        'status' => $validated['status'] ?? 'scheduled',
                         'user_id' => $userId,
                     ]);
 
@@ -385,6 +387,7 @@ class AppointmentController extends Controller
             'start_time' => 'required',
             'duration_minutes' => 'required|integer|min:10|max:180',
             'notes' => 'nullable|string|max:1000',
+            'status' => 'nullable|in:scheduled,completed,cancelled',
         ]);
 
         if (count($validated['patient_ids']) > $validated['max_participants']) {
@@ -433,6 +436,9 @@ class AppointmentController extends Controller
             return back()->withErrors(['start_time' => 'Já existe um agendamento neste horário.'])->withInput();
         }
 
+        $newStatus = $validated['status'] ?? $appointment->status;
+        $statusChanged = $newStatus !== $appointment->status;
+
         DB::beginTransaction();
         try {
             $appointment->update([
@@ -444,6 +450,7 @@ class AppointmentController extends Controller
                 'start_time' => $validated['start_time'],
                 'duration_minutes' => $validated['duration_minutes'],
                 'notes' => $validated['notes'],
+                'status' => $newStatus,
                 'user_id' => $userId,
             ]);
 
@@ -454,6 +461,12 @@ class AppointmentController extends Controller
                 $syncData[$pId] = ['status' => $existingPivots[$pId] ?? 'scheduled'];
             }
             $appointment->patients()->sync($syncData);
+
+            // Cascade a session status change (e.g. cancelling from the sheet) to
+            // the per-patient attendance, mirroring updateAppointmentStatus.
+            if ($statusChanged) {
+                $this->cascadeSessionStatus($appointment, $newStatus);
+            }
 
             DB::commit();
         } catch (\Exception $e) {
@@ -495,27 +508,34 @@ class AppointmentController extends Controller
 
         DB::transaction(function () use ($appointment, $validated) {
             $appointment->update(['status' => $validated['status']]);
-
-            // Patients still "scheduled" inherit the session outcome; explicit
-            // attended/missed/cancelled marks set per patient are preserved.
-            if ($validated['status'] === 'completed') {
-                $appointment->patients()->wherePivot('status', 'scheduled')->each(
-                    fn ($patient) => $appointment->patients()->updateExistingPivot($patient->id, [
-                        'status' => 'attended',
-                        'membership_id' => $this->membershipToConsume('attended', $patient->id, $appointment),
-                    ])
-                );
-            } elseif ($validated['status'] === 'cancelled') {
-                $appointment->patients()->wherePivot('status', 'scheduled')->each(
-                    fn ($patient) => $appointment->patients()->updateExistingPivot($patient->id, [
-                        'status' => 'cancelled',
-                        'membership_id' => null,
-                    ])
-                );
-            }
+            $this->cascadeSessionStatus($appointment, $validated['status']);
         });
 
         return back()->with('success', 'Status da sessão atualizado.');
+    }
+
+    /**
+     * Cascade a session-level status change to the per-patient pivots. Patients
+     * still "scheduled" inherit the session outcome; explicit attended / missed /
+     * cancelled marks already set per patient are preserved.
+     */
+    private function cascadeSessionStatus(Appointment $appointment, string $status): void
+    {
+        if ($status === 'completed') {
+            $appointment->patients()->wherePivot('status', 'scheduled')->each(
+                fn ($patient) => $appointment->patients()->updateExistingPivot($patient->id, [
+                    'status' => 'attended',
+                    'membership_id' => $this->membershipToConsume('attended', $patient->id, $appointment),
+                ])
+            );
+        } elseif ($status === 'cancelled') {
+            $appointment->patients()->wherePivot('status', 'scheduled')->each(
+                fn ($patient) => $appointment->patients()->updateExistingPivot($patient->id, [
+                    'status' => 'cancelled',
+                    'membership_id' => null,
+                ])
+            );
+        }
     }
 
     /**

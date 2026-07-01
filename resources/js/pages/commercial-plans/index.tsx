@@ -3,7 +3,7 @@ import { useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Plus, Tag, Edit, Trash2 } from 'lucide-react';
-import { useConfirmModal, ConfirmModal } from '@/components/confirm-modal';
+import { useConfirmModal } from '@/components/confirm-modal';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,16 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
         { title: 'Planos Comerciais', href: '/commercial-plans' },
     ];
 
-    const confirm = useConfirmModal();
+    const { confirm, modal } = useConfirmModal();
+
+    const handleDelete = async (plan: CommercialPlan) => {
+        const confirmed = await confirm({
+            title: 'Excluir Plano',
+            message: `Tem certeza que deseja excluir o plano "${plan.name}"?`,
+            confirmLabel: 'Excluir',
+        });
+        if (confirmed) router.delete(`/commercial-plans/${plan.id}`);
+    };
 
     const [sheetOpen, setSheetOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -94,7 +103,7 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Planos Comerciais - Phisio" />
-            <ConfirmModal {...confirm} />
+            {modal}
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6 md:p-10 max-w-7xl mx-auto w-full">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -165,11 +174,7 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                                                     <Edit className="size-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => confirm.open({
-                                                        title: 'Excluir Plano',
-                                                        message: 'Tem certeza que deseja excluir este plano comercial?',
-                                                        onConfirm: () => router.delete(`/commercial-plans/${plan.id}`),
-                                                    })}
+                                                    onClick={() => handleDelete(plan)}
                                                     className="p-2.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                                                     title="Excluir"
                                                 >

@@ -105,9 +105,8 @@ class PatientController extends Controller
 
     public function edit(Patient $patient)
     {
-        return Inertia::render('patients/edit', [
-            'patient' => $patient
-        ]);
+        // Editing happens via a sheet on the index/show; keep the URL from 404ing.
+        return redirect()->route('patients.index');
     }
 
     public function update(Request $request, Patient $patient)

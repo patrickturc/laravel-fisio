@@ -11,6 +11,33 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    private const ADMIN_ROLE = 'Administrador';
+
+    /**
+     * Only an Administrador may hand out the Administrador role. Prevents a
+     * non-admin holding settings.users.* from escalating themselves or others.
+     */
+    private function assertCanAssignRole(string $role): ?\Illuminate\Http\RedirectResponse
+    {
+        if ($role === self::ADMIN_ROLE && ! auth()->user()->hasRole(self::ADMIN_ROLE)) {
+            return back()
+                ->withErrors(['role' => 'Apenas administradores podem atribuir o perfil Administrador.'])
+                ->withInput();
+        }
+
+        return null;
+    }
+
+    /**
+     * Guard against leaving the system with no Administrador (the acting user
+     * demoting/removing the last one and locking everyone out).
+     */
+    private function isLastAdmin(User $user): bool
+    {
+        return $user->hasRole(self::ADMIN_ROLE)
+            && User::role(self::ADMIN_ROLE)->count() <= 1;
+    }
+
     public function index()
     {
         $users = User::with('roles')->orderBy('name')->paginate(10);
@@ -31,6 +58,10 @@ class UserController extends Controller
             'role' => 'required|exists:roles,name',
         ]);
 
+        if ($response = $this->assertCanAssignRole($validated['role'])) {
+            return $response;
+        }
+
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -50,6 +81,17 @@ class UserController extends Controller
             'password' => ['nullable', Rules\Password::defaults()],
             'role' => 'required|exists:roles,name',
         ]);
+
+        if ($response = $this->assertCanAssignRole($validated['role'])) {
+            return $response;
+        }
+
+        // Block demoting the last remaining administrator.
+        if ($validated['role'] !== self::ADMIN_ROLE && $this->isLastAdmin($user)) {
+            return back()
+                ->withErrors(['role' => 'Não é possível remover o perfil do único administrador do sistema.'])
+                ->withInput();
+        }
 
         $data = [
             'name' => $validated['name'],
@@ -72,6 +114,10 @@ class UserController extends Controller
     {
         if ($user->id === auth()->id()) {
             return redirect()->route('users.index')->with('error', 'Você não pode excluir a si mesmo.');
+        }
+
+        if ($this->isLastAdmin($user)) {
+            return redirect()->route('users.index')->with('error', 'Não é possível excluir o único administrador do sistema.');
         }
 
         $user->delete();

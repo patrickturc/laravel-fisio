@@ -44,14 +44,8 @@ class MembershipController extends Controller
 
     public function create(Request $request)
     {
-        $patients = Patient::orderBy('name')->get(['id', 'name']);
-        $commercialPlans = CommercialPlan::orderBy('name')->get(['id', 'name', 'price', 'duration_months']);
-
-        return Inertia::render('memberships/create', [
-            'patients' => $patients,
-            'commercialPlans' => $commercialPlans,
-            'selectedPatientId' => $request->query('patient_id'),
-        ]);
+        // Creation happens via a sheet on the index; keep the URL from 404ing.
+        return redirect()->route('memberships.index');
     }
 
     public function store(Request $request)
@@ -90,19 +84,20 @@ class MembershipController extends Controller
         }]);
         $membership->append(['sessions_total', 'sessions_used', 'sessions_remaining']);
 
-        return Inertia::render('memberships/show', ['membership' => $membership]);
-    }
-
-    public function edit(Membership $membership)
-    {
         $patients = Patient::orderBy('name')->get(['id', 'name']);
         $commercialPlans = CommercialPlan::orderBy('name')->get(['id', 'name', 'price', 'duration_months']);
 
-        return Inertia::render('memberships/edit', [
+        return Inertia::render('memberships/show', [
             'membership' => $membership,
             'patients' => $patients,
             'commercialPlans' => $commercialPlans,
         ]);
+    }
+
+    public function edit(Membership $membership)
+    {
+        // Editing happens via a sheet on the show page; keep the URL from 404ing.
+        return redirect()->route('memberships.show', $membership);
     }
 
     public function update(Request $request, Membership $membership)

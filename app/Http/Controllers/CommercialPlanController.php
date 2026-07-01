@@ -17,7 +17,8 @@ class CommercialPlanController extends Controller
 
     public function create()
     {
-        return Inertia::render('commercial-plans/create');
+        // Creation happens via a sheet on the index; keep the URL from 404ing.
+        return redirect()->route('commercial-plans.index');
     }
 
     public function store(Request $request)
@@ -38,7 +39,8 @@ class CommercialPlanController extends Controller
 
     public function edit(CommercialPlan $commercialPlan)
     {
-        return Inertia::render('commercial-plans/edit', ['plan' => $commercialPlan]);
+        // Editing happens via a sheet on the index; keep the URL from 404ing.
+        return redirect()->route('commercial-plans.index');
     }
 
     public function update(Request $request, CommercialPlan $commercialPlan)

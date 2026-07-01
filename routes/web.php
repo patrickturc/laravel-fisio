@@ -144,18 +144,9 @@ Route::middleware(['auth', 'verified'])->group(function () use ($resourceWithPer
     Route::get('financial', [FinancialTransactionController::class, 'index'])
         ->middleware('permission:financial.transactions.view')
         ->name('financial.index');
-    Route::get('financial/create', [FinancialTransactionController::class, 'create'])
-        ->middleware('permission:financial.transactions.create')
-        ->name('financial.create');
     Route::post('financial', [FinancialTransactionController::class, 'store'])
         ->middleware('permission:financial.transactions.create')
         ->name('financial.store');
-    Route::get('financial/{financial}', [FinancialTransactionController::class, 'show'])
-        ->middleware('permission:financial.transactions.view')
-        ->name('financial.show');
-    Route::get('financial/{financial}/edit', [FinancialTransactionController::class, 'edit'])
-        ->middleware('permission:financial.transactions.edit')
-        ->name('financial.edit');
     Route::match(['put', 'patch'], 'financial/{financial}', [FinancialTransactionController::class, 'update'])
         ->middleware('permission:financial.transactions.edit')
         ->name('financial.update');

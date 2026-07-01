@@ -47,7 +47,7 @@ export function AppSidebar() {
             show: can('financial.transactions.view'),
             items: [
                 { title: 'Fluxo de Caixa', href: '/financial', show: can('financial.transactions.view') },
-                { title: 'Gastos Recorrentes', href: '/recurring-expenses', show: can('financial.transactions.view') },
+                { title: 'Gastos Recorrentes', href: '/recurring-expenses', show: can('recurring_expenses.manage.view') },
             ].filter(item => item.show)
         },
     ].filter(item => item.show);

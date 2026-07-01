@@ -125,10 +125,10 @@ export default function PatientEvolutions({ patient, evolutions, protocols = [] 
             <EvolutionFormSheet
                 isOpen={isEvolutionSheetOpen}
                 onOpenChange={setIsEvolutionSheetOpen}
-                initialData={editingEvolution}
+                evolution={editingEvolution}
                 patients={[patient]}
                 protocols={protocols}
-                lockedPatientId={patient.id}
+                patientId={patient.id}
             />
         </AppLayout>
     );
