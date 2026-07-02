@@ -99,7 +99,7 @@ class AppointmentController extends Controller
 
             if (! $activeMembership && $validated['type'] === 'group') {
                 $invalidPatients[] = $patient->name;
-            } elseif ($activeMembership && $activeMembership->sessions_remaining === 0) {
+            } elseif ($activeMembership && $activeMembership->sessions_remaining_this_month === 0) {
                 $exhaustedPatients[] = $patient->name;
             }
         }
@@ -198,7 +198,7 @@ class AppointmentController extends Controller
 
         if (count($exhaustedPatients) > 0) {
             $names = implode(', ', $exhaustedPatients);
-            $redirect->with('warning', "⚠️ Sem sessões restantes no plano: $names. A sessão foi agendada mesmo assim.");
+            $redirect->with('warning', "⚠️ Cota mensal de aulas já atingida: $names. Esta é uma aula extra (fora da cota do plano).");
         }
 
         return $redirect;
@@ -482,16 +482,38 @@ class AppointmentController extends Controller
     {
         $validated = $request->validate([
             'status' => 'required|in:scheduled,attended,missed,cancelled',
+            // Only meaningful when status is "missed".
+            'justified' => 'nullable|boolean',
+            'reason' => 'nullable|string|max:1000|required_if:justified,true',
+        ], [
+            'reason.required_if' => 'Descreva o motivo da falta justificada.',
         ]);
 
         if (! $appointment->patients()->whereKey($patientId)->exists()) {
             return back()->withErrors(['status' => 'Paciente não pertence a este agendamento.']);
         }
 
-        $appointment->patients()->updateExistingPivot($patientId, [
-            'status' => $validated['status'],
-            'membership_id' => $this->membershipToConsume($validated['status'], $patientId, $appointment),
-        ]);
+        $status = $validated['status'];
+        $pivot = ['status' => $status];
+
+        if ($status === 'missed') {
+            $justified = (bool) ($validated['justified'] ?? false);
+            $pivot['missed_justified'] = $justified;
+            $pivot['missed_reason'] = $justified ? ($validated['reason'] ?? null) : null;
+            // A justified miss stays "free" (does not consume the month's quota,
+            // so it is not linked to the plan). An unjustified miss consumes a
+            // session, so we link it to the active membership like an attendance.
+            $pivot['membership_id'] = $justified
+                ? null
+                : Membership::activeForAttendance($patientId, $appointment->appointment_date->toDateString())?->id;
+        } else {
+            // Leaving the missed state clears its annotations.
+            $pivot['missed_justified'] = null;
+            $pivot['missed_reason'] = null;
+            $pivot['membership_id'] = $this->membershipToConsume($status, $patientId, $appointment);
+        }
+
+        $appointment->patients()->updateExistingPivot($patientId, $pivot);
 
         return back()->with('success', 'Status atualizado com sucesso.');
     }

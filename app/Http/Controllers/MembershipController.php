@@ -82,7 +82,10 @@ class MembershipController extends Controller
         $membership->load(['patient', 'commercialPlan', 'financialTransactions' => function ($q) {
             $q->orderBy('date', 'desc');
         }]);
-        $membership->append(['sessions_total', 'sessions_used', 'sessions_remaining']);
+        $membership->append([
+            'sessions_total', 'sessions_used', 'sessions_remaining',
+            'monthly_allowance', 'sessions_used_this_month', 'sessions_remaining_this_month',
+        ]);
 
         $patients = Patient::orderBy('name')->get(['id', 'name']);
         $commercialPlans = CommercialPlan::orderBy('name')->get(['id', 'name', 'price', 'duration_months']);

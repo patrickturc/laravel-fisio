@@ -109,4 +109,59 @@ class Membership extends Model
 
         return max(0, $total - $this->sessions_used);
     }
+
+    /**
+     * Weeks per month used to turn a plan's weekly frequency into a monthly
+     * session allowance (e.g. 2x/week → 8 classes/month).
+     */
+    public const WEEKS_PER_MONTH = 4;
+
+    /**
+     * Monthly session allowance derived from the plan's weekly frequency
+     * (null = no monthly cap / unlimited).
+     */
+    public function getMonthlyAllowanceAttribute(): ?int
+    {
+        $perWeek = $this->commercialPlan?->sessions_per_week;
+
+        return $perWeek ? $perWeek * self::WEEKS_PER_MONTH : null;
+    }
+
+    /**
+     * Sessions the patient has consumed in the CURRENT calendar month: every
+     * attended session plus every UNJUSTIFIED miss (a justified miss does not
+     * consume, leaving room for a free make-up).
+     */
+    public function getSessionsUsedThisMonthAttribute(): int
+    {
+        $now = now();
+
+        return DB::table('appointment_patient')
+            ->join('appointments', 'appointments.id', '=', 'appointment_patient.appointment_id')
+            ->where('appointment_patient.patient_id', $this->patient_id)
+            ->whereYear('appointments.appointment_date', $now->year)
+            ->whereMonth('appointments.appointment_date', $now->month)
+            ->where(function ($q) {
+                $q->where('appointment_patient.status', 'attended')
+                    ->orWhere(function ($missed) {
+                        $missed->where('appointment_patient.status', 'missed')
+                            ->where('appointment_patient.missed_justified', false);
+                    });
+            })
+            ->count();
+    }
+
+    /**
+     * Remaining sessions in the current month (null = no monthly cap).
+     */
+    public function getSessionsRemainingThisMonthAttribute(): ?int
+    {
+        $allowance = $this->monthly_allowance;
+
+        if ($allowance === null) {
+            return null;
+        }
+
+        return max(0, $allowance - $this->sessions_used_this_month);
+    }
 }

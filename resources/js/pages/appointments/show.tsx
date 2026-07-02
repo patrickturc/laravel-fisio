@@ -4,6 +4,7 @@ import type { BreadcrumbItem } from '@/types';
 import { ArrowLeft, Edit, Trash2, Clock, User, Users, FileText, CheckCircle2, XCircle, Clock4, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useConfirmModal } from '@/components/confirm-modal';
+import { MissedAttendanceModal } from '@/components/missed-attendance-modal';
 import { useState } from 'react';
 import EvolutionFormSheet from '@/components/EvolutionFormSheet';
 import {
@@ -63,6 +64,20 @@ export default function AppointmentShow({ appointment, protocols = [] }: { appoi
     function updatePatientStatus(patientId: string, status: string) {
         router.post(`/appointments/${appointment.id}/patients/${patientId}/status`, { status }, {
             preserveScroll: true,
+        });
+    }
+
+    const [missedFor, setMissedFor] = useState<{ id: string; name: string } | null>(null);
+
+    function confirmMissed(justified: boolean, reason: string) {
+        if (!missedFor) return;
+        router.post(`/appointments/${appointment.id}/patients/${missedFor.id}/status`, {
+            status: 'missed',
+            justified,
+            reason,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => setMissedFor(null),
         });
     }
 
@@ -136,11 +151,21 @@ export default function AppointmentShow({ appointment, protocols = [] }: { appoi
                                         </div>
                                         <div>
                                             <Link href={`/patients/${patient.id}`} className="font-semibold text-sm hover:underline">{patient.name}</Link>
-                                            <div className="flex items-center gap-1 mt-0.5">
+                                            <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                                                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${pivotStatusInfo[pStatus].color}`}>
                                                     <StatusIcon className="size-3" />
                                                     {pivotStatusInfo[pStatus].label}
                                                 </span>
+                                                {pStatus === 'missed' && (patient.pivot as any)?.missed_justified === true && (
+                                                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                                                        Justificada{(patient.pivot as any)?.missed_reason ? `: ${(patient.pivot as any).missed_reason}` : ''}
+                                                    </span>
+                                                )}
+                                                {pStatus === 'missed' && (patient.pivot as any)?.missed_justified === false && (
+                                                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                                                        Não justificada • consumiu aula
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -159,7 +184,7 @@ export default function AppointmentShow({ appointment, protocols = [] }: { appoi
                                                 <DropdownMenuItem onClick={() => updatePatientStatus(patient.id, 'attended')} className="flex items-center gap-2 cursor-pointer">
                                                     <CheckCircle2 className="size-4 text-emerald-500" /> Presente
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => updatePatientStatus(patient.id, 'missed')} className="flex items-center gap-2 cursor-pointer">
+                                                <DropdownMenuItem onClick={() => setMissedFor({ id: patient.id, name: patient.name })} className="flex items-center gap-2 cursor-pointer">
                                                     <XCircle className="size-4 text-amber-500" /> Faltou
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => updatePatientStatus(patient.id, 'cancelled')} className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600">
@@ -269,6 +294,13 @@ export default function AppointmentShow({ appointment, protocols = [] }: { appoi
                     protocols={protocols}
                 />
             )}
+
+            <MissedAttendanceModal
+                open={!!missedFor}
+                patientName={missedFor?.name}
+                onConfirm={confirmMissed}
+                onCancel={() => setMissedFor(null)}
+            />
         </AppLayout>
     );
 }

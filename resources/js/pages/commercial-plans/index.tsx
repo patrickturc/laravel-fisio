@@ -19,6 +19,7 @@ interface CommercialPlan {
     price: string;
     duration_months: number | null;
     sessions_total: number | null;
+    sessions_per_week: number | null;
     description: string | null;
     category: 'fisioterapia' | 'pilates' | 'teste';
 }
@@ -49,6 +50,7 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
         price: '',
         duration_months: '',
         sessions_total: '',
+        sessions_per_week: '',
         description: '',
         category: 'fisioterapia',
     });
@@ -61,6 +63,7 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
             price: '',
             duration_months: '',
             sessions_total: '',
+            sessions_per_week: '',
             description: '',
             category: 'fisioterapia',
         });
@@ -76,6 +79,7 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
             price: plan.price,
             duration_months: plan.duration_months?.toString() || '',
             sessions_total: plan.sessions_total?.toString() || '',
+            sessions_per_week: plan.sessions_per_week?.toString() || '',
             description: plan.description || '',
             category: plan.category || 'fisioterapia',
         });
@@ -166,7 +170,11 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                                             {plan.duration_months ? `${plan.duration_months} ${plan.duration_months === 1 ? 'mês' : 'meses'}` : 'Não definida'}
                                         </td>
                                         <td className="px-6 py-4 text-muted-foreground hidden sm:table-cell">
-                                            {plan.sessions_total ? `${plan.sessions_total} sessões` : 'Ilimitado'}
+                                            {plan.sessions_per_week
+                                                ? `${plan.sessions_per_week}x/semana (${plan.sessions_per_week * 4}/mês)`
+                                                : plan.sessions_total
+                                                    ? `${plan.sessions_total} sessões`
+                                                    : 'Ilimitado'}
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
@@ -283,6 +291,22 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                             />
                             <p className="text-xs text-muted-foreground">Total de sessões/aulas que o aluno pode usar durante a vigência. Em branco = ilimitado.</p>
                             <InputError message={errors.sessions_total} />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="sessions_per_week">Aulas por Semana</Label>
+                            <Input
+                                id="sessions_per_week"
+                                type="number"
+                                min="1"
+                                max="7"
+                                value={data.sessions_per_week}
+                                onChange={e => setData('sessions_per_week', e.target.value)}
+                                placeholder="Ex: 2 para 2x na semana"
+                                className="bg-background"
+                            />
+                            <p className="text-xs text-muted-foreground">Frequência semanal. Usada para calcular a cota mensal de aulas (aulas/semana × 4). Em branco = sem cota.</p>
+                            <InputError message={errors.sessions_per_week} />
                         </div>
 
                         <div className="grid gap-2">

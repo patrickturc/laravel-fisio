@@ -44,11 +44,12 @@ class PatientController extends Controller
             'name' => 'required|string|max:255',
             'nickname' => 'nullable|string|max:100',
             'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
+            // Ignore soft-deleted patients so a reused CPF/e-mail isn't blocked.
+            'email' => 'nullable|email|max:255|unique:patients,email,NULL,id,deleted_at,NULL',
             'birthdate' => 'nullable|date',
             'gender' => 'nullable|in:male,female,other',
             'type' => 'required|in:pilates,physiotherapy',
-            'cpf' => 'nullable|string|max:14',
+            'cpf' => 'nullable|string|max:14|unique:patients,cpf,NULL,id,deleted_at,NULL',
             'rg' => 'nullable|string|max:20',
             'profession' => 'nullable|string|max:100',
             'address' => 'nullable|string|max:500',
@@ -62,6 +63,9 @@ class PatientController extends Controller
             'neighborhood' => 'nullable|string|max:100',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:2',
+        ], [
+            'email.unique' => 'Já existe um paciente com este e-mail.',
+            'cpf.unique' => 'Já existe um paciente com este CPF.',
         ]);
 
         $validated['user_id'] = auth()->id();
@@ -115,11 +119,12 @@ class PatientController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'nickname' => 'nullable|string|max:100',
             'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
+            // Unique among active patients, ignoring this patient's own record.
+            'email' => 'nullable|email|max:255|unique:patients,email,'.$patient->id.',id,deleted_at,NULL',
             'birthdate' => 'nullable|date',
             'gender' => 'nullable|in:male,female,other',
             'type' => 'sometimes|required|in:pilates,physiotherapy',
-            'cpf' => 'nullable|string|max:14',
+            'cpf' => 'nullable|string|max:14|unique:patients,cpf,'.$patient->id.',id,deleted_at,NULL',
             'rg' => 'nullable|string|max:20',
             'profession' => 'nullable|string|max:100',
             'address' => 'nullable|string|max:500',
@@ -133,6 +138,9 @@ class PatientController extends Controller
             'neighborhood' => 'nullable|string|max:100',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:2',
+        ], [
+            'email.unique' => 'Já existe um paciente com este e-mail.',
+            'cpf.unique' => 'Já existe um paciente com este CPF.',
         ]);
 
         $patient->update($validated);

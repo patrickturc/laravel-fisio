@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Pagination } from '@/components/pagination';
 import { AlertCircle, CheckCircle2, UserMinus } from 'lucide-react';
 import EvolutionFormSheet from '@/components/EvolutionFormSheet';
+import { MissedAttendanceModal } from '@/components/missed-attendance-modal';
 import { usePermissions } from '@/hooks/use-permissions';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -100,17 +101,24 @@ export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], pa
         });
     }
 
+    const [missedFor, setMissedFor] = useState<PendingEvolution | null>(null);
+
     function handleMarkMissed(pending: PendingEvolution) {
-        if (confirm(`Marcar ${pending.patient_name} como faltante nesta aula?`)) {
-            setIsSubmitting(pending.id + '_missed');
-            router.post(`/appointments/${pending.appointment_id}/patients/${pending.patient_id}/status`, {
-                status: 'missed'
-            }, {
-                preserveScroll: true,
-                onSuccess: () => setIsSubmitting(null),
-                onError: () => setIsSubmitting(null)
-            });
-        }
+        setMissedFor(pending);
+    }
+
+    function confirmMissed(justified: boolean, reason: string) {
+        if (!missedFor) return;
+        setIsSubmitting(missedFor.id + '_missed');
+        router.post(`/appointments/${missedFor.appointment_id}/patients/${missedFor.patient_id}/status`, {
+            status: 'missed',
+            justified,
+            reason,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => { setIsSubmitting(null); setMissedFor(null); },
+            onError: () => setIsSubmitting(null),
+        });
     }
 
     return (
@@ -354,6 +362,13 @@ export default function EvolutionsIndex({ evolutions, pendingEvolutions = [], pa
                 onOpenChange={setIsSheetOpen}
                 patients={patients}
                 protocols={protocols}
+            />
+
+            <MissedAttendanceModal
+                open={!!missedFor}
+                patientName={missedFor?.patient_name}
+                onConfirm={confirmMissed}
+                onCancel={() => setMissedFor(null)}
             />
         </AppLayout>
     );

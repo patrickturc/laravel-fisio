@@ -36,7 +36,7 @@ class Appointment extends Model
     public function patients()
     {
         return $this->belongsToMany(Patient::class)
-            ->withPivot('status', 'reminder_sent_at', 'membership_id')
+            ->withPivot('status', 'reminder_sent_at', 'membership_id', 'missed_justified', 'missed_reason')
             ->withTimestamps();
     }
 

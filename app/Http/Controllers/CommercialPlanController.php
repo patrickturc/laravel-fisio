@@ -29,6 +29,7 @@ class CommercialPlanController extends Controller
             'price' => 'required|numeric|min:0',
             'duration_months' => 'nullable|integer|min:1',
             'sessions_total' => 'nullable|integer|min:1',
+            'sessions_per_week' => 'nullable|integer|min:1|max:7',
             'description' => 'nullable|string|max:1000',
         ]);
 
@@ -51,6 +52,7 @@ class CommercialPlanController extends Controller
             'price' => 'required|numeric|min:0',
             'duration_months' => 'nullable|integer|min:1',
             'sessions_total' => 'nullable|integer|min:1',
+            'sessions_per_week' => 'nullable|integer|min:1|max:7',
             'description' => 'nullable|string|max:1000',
         ]);
 
