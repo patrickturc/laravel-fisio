@@ -249,6 +249,7 @@ class AppointmentController extends Controller
                     'status' => $app->status,
                     'patient_count' => $app->patients->count(),
                     'max_participants' => $app->max_participants,
+                    'patient_names' => $app->patients->pluck('name')->values(),
                 ],
             ];
         });

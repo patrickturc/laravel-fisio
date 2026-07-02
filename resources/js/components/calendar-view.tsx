@@ -247,6 +247,19 @@ export default function CalendarView({ onEventClick, onDateSelect, onEventDrop, 
                 height="100%"
                 stickyHeaderDates={true}
                 eventClick={handleEventClick}
+                eventDidMount={(info) => {
+                    // Hover tooltip listing the patients of a group class.
+                    if (info.event.extendedProps.type !== 'group') return;
+                    const names = (info.event.extendedProps.patient_names as string[] | undefined) ?? [];
+                    if (names.length === 0) {
+                        info.el.setAttribute('title', `${info.event.title}\nSem alunos na turma`);
+                        return;
+                    }
+                    info.el.setAttribute(
+                        'title',
+                        `${info.event.title} — ${names.length} aluno(s):\n• ${names.join('\n• ')}`,
+                    );
+                }}
                 select={handleDateSelect}
                 windowResize={(arg) => {
                     const api = arg.view.calendar;
