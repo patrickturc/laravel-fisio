@@ -113,7 +113,7 @@ export default function PatientEvolutions({ patient, evolutions, protocols = [] 
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-center items-end">
+                                            <div className="flex flex-col gap-2 self-center items-end">
                                                 <Link href={`/evolutions/${evo.id}`} className="text-xs font-medium text-primary hover:underline">Detalhes completos →</Link>
                                                 {can('evolutions.manage.edit') && (
                                                     <button onClick={() => { setEditingEvolution(evo); setIsEvolutionSheetOpen(true); }} className="text-xs font-medium text-muted-foreground hover:text-foreground">Editar</button>

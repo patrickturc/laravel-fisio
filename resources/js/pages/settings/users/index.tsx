@@ -118,7 +118,7 @@ export default function UsersIndex({ users, roles }: { users: any, roles: any[] 
                                         )}
                                     </td>
                                     <td className="px-5 py-3.5 text-center">
-                                        <div className="flex items-center justify-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                        <div className="flex items-center justify-center gap-1">
                                             <button onClick={() => openEdit(user)} className="p-1.5 text-muted-foreground hover:text-primary rounded-lg hover:bg-primary/10 transition-colors" title="Editar">
                                                 <Edit className="size-4" />
                                             </button>

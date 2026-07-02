@@ -177,7 +177,7 @@ export default function CommercialPlansIndex({ plans }: { plans: CommercialPlan[
                                                     : 'Ilimitado'}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                            <div className="flex items-center justify-end gap-2">
                                                 {can('commercial_plans.manage.edit') && (
                                                     <button
                                                         onClick={() => openEditSheet(plan)}

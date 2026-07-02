@@ -172,7 +172,7 @@ export default function PatientsIndex({ patients, filters = {} }: { patients: Pa
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center justify-end gap-1">
                                                     <Link href={`/patients/${patient.id}`} className="p-2.5 text-muted-foreground hover:text-emerald-500 transition-colors rounded-lg hover:bg-emerald-500/10" title="Ver Paciente e Evoluções">
                                                         <FileText className="size-4" />
                                                     </Link>
