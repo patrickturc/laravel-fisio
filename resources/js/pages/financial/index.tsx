@@ -164,7 +164,14 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
             confirmLabel: 'Confirmar',
             variant: 'warning',
         });
-        if (confirmed) router.post(`/financial/${t.id}/mark-paid`, {}, { preserveState: true, preserveScroll: true });
+        if (confirmed) router.post(`/financial/${t.id}/mark-paid`, {}, {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                // Recibo is only for received payments (income).
+                if (t.type === 'income') window.open(`/financial/${t.id}/receipt`, '_blank');
+            },
+        });
     }
 
     async function handleRevert(t: any) {
@@ -486,6 +493,11 @@ export default function FinancialIndex({ transactions, summary, chartData, categ
                                                                 Cancelar Pgmto
                                                             </button>
                                                         )
+                                                    )}
+                                                    {t.status === 'paid' && t.type === 'income' && (
+                                                        <button onClick={() => window.open(`/financial/${t.id}/receipt`, '_blank')} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 transition-colors">
+                                                            Recibo
+                                                        </button>
                                                     )}
                                                     {can('financial.transactions.edit') && (
                                                         <button onClick={() => openEditSheet(t)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">

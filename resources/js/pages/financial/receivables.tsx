@@ -60,7 +60,10 @@ export default function Receivables({ groups, totals }: Props) {
             confirmLabel: 'Confirmar',
             variant: 'warning',
         });
-        if (confirmed) router.post(`/financial/${t.id}/mark-paid`, {}, { preserveScroll: true });
+        if (confirmed) router.post(`/financial/${t.id}/mark-paid`, {}, {
+            preserveScroll: true,
+            onSuccess: () => window.open(`/financial/${t.id}/receipt`, '_blank'),
+        });
     }
 
     return (

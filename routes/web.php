@@ -141,6 +141,9 @@ Route::middleware(['auth', 'verified'])->group(function () use ($resourceWithPer
     Route::post('financial/{financial}/mark-pending', [FinancialTransactionController::class, 'markAsPending'])
         ->middleware('permission:financial.transactions.edit')
         ->name('financial.mark-pending');
+    Route::get('financial/{financial}/receipt', [FinancialTransactionController::class, 'receipt'])
+        ->middleware('permission:financial.transactions.view')
+        ->name('financial.receipt');
     Route::get('financial', [FinancialTransactionController::class, 'index'])
         ->middleware('permission:financial.transactions.view')
         ->name('financial.index');

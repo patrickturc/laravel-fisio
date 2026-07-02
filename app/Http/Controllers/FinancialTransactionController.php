@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\FinancialTransaction;
 use App\Models\Patient;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class FinancialTransactionController extends Controller
@@ -265,5 +267,77 @@ class FinancialTransactionController extends Controller
         $financial->logAction('reverted', $oldStatus, 'pending');
 
         return redirect()->back()->with('success', 'Pagamento estornado. Voltou para pendente.');
+    }
+
+    /**
+     * Generate a payment receipt (recibo) PDF for a paid income transaction.
+     */
+    public function receipt(FinancialTransaction $financial)
+    {
+        if ($financial->type !== 'income' || $financial->status !== 'paid') {
+            return back()->with('error', 'O recibo só está disponível para pagamentos recebidos.');
+        }
+
+        $financial->loadMissing('patient');
+
+        $patientName = $financial->patient?->name ?? 'Cliente';
+        $amount = 'R$ '.number_format((float) $financial->amount, 2, ',', '.');
+        $paidAt = ($financial->paid_at ?? $financial->date)->format('d/m/Y');
+        $code = strtoupper(substr(str_replace('-', '', $financial->id), 0, 12));
+        $description = $financial->description ?: ($financial->category ?: 'Serviços prestados');
+        $issuedAt = now()->format('d/m/Y \à\s H:i');
+
+        $html = '<!DOCTYPE html><html><head><meta charset="utf-8">
+        <style>
+            body { font-family: Arial, sans-serif; color: #1f2937; margin: 48px; font-size: 14px; }
+            .header { border-bottom: 3px solid #10b981; padding-bottom: 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-end; }
+            .brand { font-size: 24px; font-weight: bold; color: #10b981; }
+            .doc-title { font-size: 15px; font-weight: bold; color: #374151; letter-spacing: 1px; }
+            .code { text-align: right; font-size: 12px; color: #6b7280; }
+            .code strong { color: #111827; font-family: "Courier New", monospace; }
+            .amount-box { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 16px 20px; margin: 28px 0; }
+            .amount-box .label { font-size: 12px; text-transform: uppercase; color: #059669; letter-spacing: 0.5px; }
+            .amount-box .value { font-size: 30px; font-weight: bold; color: #047857; margin-top: 2px; }
+            .body-text { line-height: 1.7; margin: 20px 0; }
+            .body-text strong { color: #111827; }
+            .meta { margin-top: 24px; border-top: 1px solid #e5e7eb; padding-top: 16px; font-size: 13px; color: #4b5563; }
+            .meta div { margin-bottom: 6px; }
+            .sign { margin-top: 64px; text-align: center; }
+            .sign .line { width: 280px; border-top: 1px solid #9ca3af; margin: 0 auto 6px; }
+            .sign .name { font-size: 13px; color: #374151; }
+            .footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 11px; text-align: center; }
+        </style></head><body>';
+
+        $html .= '<div class="header">
+            <div><div class="brand">Phisio</div><div class="doc-title">RECIBO DE PAGAMENTO</div></div>
+            <div class="code">Código do pagamento<br><strong>'.$code.'</strong></div>
+        </div>';
+
+        $html .= '<div class="amount-box">
+            <div class="label">Valor recebido</div>
+            <div class="value">'.$amount.'</div>
+        </div>';
+
+        $html .= '<div class="body-text">Recebemos de <strong>'.e($patientName).'</strong> a importância de <strong>'.$amount.'</strong>, '
+            .'referente a <strong>'.e($description).'</strong>, conforme detalhado abaixo.</div>';
+
+        $html .= '<div class="meta">';
+        $html .= '<div><strong>Pagador:</strong> '.e($patientName).'</div>';
+        $html .= '<div><strong>Descrição:</strong> '.e($description).'</div>';
+        if ($financial->category) {
+            $html .= '<div><strong>Categoria:</strong> '.e($financial->category).'</div>';
+        }
+        $html .= '<div><strong>Data do pagamento:</strong> '.$paidAt.'</div>';
+        $html .= '<div><strong>Código do pagamento:</strong> '.$code.'</div>';
+        $html .= '</div>';
+
+        $html .= '<div class="sign"><div class="line"></div><div class="name">Phisio</div></div>';
+
+        $html .= '<div class="footer">Recibo gerado em '.$issuedAt.'</div>';
+        $html .= '</body></html>';
+
+        $filename = 'recibo_'.Str::slug($patientName).'_'.$code.'.pdf';
+
+        return Pdf::loadHTML($html)->download($filename);
     }
 }

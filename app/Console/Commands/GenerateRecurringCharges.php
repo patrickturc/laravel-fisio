@@ -19,32 +19,31 @@ class GenerateRecurringCharges extends Command
     public function handle(): int
     {
         $today = Carbon::today(config('app.timezone'));
-        $currentDay = $today->day;
         $daysInMonth = $today->daysInMonth;
+        $monthStart = $today->copy()->startOfMonth();
 
         $generated = 0;
 
-        // 1. Recurring Expenses — catch up any whose billing day has passed this
-        //    period and that haven't been generated yet for the current cycle.
+        // 1. Recurring Expenses — create the whole month's charge up front as
+        //    pending, dated to the month and due on its billing day. It only
+        //    turns "overdue" once the due date passes (see FinancialTransaction
+        //    scopeOverdue). One charge per cycle (recurrenceIsDue dedups).
         $recurringExpenses = RecurringExpense::where('is_active', true)->get();
 
         foreach ($recurringExpenses as $expense) {
-            $billingDay = min((int) $expense->day_of_month, $daysInMonth);
-
-            if ($billingDay > $currentDay) {
-                continue;
-            }
-
             if (! $this->recurrenceIsDue($expense->last_generated_at, $expense->recurrence ?? 'monthly', $today)) {
                 continue;
             }
 
-            DB::transaction(function () use ($expense, $today) {
+            $billingDay = min((int) $expense->day_of_month, $daysInMonth);
+            $dueDate = $today->copy()->day($billingDay);
+
+            DB::transaction(function () use ($expense, $today, $monthStart, $dueDate) {
                 FinancialTransaction::create([
                     'type' => 'expense',
                     'amount' => $expense->amount,
-                    'date' => $today->toDateString(),
-                    'due_date' => $today->toDateString(),
+                    'date' => $monthStart->toDateString(),
+                    'due_date' => $dueDate->toDateString(),
                     'description' => $expense->description,
                     'category' => $expense->category,
                     'status' => 'pending',
@@ -59,8 +58,10 @@ class GenerateRecurringCharges extends Command
 
         $this->info("Generated {$generated} recurring expense transactions.");
 
-        // 2. Membership Monthly Charges — monthly cadence keyed on billing_day,
-        //    clamped to the last day of short months, with catch-up.
+        // 2. Membership Monthly Charges — create the month's mensalidade up front
+        //    as pending, dated to the month and due on the membership's billing
+        //    day (clamped to short months). It only shows as "overdue" after the
+        //    due date. One charge per month (alreadyBilledThisMonth dedups).
         $membershipGenerated = 0;
 
         $memberships = Membership::where('status', 'active')
@@ -70,25 +71,22 @@ class GenerateRecurringCharges extends Command
             ->get();
 
         foreach ($memberships as $membership) {
-            $billingDay = min((int) $membership->billing_day, $daysInMonth);
-
-            if ($billingDay > $currentDay) {
-                continue;
-            }
-
             if ($this->alreadyBilledThisMonth($membership->last_billed_at, $today)) {
                 continue;
             }
 
+            $billingDay = min((int) $membership->billing_day, $daysInMonth);
+            $dueDate = $today->copy()->day($billingDay);
+
             $planName = $membership->commercialPlan?->name ?? $membership->plan_name ?? 'Plano';
             $patientName = $membership->patient?->name ?? 'Aluno';
 
-            DB::transaction(function () use ($membership, $today, $planName, $patientName) {
+            DB::transaction(function () use ($membership, $today, $monthStart, $dueDate, $planName, $patientName) {
                 FinancialTransaction::create([
                     'type' => 'income',
                     'amount' => $membership->price,
-                    'date' => $today->toDateString(),
-                    'due_date' => $today->toDateString(),
+                    'date' => $monthStart->toDateString(),
+                    'due_date' => $dueDate->toDateString(),
                     'description' => "Mensalidade: {$planName} — {$patientName}",
                     'category' => 'Mensalidade',
                     'status' => 'pending',
