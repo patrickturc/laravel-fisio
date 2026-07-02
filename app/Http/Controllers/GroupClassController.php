@@ -348,7 +348,14 @@ class GroupClassController extends Controller
                 $msg .= " Atenção: {$result['conflicts']} aula(s) ignorada(s) por conflito de horário do profissional.";
             }
 
-            return back()->with('success', $msg);
+            $redirect = back()->with('success', $msg);
+
+            if (! empty($result['dropped'])) {
+                $names = implode(', ', $result['dropped']);
+                $redirect->with('warning', "⚠️ A turma tem mais alunos que a capacidade ({$groupClass->max_participants}). Ficaram de fora das aulas geradas: {$names}.");
+            }
+
+            return $redirect;
         } catch (\Exception $e) {
             return back()->with('error', 'Erro ao gerar agendamentos: '.$e->getMessage());
         }
@@ -363,20 +370,31 @@ class GroupClassController extends Controller
         $endDate = Carbon::today()->addWeeks(self::HORIZON_WEEKS);
         $totalCreated = 0;
         $classes = 0;
+        $overCapacity = [];
 
         try {
-            DB::transaction(function () use ($endDate, &$totalCreated, &$classes) {
+            DB::transaction(function () use ($endDate, &$totalCreated, &$classes, &$overCapacity) {
                 GroupClass::where('status', 'active')->with(['schedules', 'patients'])->get()
-                    ->each(function (GroupClass $groupClass) use ($endDate, &$totalCreated, &$classes) {
+                    ->each(function (GroupClass $groupClass) use ($endDate, &$totalCreated, &$classes, &$overCapacity) {
                         $result = $this->generateForClass($groupClass, $endDate, false);
                         $totalCreated += $result['created'];
                         if ($result['created'] > 0) {
                             $classes++;
                         }
+                        if (! empty($result['dropped'])) {
+                            $overCapacity[] = $groupClass->name;
+                        }
                     });
             });
 
-            return back()->with('success', "✅ {$totalCreated} aulas geradas em {$classes} turma(s) (próximas ".self::HORIZON_WEEKS.' semanas).');
+            $redirect = back()->with('success', "✅ {$totalCreated} aulas geradas em {$classes} turma(s) (próximas ".self::HORIZON_WEEKS.' semanas).');
+
+            if (! empty($overCapacity)) {
+                $names = implode(', ', $overCapacity);
+                $redirect->with('warning', "⚠️ Turma(s) com mais alunos que a capacidade (alunos excedentes ficaram de fora): {$names}.");
+            }
+
+            return $redirect;
         } catch (\Exception $e) {
             return back()->with('error', 'Erro ao estender aulas: '.$e->getMessage());
         }
@@ -397,6 +415,9 @@ class GroupClassController extends Controller
 
         // Respect the class capacity: never enroll more students than max_participants.
         $patientIds = array_slice($groupClass->patients->pluck('id')->toArray(), 0, $groupClass->max_participants);
+
+        // Surface who was left out by the capacity cap instead of dropping silently.
+        $droppedNames = $groupClass->patients->slice($groupClass->max_participants)->pluck('name')->values()->toArray();
 
         $createdCount = 0;
         $deletedCount = 0;
@@ -430,13 +451,20 @@ class GroupClassController extends Controller
                     ->exists();
 
                 // Skip if the instructor already has an overlapping appointment
-                // (another class or individual session) at this time. Overlap is
-                // computed in PHP so it works on any database driver.
+                // (another class OR an individual 1:1 session) at this time.
+                // Individual sessions have a NULL group_class_id, which "!=" would
+                // silently exclude in SQL — so match those explicitly. Cancelled
+                // appointments don't block. Overlap is computed in PHP so it works
+                // on any database driver.
                 $newStart = strtotime($schedule->start_time);
                 $newEnd = $newStart + ($schedule->duration_minutes * 60);
                 $conflict = Appointment::where('appointment_date', $dateString)
                     ->where('user_id', $userId)
-                    ->where('group_class_id', '!=', $groupClass->id)
+                    ->where('status', '!=', 'cancelled')
+                    ->where(function ($q) use ($groupClass) {
+                        $q->whereNull('group_class_id')
+                            ->orWhere('group_class_id', '!=', $groupClass->id);
+                    })
                     ->get(['start_time', 'duration_minutes'])
                     ->contains(function ($other) use ($newStart, $newEnd) {
                         $otherStart = strtotime($other->start_time);
@@ -471,7 +499,7 @@ class GroupClassController extends Controller
             }
         }
 
-        return ['created' => $createdCount, 'deleted' => $deletedCount, 'conflicts' => $conflictCount];
+        return ['created' => $createdCount, 'deleted' => $deletedCount, 'conflicts' => $conflictCount, 'dropped' => $droppedNames];
     }
 
     public function updateFutureAppointments(Request $request, GroupClass $groupClass)

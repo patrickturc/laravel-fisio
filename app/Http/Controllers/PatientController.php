@@ -80,9 +80,14 @@ class PatientController extends Controller
         $patient->load([
             'appointments' => fn($q) => $q->orderBy('appointment_date', 'desc'),
             'evolutions' => fn($q) => $q->orderBy('data_atendimento', 'desc'),
-            'memberships' => fn($q) => $q->orderBy('end_date', 'desc'),
+            'memberships' => fn($q) => $q->with('commercialPlan')->orderBy('end_date', 'desc'),
             'financialTransactions' => fn($q) => $q->orderBy('date', 'desc'),
             'documents' => fn($q) => $q->orderBy('created_at', 'desc'),
+        ]);
+
+        // Expose the monthly session quota usage on each membership card.
+        $patient->memberships->each->append([
+            'monthly_allowance', 'sessions_used_this_month', 'sessions_remaining_this_month',
         ]);
 
         $today = now()->toDateString();

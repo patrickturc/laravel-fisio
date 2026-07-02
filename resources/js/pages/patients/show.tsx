@@ -64,6 +64,9 @@ interface Patient {
         end_date: string;
         price: string;
         status: string;
+        monthly_allowance?: number | null;
+        sessions_used_this_month?: number;
+        sessions_remaining_this_month?: number | null;
     }>;
     financial_transactions?: Array<{
         id: string;
@@ -493,6 +496,25 @@ export default function PatientShow({ patient, protocols = [], commercialPlans =
                                         <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                                             R$ {parseFloat(membership.price).toFixed(2).replace('.', ',')}
                                         </p>
+                                        {membership.monthly_allowance != null && (
+                                            <div className="mt-3 pt-3 border-t border-border/40">
+                                                <div className="flex items-center justify-between mb-1.5">
+                                                    <span className="text-xs text-muted-foreground">Aulas neste mês</span>
+                                                    <span className="text-xs font-semibold text-foreground">
+                                                        {membership.sessions_used_this_month} de {membership.monthly_allowance}
+                                                        {membership.sessions_remaining_this_month === 0 && (
+                                                            <span className="ml-1 text-amber-500 font-bold">• cota atingida</span>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full ${membership.sessions_remaining_this_month === 0 ? 'bg-amber-500' : 'bg-primary'}`}
+                                                        style={{ width: `${Math.min(100, ((membership.sessions_used_this_month ?? 0) / membership.monthly_allowance) * 100)}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                     </Link>
                                 ))}
                             </div>
